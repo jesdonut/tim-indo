@@ -757,12 +757,85 @@ renderSavedNames();
 
 (function() {
   if (sessionStorage.getItem('greet_gone')) return;
-  var months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  var month = months[new Date().getMonth()];
-  var joke = GREETINGS[Math.floor(Math.random() * GREETINGS.length)].replace('{month}', month);
-  document.getElementById('greetingText').textContent = 'Hi, welcome back Dimas, Jessica & Ben — ' + joke;
-  document.getElementById('greetingBar').style.display = '';
+
+  var MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus',
+                'September','Oktober','November','Desember'];
+
+  // JST (UTC+9) — works regardless of user's local timezone
+  function getJST() {
+    var d = new Date(Date.now() + 9 * 3600000);
+    var h = d.getUTCHours(), m = d.getUTCMinutes();
+    return {
+      hours: h, day: d.getUTCDay(), totalMins: h * 60 + m,
+      timeStr: ('0' + h).slice(-2) + ':' + ('0' + m).slice(-2)
+    };
+  }
+
+  function applyVars(text, jst) {
+    return text.replace('{month}', MONTHS[new Date().getMonth()]).replace('{time}', jst.timeStr);
+  }
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function show(joke) {
+    document.getElementById('greetingText').textContent =
+      'Hi, welcome back Dimas, Jessica & Ben — ' + joke;
+    document.getElementById('greetingBar').style.display = '';
+  }
+
+  var jst = getJST();
+
+  // Priority greetings override everything (e.g. meeting reminder)
+  for (var i = 0; i < GREETINGS_TIMED.length; i++) {
+    var g = GREETINGS_TIMED[i];
+    if (g.priority && g.condition(jst)) { show(applyVars(g.text, jst)); return; }
+  }
+
+  // Build applicable pools
+  var timedPool  = GREETINGS_TIMED
+    .filter(function(g) { return !g.priority && g.condition(jst); })
+    .map(function(g)   { return applyVars(g.text, jst); });
+  var staticPool = GREETINGS.map(function(t) { return applyVars(t, jst); });
+
+  // USD → IDR rate joke — cached in localStorage (1 h TTL) so only fetched once per hour
+  function getCached() {
+    try {
+      var d = JSON.parse(localStorage.getItem('gaj_rate') || 'null');
+      return (d && Date.now() - d.ts < 3600000) ? d.val : null;
+    } catch(e) { return null; }
+  }
+  function fetchRate() {
+    return fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var idr = d && d.usd && d.usd.idr;
+        if (!idr) return null;
+        var k = Math.round(idr / 100) / 10;
+        var fmt = (k % 1 === 0 ? k.toString() : k.toFixed(1)) + 'ribu';
+        var joke = 'sekarang rate-nya ' + fmt + ' jir 💸 (USD→IDR)';
+        try { localStorage.setItem('gaj_rate', JSON.stringify({ val: joke, ts: Date.now() })); } catch(e) {}
+        return joke;
+      })
+      .catch(function() { return null; });
+  }
+
+  var cached = getCached();
+  var ratePromise = cached
+    ? Promise.resolve(cached)
+    : Promise.race([
+        fetchRate(),
+        new Promise(function(res) { setTimeout(function() { res(null); }, 900); })
+      ]);
+
+  ratePromise.then(function(rateJoke) {
+    var pool = timedPool.concat(staticPool);
+    if (rateJoke) pool.push(rateJoke);
+    // Timed greetings are more contextual — favour them 60% when available
+    var joke = (timedPool.length && Math.random() < 0.6) ? pick(timedPool) : pick(pool);
+    show(joke);
+  });
 })();
+
 function dismissGreeting() {
   sessionStorage.setItem('greet_gone', '1');
   document.getElementById('greetingBar').style.display = 'none';
