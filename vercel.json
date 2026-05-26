@@ -2,10 +2,12 @@
   "version": 2,
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "translate.html", "use": "@vercel/static" }
+    { "src": "translate.html", "use": "@vercel/static" },
+    { "src": "postal.html", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/translate", "dest": "/translate.html" },
+    { "src": "/postal", "dest": "/postal.html" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
