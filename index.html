@@ -150,7 +150,27 @@ body {
   transition: color 0.15s, background 0.15s; flex-shrink: 0;
 }
 .file-remove:hover { color: #ef4444; background: #fef2f2; }
-.reorder-tip { font-size: 0.67rem; color: #93c5fd; text-align: center; padding-bottom: 4px; }
+
+/* ---- List action bar (tip + clear all) ---- */
+.list-actions {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 4px;
+}
+.list-actions.visible { display: flex; }
+.reorder-tip { font-size: 0.67rem; color: #93c5fd; }
+.clear-btn {
+  background: none;
+  border: 1px solid #bfdbfe;
+  color: #5b87c5;
+  font-size: 0.68rem;
+  padding: 3px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.clear-btn:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
 
 /* ---- Bottom bar (always visible) ---- */
 .bottom-bar {
@@ -268,7 +288,11 @@ body {
   </div>
 
   <div class="file-list" id="fileList"></div>
-  <div class="reorder-tip" id="reorderTip" style="display:none">&#8597; Drag to reorder &nbsp;&nbsp; &#8634;&#8635; Rotate before export</div>
+
+  <div class="list-actions" id="listActions">
+    <span class="reorder-tip">&#8597; Drag to reorder &nbsp; &#8634;&#8635; Rotate</span>
+    <button class="clear-btn" onclick="clearAll()">Clear all</button>
+  </div>
 </div>
 
 <div class="bottom-bar">
@@ -294,6 +318,13 @@ function toggleLang() {
   langOpen = !langOpen;
   document.getElementById('langCards').className = 'lang-cards' + (langOpen ? ' open' : '');
   document.getElementById('langArrow').className = 'lang-arrow' + (langOpen ? ' open' : '');
+}
+
+function clearAll() {
+  files = [];
+  rotations = [];
+  renderList();
+  setStatus('', '');
 }
 
 var dropZone = document.getElementById('dropZone');
@@ -341,9 +372,9 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 
 function renderList() {
   var list = document.getElementById('fileList');
-  var tip = document.getElementById('reorderTip');
+  var actions = document.getElementById('listActions');
   list.innerHTML = '';
-  tip.style.display = files.length > 0 ? 'block' : 'none';
+  actions.className = 'list-actions' + (files.length > 0 ? ' visible' : '');
 
   files.forEach(function(file, i) {
     var rot = rotations[i];
