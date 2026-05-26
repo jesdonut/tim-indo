@@ -70,7 +70,7 @@ body {
 .browse-btn:hover { background: #5050cc; }
 .file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .file-item {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 9px;
   background: #0e0e1a; border: 1px solid #20203a; border-radius: 11px;
   padding: 9px 12px; cursor: grab;
   transition: border-color 0.15s, background 0.15s, opacity 0.15s;
@@ -81,18 +81,35 @@ body {
 .file-item.dragging { opacity: 0.3; }
 .drag-handle { color: #44446a; font-size: 1rem; flex-shrink: 0; cursor: grab; line-height: 1; }
 .file-thumb {
-  width: 42px; height: 42px; border-radius: 7px; background: #18182e;
+  width: 44px; height: 44px; border-radius: 7px; background: #18182e;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem; overflow: hidden;
+  font-size: 1.3rem; overflow: hidden; position: relative;
 }
-.file-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
+.file-thumb img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 7px;
+  transform-origin: center center;
+  transition: transform 0.25s ease;
+}
+.file-thumb img.rot90  { transform: rotate(90deg)  scale(1); }
+.file-thumb img.rot180 { transform: rotate(180deg) scale(1); }
+.file-thumb img.rot270 { transform: rotate(270deg) scale(1); }
 .file-info { flex: 1; min-width: 0; }
 .file-name { font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .file-meta { font-size: 0.71rem; color: #7777aa; margin-top: 2px; }
+.rot-label { font-size: 0.65rem; color: #6655aa; margin-top: 2px; }
+.rotate-btns { display: flex; gap: 3px; flex-shrink: 0; }
+.rot-btn {
+  background: #14142a; border: 1px solid #2a2a44; color: #8888bb;
+  cursor: pointer; font-size: 1rem; width: 28px; height: 28px;
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.rot-btn:hover { color: #e8e8f2; background: #22224a; border-color: #6366f1; }
 .file-remove {
   background: none; border: none; color: #44446a; cursor: pointer;
-  font-size: 0.88rem; width: 26px; height: 26px; border-radius: 5px;
-  display: flex; align-items: center; justify-content: center;
+  font-size: 0.88rem; width: 26px; height: 26px;
+  border-radius: 5px; display: flex; align-items: center; justify-content: center;
   transition: color 0.15s, background 0.15s; flex-shrink: 0;
 }
 .file-remove:hover { color: #ef4444; background: #2a1010; }
@@ -125,10 +142,7 @@ body {
   overflow: hidden; opacity: 0; transition: opacity 0.2s;
 }
 .progress-wrap.visible { opacity: 1; }
-.progress-bar {
-  height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7);
-  width: 0%; transition: width 0.3s ease;
-}
+.progress-bar { height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7); width: 0%; transition: width 0.3s ease; }
 .status { margin-top: 11px; text-align: center; font-size: 0.81rem; color: #7777aa; min-height: 18px; }
 .status.error { color: #ef4444; }
 .status.success { color: #22c55e; }
@@ -147,53 +161,47 @@ body {
 <div class="container">
   <div class="app-title">
     <h1>PDF Builder</h1>
-    <p>Combine PDFs &amp; images into one file &mdash; your name, your order, one click</p>
+    <p>Combine PDFs &amp; images into one file &mdash; rotate, reorder, download</p>
   </div>
 
   <div class="lang-section">
     <div class="lang-section-label">How to use</div>
     <div class="lang-cards">
-
       <div class="lang-card">
         <span class="lang-flag">&#127468;&#127463;</span>
         <div>
           <div class="lang-label">English</div>
-          <div class="lang-text">Drop, paste <strong>(Ctrl+V)</strong>, or browse files. Drag rows to reorder. Enter a filename and click <strong>Download PDF</strong>.</div>
+          <div class="lang-text">Drop, paste <strong>(Ctrl+V)</strong>, or browse. Use <strong>&#8634; &#8635;</strong> to rotate before export. Drag rows to reorder. Set a name and click <strong>Download PDF</strong>.</div>
         </div>
       </div>
-
       <div class="lang-card">
         <span class="lang-flag">&#127471;&#127477;</span>
         <div>
           <div class="lang-label">&#26085;&#26412;&#35486;</div>
-          <div class="lang-text">&#12501;&#12449;&#12452;&#12523;&#12434;&#12489;&#12525;&#12483;&#12503;&#12289;<strong>Ctrl+V</strong>&#12391;&#36932;&#12426;&#20184;&#12369;&#12289;&#12414;&#12383;&#12399;&#12501;&#12449;&#12452;&#12523;&#12434;&#36984;&#12435;&#12391;&#12367;&#12384;&#12373;&#12356;&#12290;&#34180;&#12434;&#12489;&#12521;&#12483;&#12464;&#12375;&#12390;&#19006;&#12395;&#20999;&#12426;&#26367;&#12360;&#12289;&#12501;&#12449;&#12452;&#12523;&#21517;&#12434;&#20837;&#21147;&#12375;&#12390;<strong>Download PDF</strong>&#12434;&#12463;&#12522;&#12483;&#12463;&#12290;</div>
+          <div class="lang-text">&#12489;&#12525;&#12483;&#12503;&#12289;<strong>Ctrl+V</strong>&#12289;&#12414;&#12383;&#12399;&#12501;&#12449;&#12452;&#12523;&#36984;&#25246;&#12290;<strong>&#8634; &#8635;</strong>&#12391;&#20986;&#21069;&#12395;&#22238;&#36578;&#12290;&#34180;&#12434;&#12489;&#12521;&#12483;&#12464;&#12375;&#12390;&#19006;&#12395;&#20999;&#12426;&#26367;&#12360;&#12290;&#21517;&#21069;&#12434;&#20837;&#21147;&#12375;&#12390;<strong>Download PDF</strong>&#12434;&#12463;&#12522;&#12483;&#12463;&#12290;</div>
         </div>
       </div>
-
       <div class="lang-card">
         <span class="lang-flag">&#127474;&#127474;</span>
         <div>
           <div class="lang-label">&#4121;&#4156;&#4116;&#4154;&#4121;&#4140;</div>
-          <div class="lang-text">PDF, JPG &#4126;&#4140;&#4116;&#4154;&#4117;&#4116;&#4154;&#4126;&#4103; PNG &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#4126;&#4140; &#4127;&#4151;&#4150;&#4101;&#4155;&#4131;&#4145;&#4123;&#4140;&#12289; <strong>Ctrl+V</strong> &#4116;&#4154;&#4126;&#4103;&#4126;&#4154; &#4126;&#4140;&#4150;&#4149;&#4119;&#4154;&#4116;&#4154;&#4126;&#4103; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#12290; &#4100;&#4151;&#4150;&#4125;&#4150;&#4127;&#4150; &#4126;&#4140;&#4150;&#4149;&#4119;&#4154;&#4116;&#4154;&#4126;&#4103;&#4126;&#4140; &#4126;&#4140;&#4137;&#4150;&#4153;&#4123;&#4140;&#4112;&#4140;&#4116;&#4116;&#4154;&#12290; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4100;&#4121;&#4154;&#4116;&#4154; &#4126;&#4140;&#4137;&#4150;&#4153;&#4116;&#4154;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#4126;&#4140; <strong>Download PDF</strong> &#4116;&#4154;&#4126;&#4103;&#4121;&#4155;&#4126;&#4140;&#12290;</div>
+          <div class="lang-text">&#4127;&#4151;&#4150;&#4101;&#4155;&#4131;&#4145;&#4123;&#4140;&#12289; <strong>Ctrl+V</strong> &#4116;&#4154;&#4126;&#4103;&#4126;&#4154; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#12290; <strong>&#8634; &#8635;</strong> &#4126;&#4140; &#4126;&#4152;&#4126;&#4140;&#4111;&#4150;&#4118;&#4154; &#4126;&#4140;&#4119;&#4140;&#4121;&#4140;&#4118;&#4154;&#12290; &#4100;&#4151;&#4150;&#4125;&#4150;&#4127;&#4150; &#4126;&#4140;&#4150;&#4149;&#4119;&#4154;&#4116;&#4154;&#4126;&#4103;&#12290; <strong>Download PDF</strong> &#4116;&#4154;&#4126;&#4103;&#4121;&#4155;&#4126;&#4140;&#12290;</div>
         </div>
       </div>
-
       <div class="lang-card">
         <span class="lang-flag">&#127483;&#127475;</span>
         <div>
           <div class="lang-label">Ti&#7871;ng Vi&#7879;t</div>
-          <div class="lang-text">K&#233;o th&#7843;, d&#225;n <strong>(Ctrl+V)</strong>, ho&#7863;c ch&#7885;n file PDF, JPG ho&#7863;c PNG. K&#233;o &#273;&#7875; s&#7855;p x&#7871;p l&#7841;i th&#7913; t&#7921;. Nh&#7853;p t&#234;n file v&#224; nh&#7845;n <strong>Download PDF</strong>.</div>
+          <div class="lang-text">K&#233;o th&#7843;, d&#225;n <strong>(Ctrl+V)</strong>, ho&#7863;c ch&#7885;n file. D&#249;ng <strong>&#8634; &#8635;</strong> &#273;&#7875; xoay tr&#432;&#7899;c khi xu&#7845;t. K&#233;o &#273;&#7875; s&#7855;p x&#7871;p l&#7841;i. Nh&#7853;p t&#234;n v&#224; nh&#7845;n <strong>Download PDF</strong>.</div>
         </div>
       </div>
-
       <div class="lang-card">
         <span class="lang-flag">&#127470;&#127465;</span>
         <div>
           <div class="lang-label">Bahasa Indonesia</div>
-          <div class="lang-text">Seret, tempel <strong>(Ctrl+V)</strong>, atau pilih file PDF, JPG, atau PNG. Seret baris untuk mengatur urutan. Masukkan nama file dan klik <strong>Download PDF</strong>.</div>
+          <div class="lang-text">Seret, tempel <strong>(Ctrl+V)</strong>, atau pilih file. Gunakan <strong>&#8634; &#8635;</strong> untuk memutar sebelum ekspor. Seret untuk mengatur urutan. Masukkan nama lalu klik <strong>Download PDF</strong>.</div>
         </div>
       </div>
-
     </div>
   </div>
 
@@ -207,7 +215,7 @@ body {
   </div>
 
   <div class="file-list" id="fileList"></div>
-  <div class="reorder-tip" id="reorderTip" style="display:none">&#8597; Drag rows to reorder</div>
+  <div class="reorder-tip" id="reorderTip" style="display:none">&#8597; Drag to reorder &nbsp;&nbsp; &#8634;&#8635; Rotate before export</div>
 
   <div class="controls">
     <div class="filename-wrap">
@@ -223,8 +231,8 @@ body {
 
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>
-var PDFDocument = PDFLib.PDFDocument;
 var files = [];
+var rotations = [];
 var dragSrcIdx = null;
 
 var dropZone = document.getElementById('dropZone');
@@ -236,35 +244,60 @@ dropZone.addEventListener('drop', function(e) { e.preventDefault(); dropZone.cla
 fileInput.addEventListener('change', function() { addFiles(Array.from(fileInput.files)); fileInput.value = ''; });
 
 document.addEventListener('paste', function(e) {
-  var pasted = Array.from(e.clipboardData.items).filter(function(i){ return i.kind === 'file'; }).map(function(i){ return i.getAsFile(); }).filter(Boolean);
-  if (pasted.length > 0) { addFiles(pasted); dropZone.classList.add('paste-flash'); setTimeout(function(){ dropZone.classList.remove('paste-flash'); }, 500); }
+  var pasted = Array.from(e.clipboardData.items)
+    .filter(function(i) { return i.kind === 'file'; })
+    .map(function(i) { return i.getAsFile(); })
+    .filter(Boolean);
+  if (pasted.length > 0) {
+    addFiles(pasted);
+    dropZone.classList.add('paste-flash');
+    setTimeout(function() { dropZone.classList.remove('paste-flash'); }, 500);
+  }
 });
 
 function addFiles(newFiles) {
-  var allowed = ['application/pdf','image/jpeg','image/png'];
+  var allowed = ['application/pdf', 'image/jpeg', 'image/png'];
   var added = 0;
-  newFiles.forEach(function(f) { if (allowed.indexOf(f.type) >= 0) { files.push(f); added++; } });
+  newFiles.forEach(function(f) {
+    if (allowed.indexOf(f.type) >= 0) {
+      files.push(f);
+      rotations.push(0);
+      added++;
+    }
+  });
   if (added === 0 && newFiles.length > 0) setStatus('Only PDF, JPG, and PNG files are supported.', 'error');
   else setStatus('', '');
   renderList();
 }
 
-function removeFile(i) { files.splice(i, 1); renderList(); }
+function removeFile(i) {
+  files.splice(i, 1);
+  rotations.splice(i, 1);
+  renderList();
+}
+
+function rotate(i, dir) {
+  rotations[i] = (rotations[i] + dir * 90 + 360) % 360;
+  renderList();
+}
 
 function fmt(b) {
   if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
-  return (b/1048576).toFixed(1) + ' MB';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
 }
 
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 function renderList() {
   var list = document.getElementById('fileList');
   var tip = document.getElementById('reorderTip');
   list.innerHTML = '';
-  tip.style.display = files.length > 1 ? 'block' : 'none';
+  tip.style.display = files.length > 0 ? 'block' : 'none';
+
   files.forEach(function(file, i) {
+    var rot = rotations[i];
+
     var item = document.createElement('div');
     item.className = 'file-item';
     item.draggable = true;
@@ -280,33 +313,56 @@ function renderList() {
     } else {
       var img = document.createElement('img');
       img.src = URL.createObjectURL(file);
+      if (rot === 90)  img.className = 'rot90';
+      if (rot === 180) img.className = 'rot180';
+      if (rot === 270) img.className = 'rot270';
       thumb.appendChild(img);
     }
 
     var info = document.createElement('div');
     info.className = 'file-info';
     var ext = file.type === 'application/pdf' ? 'PDF' : file.type === 'image/png' ? 'PNG' : 'JPG';
-    info.innerHTML = '<div class="file-name">' + esc(file.name) + '</div><div class="file-meta">' + ext + ' &middot; ' + fmt(file.size) + '</div>';
+    var rotText = rot > 0 ? ' &mdash; ' + rot + '&deg;' : '';
+    info.innerHTML = '<div class="file-name">' + esc(file.name) + '</div><div class="file-meta">' + ext + ' &middot; ' + fmt(file.size) + rotText + '</div>';
+
+    var rotBtns = document.createElement('div');
+    rotBtns.className = 'rotate-btns';
+
+    var rotL = document.createElement('button');
+    rotL.className = 'rot-btn';
+    rotL.title = 'Rotate left 90°';
+    rotL.innerHTML = '&#8634;';
+    rotL.onclick = (function(idx) { return function(e) { e.stopPropagation(); rotate(idx, -1); }; })(i);
+
+    var rotR = document.createElement('button');
+    rotR.className = 'rot-btn';
+    rotR.title = 'Rotate right 90°';
+    rotR.innerHTML = '&#8635;';
+    rotR.onclick = (function(idx) { return function(e) { e.stopPropagation(); rotate(idx, 1); }; })(i);
+
+    rotBtns.appendChild(rotL);
+    rotBtns.appendChild(rotR);
 
     var rm = document.createElement('button');
     rm.className = 'file-remove';
     rm.innerHTML = '&#10005;';
-    rm.onclick = function(e) { e.stopPropagation(); removeFile(i); };
+    rm.onclick = (function(idx) { return function(e) { e.stopPropagation(); removeFile(idx); }; })(i);
 
     item.appendChild(handle);
     item.appendChild(thumb);
     item.appendChild(info);
+    item.appendChild(rotBtns);
     item.appendChild(rm);
     list.appendChild(item);
 
     item.addEventListener('dragstart', function(e) {
       dragSrcIdx = i;
-      setTimeout(function(){ item.classList.add('dragging'); }, 0);
+      setTimeout(function() { item.classList.add('dragging'); }, 0);
       e.dataTransfer.effectAllowed = 'move';
     });
     item.addEventListener('dragend', function() {
       item.classList.remove('dragging');
-      Array.from(list.querySelectorAll('.file-item')).forEach(function(el){ el.classList.remove('drag-over'); });
+      Array.from(list.querySelectorAll('.file-item')).forEach(function(el) { el.classList.remove('drag-over'); });
     });
     item.addEventListener('dragover', function(e) { e.preventDefault(); item.classList.add('drag-over'); });
     item.addEventListener('dragleave', function() { item.classList.remove('drag-over'); });
@@ -314,8 +370,10 @@ function renderList() {
       e.preventDefault(); e.stopPropagation();
       item.classList.remove('drag-over');
       if (dragSrcIdx !== null && dragSrcIdx !== i) {
-        var moved = files.splice(dragSrcIdx, 1)[0];
-        files.splice(i, 0, moved);
+        var mf = files.splice(dragSrcIdx, 1)[0];
+        var mr = rotations.splice(dragSrcIdx, 1)[0];
+        files.splice(i, 0, mf);
+        rotations.splice(i, 0, mr);
         dragSrcIdx = null;
         renderList();
       }
@@ -323,9 +381,31 @@ function renderList() {
   });
 }
 
+function rotateImageBytes(file, rotation) {
+  return new Promise(function(resolve) {
+    if (rotation === 0) { file.arrayBuffer().then(resolve); return; }
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function() {
+      var swap = (rotation === 90 || rotation === 270);
+      var canvas = document.createElement('canvas');
+      canvas.width  = swap ? img.naturalHeight : img.naturalWidth;
+      canvas.height = swap ? img.naturalWidth  : img.naturalHeight;
+      var ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      URL.revokeObjectURL(url);
+      var mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      canvas.toBlob(function(blob) { blob.arrayBuffer().then(resolve); }, mime, 0.95);
+    };
+    img.src = url;
+  });
+}
+
 function setProgress(pct) {
   var wrap = document.getElementById('progressWrap');
-  var bar = document.getElementById('progressBar');
+  var bar  = document.getElementById('progressBar');
   if (pct < 0) { wrap.classList.remove('visible'); bar.style.width = '0%'; return; }
   wrap.classList.add('visible');
   bar.style.width = pct + '%';
@@ -345,30 +425,41 @@ function handleDownload() {
   setStatus('Processing files...', '');
   setProgress(5);
 
-  PDFDocument.create().then(function(pdfDoc) {
+  PDFLib.PDFDocument.create().then(function(pdfDoc) {
     var chain = Promise.resolve();
     files.forEach(function(file, idx) {
       chain = chain.then(function() {
         setProgress(10 + Math.round((idx / files.length) * 80));
-        return file.arrayBuffer().then(function(bytes) {
-          if (file.type === 'application/pdf') {
-            return PDFDocument.load(bytes).then(function(srcDoc) {
+        var rot = rotations[idx];
+        if (file.type === 'application/pdf') {
+          return file.arrayBuffer().then(function(bytes) {
+            return PDFLib.PDFDocument.load(bytes).then(function(srcDoc) {
               return pdfDoc.copyPages(srcDoc, srcDoc.getPageIndices()).then(function(pages) {
-                pages.forEach(function(p){ pdfDoc.addPage(p); });
+                pages.forEach(function(p) {
+                  if (rot !== 0) {
+                    var cur = p.getRotation().angle;
+                    p.setRotation(PDFLib.degrees((cur + rot) % 360));
+                  }
+                  pdfDoc.addPage(p);
+                });
               });
             });
-          } else {
-            var embedFn = file.type === 'image/png' ? pdfDoc.embedPng.bind(pdfDoc) : pdfDoc.embedJpg.bind(pdfDoc);
+          });
+        } else {
+          return rotateImageBytes(file, rot).then(function(bytes) {
+            var embedFn = file.type === 'image/png'
+              ? pdfDoc.embedPng.bind(pdfDoc)
+              : pdfDoc.embedJpg.bind(pdfDoc);
             return embedFn(bytes).then(function(img) {
               var maxW = 595, maxH = 842;
               var w = img.width, h = img.height;
-              var scale = Math.min(1, maxW/w, maxH/h);
-              w = Math.round(w*scale); h = Math.round(h*scale);
+              var scale = Math.min(1, maxW / w, maxH / h);
+              w = Math.round(w * scale); h = Math.round(h * scale);
               var page = pdfDoc.addPage([w, h]);
-              page.drawImage(img, { x:0, y:0, width:w, height:h });
+              page.drawImage(img, { x: 0, y: 0, width: w, height: h });
             });
-          }
-        });
+          });
+        }
       });
     });
     return chain.then(function() { return pdfDoc.save(); });
@@ -381,10 +472,10 @@ function handleDownload() {
     var a = document.createElement('a');
     a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
     setProgress(100);
     setStatus('Downloaded “' + name + '”', 'success');
-    setTimeout(function(){ setProgress(-1); }, 1800);
+    setTimeout(function() { setProgress(-1); }, 1800);
   }).catch(function(err) {
     console.error(err);
     setStatus('Error: ' + err.message, 'error');
