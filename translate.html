@@ -164,6 +164,9 @@ body {
     <a class="nav-tab active" href="/translate">
       <span class="material-icons-outlined">translate</span> Translate
     </a>
+    <a class="nav-tab" href="/postal">
+      <span class="material-icons-outlined">local_post_office</span> Postal
+    </a>
   </div>
 </nav>
 
@@ -247,7 +250,6 @@ function googleTranslate(text, tl, withRomaji) {
     .then(function(data) {
       var translation = '', romaji = '';
       if (data && Array.isArray(data.sentences)) {
-        // dj=1 format: { sentences: [{trans, orig, src_translit, translit}] }
         data.sentences.forEach(function(seg) {
           if (seg.trans) translation += seg.trans;
           if (withRomaji) {
@@ -256,7 +258,6 @@ function googleTranslate(text, tl, withRomaji) {
           }
         });
       } else if (data && Array.isArray(data[0])) {
-        // Fallback: array format
         data[0].forEach(function(seg) {
           if (seg[0]) translation += seg[0];
           if (withRomaji) {
