@@ -3,14 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF Builder — Grasp Agent Japan</title>
+<title>Indonesian Team PDF Merger</title>
 <style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fef3f6;
+  --text: #5c1a2e;
+  --primary: #c2185b;
+  --primary-2: #d81b60;
+  --primary-hover: #b5355e;
+  --primary-dark: #880e4f;
+  --light: #fde8ef;
+  --mid: #fcd5e3;
+  --border: #f4a8c2;
+  --border-soft: #f9c5d5;
+  --muted: #b07090;
+  --accent: #e05080;
+  --brand-bg: #c2185b;
+  --brand-sub: #f9c5d5;
+  --input-bg: #fff5f8;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
-  background: #f0f6ff;
-  color: #1e3a5f;
+  background: var(--bg);
+  color: var(--text);
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
@@ -21,16 +56,34 @@ body {
 /* ---- Brand bar ---- */
 .brand-bar {
   flex-shrink: 0;
-  background: #1d4ed8;
+  background: var(--brand-bg);
   padding: 11px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   justify-content: center;
+  position: relative;
 }
 .brand-logo { font-size: 1.5rem; }
 .brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
-.brand-ja { font-size: 0.67rem; color: #bfdbfe; margin-top: 1px; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.35);
+  color: #fff;
+  border-radius: 20px;
+  padding: 4px 11px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
 
 /* ---- Scrollable middle ---- */
 .mid {
@@ -45,16 +98,16 @@ body {
 }
 
 .app-title { text-align: center; }
-.app-title h1 { font-size: 1.3rem; font-weight: 700; color: #1d4ed8; margin-bottom: 2px; }
-.app-title p { color: #5b87c5; font-size: 0.76rem; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
 
 /* ---- Language accordion ---- */
 .lang-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #dbeafe;
-  border: 1px solid #93c5fd;
+  background: var(--mid);
+  border: 1px solid var(--border-soft);
   border-radius: 9px;
   padding: 8px 13px;
   cursor: pointer;
@@ -62,25 +115,25 @@ body {
 }
 .lang-toggle-left { display: flex; align-items: center; gap: 8px; }
 .lang-flags { font-size: 0.95rem; letter-spacing: 1px; }
-.lang-toggle-label { font-size: 0.78rem; font-weight: 600; color: #1d4ed8; }
-.lang-arrow { font-size: 0.65rem; color: #3b82f6; transition: transform 0.2s; }
+.lang-toggle-label { font-size: 0.78rem; font-weight: 600; color: var(--primary); }
+.lang-arrow { font-size: 0.65rem; color: var(--accent); transition: transform 0.2s; }
 .lang-arrow.open { transform: rotate(180deg); }
 
 .lang-cards { display: none; flex-direction: column; gap: 4px; margin-top: 5px; }
 .lang-cards.open { display: flex; }
 .lang-card {
   display: flex; align-items: flex-start; gap: 9px;
-  background: #eff6ff; border: 1px solid #bfdbfe;
+  background: var(--light); border: 1px solid var(--border);
   border-radius: 8px; padding: 8px 12px;
 }
 .lang-flag { font-size: 1.1rem; flex-shrink: 0; line-height: 1.4; }
-.lang-label { font-size: 0.63rem; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
-.lang-text { font-size: 0.78rem; color: #1e3a5f; line-height: 1.5; }
-.lang-text strong { color: #1d4ed8; }
+.lang-label { font-size: 0.63rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.lang-text { font-size: 0.78rem; color: var(--text); line-height: 1.5; }
+.lang-text strong { color: var(--primary); }
 
 /* ---- Drop zone ---- */
 .drop-zone {
-  border: 2px dashed #93c5fd;
+  border: 2px dashed var(--border-soft);
   border-radius: 14px;
   padding: 22px 16px;
   text-align: center;
@@ -89,41 +142,41 @@ body {
   transition: border-color 0.2s, background 0.2s;
   flex-shrink: 0;
 }
-.drop-zone:hover { border-color: #2563eb; background: #eff6ff; }
-.drop-zone.dragover { border-color: #1d4ed8; background: #dbeafe; }
+.drop-zone:hover { border-color: var(--primary-2); background: var(--light); }
+.drop-zone.dragover { border-color: var(--primary); background: var(--mid); }
 .drop-zone.paste-flash { border-color: #16a34a; background: #f0fdf4; transition: none; }
 .drop-icon { font-size: 1.9rem; display: block; margin-bottom: 7px; }
-.drop-zone h2 { font-size: 0.92rem; font-weight: 600; color: #1e3a5f; margin-bottom: 3px; }
-.drop-sub { color: #5b87c5; font-size: 0.74rem; margin-bottom: 6px; }
+.drop-zone h2 { font-size: 0.92rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.drop-sub { color: var(--muted); font-size: 0.74rem; margin-bottom: 6px; }
 .paste-badge {
-  display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe;
-  border-radius: 5px; padding: 2px 8px; font-size: 0.68rem; color: #3b82f6;
+  display: inline-block; background: var(--light); border: 1px solid var(--border);
+  border-radius: 5px; padding: 2px 8px; font-size: 0.68rem; color: var(--accent);
   margin-bottom: 10px; font-family: monospace;
 }
 .browse-btn {
-  display: inline-block; padding: 7px 18px; background: #2563eb;
+  display: inline-block; padding: 7px 18px; background: var(--primary-2);
   color: #fff; border-radius: 7px; font-size: 0.8rem; font-weight: 500;
   cursor: pointer; transition: background 0.2s;
 }
-.browse-btn:hover { background: #1d4ed8; }
+.browse-btn:hover { background: var(--primary-hover); }
 
 /* ---- File list ---- */
 .file-list { display: flex; flex-direction: column; gap: 5px; }
 .file-item {
   display: flex; align-items: center; gap: 8px;
-  background: #fff; border: 1px solid #bfdbfe; border-radius: 10px;
+  background: #fff; border: 1px solid var(--border); border-radius: 10px;
   padding: 7px 10px; cursor: grab;
   transition: border-color 0.15s, background 0.15s, opacity 0.15s;
   user-select: none;
 }
 .file-item:active { cursor: grabbing; }
-.file-item.drag-over { border-color: #2563eb; background: #eff6ff; }
+.file-item.drag-over { border-color: var(--primary-2); background: var(--light); }
 .file-item.dragging { opacity: 0.3; }
-.drag-handle { color: #93c5fd; font-size: 0.9rem; flex-shrink: 0; line-height: 1; }
+.drag-handle { color: var(--border-soft); font-size: 0.9rem; flex-shrink: 0; line-height: 1; }
 
 /* ---- Thumbnail (50px) ---- */
 .file-thumb {
-  width: 50px; height: 50px; border-radius: 7px; background: #eff6ff;
+  width: 50px; height: 50px; border-radius: 7px; background: var(--light);
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   font-size: 1.4rem; overflow: hidden; cursor: default;
 }
@@ -143,9 +196,9 @@ body {
   width: 200px;
   height: 200px;
   background: #fff;
-  border: 1.5px solid #93c5fd;
+  border: 1.5px solid var(--border-soft);
   border-radius: 12px;
-  box-shadow: 0 6px 28px rgba(30,58,95,0.18);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.14);
   overflow: hidden;
   pointer-events: none;
 }
@@ -158,18 +211,18 @@ body {
 #imgPreview img.rot270 { transform: rotate(270deg) scale(0.9); }
 
 .file-info { flex: 1; min-width: 0; }
-.file-name { font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1e3a5f; }
-.file-meta { font-size: 0.66rem; color: #5b87c5; margin-top: 1px; }
+.file-name { font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.file-meta { font-size: 0.66rem; color: var(--muted); margin-top: 1px; }
 .rotate-btns { display: flex; gap: 2px; flex-shrink: 0; }
 .rot-btn {
-  background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb;
+  background: var(--light); border: 1px solid var(--border); color: var(--primary-2);
   cursor: pointer; font-size: 1rem; width: 26px; height: 26px;
   border-radius: 5px; display: flex; align-items: center; justify-content: center;
   transition: background 0.15s, border-color 0.15s; flex-shrink: 0;
 }
-.rot-btn:hover { background: #dbeafe; border-color: #93c5fd; }
+.rot-btn:hover { background: var(--mid); border-color: var(--border-soft); }
 .file-remove {
-  background: none; border: none; color: #bfdbfe; cursor: pointer;
+  background: none; border: none; color: var(--border); cursor: pointer;
   font-size: 0.82rem; width: 24px; height: 24px; border-radius: 4px;
   display: flex; align-items: center; justify-content: center;
   transition: color 0.15s, background 0.15s; flex-shrink: 0;
@@ -184,9 +237,9 @@ body {
   padding-bottom: 4px;
 }
 .list-actions.visible { display: flex; }
-.reorder-tip { font-size: 0.67rem; color: #93c5fd; }
+.reorder-tip { font-size: 0.67rem; color: var(--border-soft); }
 .clear-btn {
-  background: none; border: 1px solid #bfdbfe; color: #5b87c5;
+  background: none; border: 1px solid var(--border); color: var(--muted);
   font-size: 0.68rem; padding: 3px 10px; border-radius: 5px;
   cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
@@ -196,7 +249,7 @@ body {
 .bottom-bar {
   flex-shrink: 0;
   background: #fff;
-  border-top: 1px solid #bfdbfe;
+  border-top: 1px solid var(--border);
   padding: 8px 16px 12px;
   display: flex;
   flex-direction: column;
@@ -207,21 +260,21 @@ body {
 .saved-section { display: none; flex-direction: column; gap: 4px; }
 .saved-section.visible { display: flex; }
 .saved-header { display: flex; align-items: center; justify-content: space-between; }
-.saved-label { font-size: 0.65rem; font-weight: 600; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.07em; }
+.saved-label { font-size: 0.65rem; font-weight: 600; color: var(--border-soft); text-transform: uppercase; letter-spacing: 0.07em; }
 .saved-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .saved-chip {
   display: flex; align-items: center;
-  background: #eff6ff; border: 1px solid #bfdbfe;
+  background: var(--light); border: 1px solid var(--border);
   border-radius: 6px; max-width: 100%; overflow: hidden;
 }
 .saved-chip-name {
-  padding: 4px 2px 4px 9px; font-size: 0.72rem; color: #1d4ed8;
+  padding: 4px 2px 4px 9px; font-size: 0.72rem; color: var(--primary);
   cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   max-width: 260px; transition: color 0.15s;
 }
-.saved-chip-name:hover { color: #1e40af; text-decoration: underline; }
+.saved-chip-name:hover { color: var(--primary-dark); text-decoration: underline; }
 .saved-chip-del {
-  padding: 4px 7px 4px 4px; font-size: 0.65rem; color: #bfdbfe;
+  padding: 4px 7px 4px 4px; font-size: 0.65rem; color: var(--border);
   cursor: pointer; flex-shrink: 0; transition: color 0.15s;
 }
 .saved-chip-del:hover { color: #ef4444; }
@@ -231,17 +284,17 @@ body {
 .filename-wrap { flex: 1; position: relative; }
 .ext-label {
   position: absolute; right: 10px; top: 50%;
-  transform: translateY(-50%); color: #93c5fd; font-size: 0.72rem; pointer-events: none;
+  transform: translateY(-50%); color: var(--border-soft); font-size: 0.72rem; pointer-events: none;
 }
 .filename-input {
-  width: 100%; background: #f8faff; border: 1px solid #bfdbfe;
-  color: #1e3a5f; border-radius: 8px; padding: 10px 36px 10px 12px;
+  width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+  color: var(--text); border-radius: 8px; padding: 10px 36px 10px 12px;
   font-size: 0.88rem; outline: none; transition: border-color 0.2s;
 }
-.filename-input:focus { border-color: #2563eb; }
-.filename-input::placeholder { color: #93c5fd; }
+.filename-input:focus { border-color: var(--primary-2); }
+.filename-input::placeholder { color: var(--border-soft); }
 .save-name-btn {
-  background: #f8faff; border: 1px solid #bfdbfe; color: #bfdbfe;
+  background: var(--input-bg); border: 1px solid var(--border); color: var(--border);
   width: 38px; border-radius: 8px; cursor: pointer; font-size: 1.1rem;
   display: flex; align-items: center; justify-content: center;
   transition: color 0.15s, border-color 0.15s, background 0.15s; flex-shrink: 0;
@@ -249,21 +302,21 @@ body {
 .save-name-btn:hover { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
 .save-name-btn.flash { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
 .download-btn {
-  padding: 10px 16px; background: #2563eb;
+  padding: 10px 16px; background: var(--primary-2);
   color: #fff; border: none; border-radius: 8px;
   font-size: 0.88rem; font-weight: 600; cursor: pointer; white-space: nowrap;
   transition: background 0.2s, transform 0.1s;
 }
-.download-btn:hover { background: #1d4ed8; }
+.download-btn:hover { background: var(--primary-hover); }
 .download-btn:active { transform: scale(0.97); }
 .download-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 .progress-wrap {
-  height: 3px; background: #bfdbfe; border-radius: 2px; overflow: hidden;
+  height: 3px; background: var(--border); border-radius: 2px; overflow: hidden;
   opacity: 0; transition: opacity 0.2s;
 }
 .progress-wrap.visible { opacity: 1; }
-.progress-bar { height: 100%; background: #2563eb; width: 0%; transition: width 0.3s ease; }
-.status { text-align: center; font-size: 0.74rem; color: #5b87c5; min-height: 16px; }
+.progress-bar { height: 100%; background: var(--primary-2); width: 0%; transition: width 0.3s ease; }
+.status { text-align: center; font-size: 0.74rem; color: var(--muted); min-height: 16px; }
 .status.error { color: #ef4444; }
 .status.success { color: #16a34a; }
 </style>
@@ -276,11 +329,12 @@ body {
     <div class="brand-name">Grasp Agent Japan</div>
     <div class="brand-ja">&#12464;&#12521;&#12473;&#12503;&#12456;&#12540;&#12472;&#12455;&#12531;&#12488;&#12472;&#12515;&#12497;&#12531;</div>
   </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#127800; Pink</button>
 </div>
 
 <div class="mid">
   <div class="app-title">
-    <h1>PDF Builder</h1>
+    <h1>Indonesian Team PDF Merger</h1>
     <p>Combine PDFs &amp; images &mdash; rotate, reorder, download</p>
   </div>
 
@@ -377,9 +431,23 @@ var rotations = [];
 var dragSrcIdx = null;
 var langOpen = false;
 var STORAGE_KEY = 'gaj_pdf_saved_names';
+var THEME_KEY   = 'gaj_theme';
 
 var imgPreview    = document.getElementById('imgPreview');
 var imgPreviewImg = document.getElementById('imgPreviewImg');
+
+/* ---- Theme toggle ---- */
+function toggleTheme() {
+  var isPink = document.body.classList.toggle('pink');
+  localStorage.setItem(THEME_KEY, isPink ? 'pink' : 'blue');
+  document.getElementById('themeToggle').innerHTML = isPink ? '&#128153; Blue' : '&#127800; Pink';
+}
+(function() {
+  if (localStorage.getItem(THEME_KEY) === 'pink') {
+    document.body.classList.add('pink');
+    document.getElementById('themeToggle').innerHTML = '&#128153; Blue';
+  }
+})();
 
 function showPreview(src, rotClass, e) {
   imgPreviewImg.src = src;
@@ -434,7 +502,7 @@ function loadSavedName(name) {
   document.getElementById('filenameInput').focus();
 }
 function renderSavedNames() {
-  var names = getSavedNames();
+  var names   = getSavedNames();
   var section = document.getElementById('savedSection');
   var chips   = document.getElementById('savedChips');
   section.className = 'saved-section' + (names.length > 0 ? ' visible' : '');
@@ -488,9 +556,9 @@ function addFiles(newFiles) {
   renderList();
 }
 
-function clearAll()   { files = []; rotations = []; renderList(); setStatus('', ''); }
-function removeFile(i){ files.splice(i,1); rotations.splice(i,1); renderList(); }
-function rotate(i,dir){ rotations[i]=(rotations[i]+dir*90+360)%360; renderList(); }
+function clearAll()    { files = []; rotations = []; renderList(); setStatus('', ''); }
+function removeFile(i) { files.splice(i,1); rotations.splice(i,1); renderList(); }
+function rotate(i,dir) { rotations[i]=(rotations[i]+dir*90+360)%360; renderList(); }
 
 function fmt(b) {
   if (b<1024) return b+' B';
@@ -528,7 +596,6 @@ function renderList() {
       if (rotClass) imgEl.className = rotClass;
       thumb.appendChild(imgEl);
 
-      /* hover preview */
       (function(src, rc) {
         thumb.addEventListener('mouseenter', function(e) { showPreview(src, rc, e); });
         thumb.addEventListener('mousemove',  function(e) { movePreview(e); });
@@ -665,7 +732,7 @@ function handleDownload() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function(){ URL.revokeObjectURL(url); },5000);
     setProgress(100);
-    setStatus('Downloaded “'+name+'”','success');
+    setStatus('Downloaded "'+name+'"','success');
     setTimeout(function(){ setProgress(-1); },1800);
   }).catch(function(err) {
     console.error(err); setStatus('Error: '+err.message,'error'); setProgress(-1);
