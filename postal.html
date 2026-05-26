@@ -337,6 +337,10 @@ var detectPill  = document.getElementById('detectPill');
 var searchIcon  = document.getElementById('searchIcon');
 
 searchInput.addEventListener('input', function() {
+  // Normalize full-width digits/spaces (from Japanese IME) to half-width first
+  var normalized = searchInput.value.normalize('NFKC');
+  if (normalized !== searchInput.value) searchInput.value = normalized;
+
   var val = searchInput.value;
   if (!val) {
     detectPill.className = 'detect-pill';
