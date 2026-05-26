@@ -6,146 +6,193 @@
 <title>PDF Builder — Grasp Agent Japan</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
-  background: #0a0a12;
-  color: #e8e8f2;
-  min-height: 100vh;
+  background: #f0f6ff;
+  color: #1e3a5f;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
+
+/* ---- Brand bar ---- */
 .brand-bar {
-  width: 100%;
-  background: linear-gradient(135deg, #1c0540, #0e0e28);
-  border-bottom: 1px solid #2d1a5e;
-  padding: 18px 28px;
+  flex-shrink: 0;
+  background: #1d4ed8;
+  padding: 11px 20px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   justify-content: center;
 }
-.brand-logo { font-size: 2rem; }
-.brand-name { font-size: 1.15rem; font-weight: 700; color: #fff; }
-.brand-ja { font-size: 0.76rem; color: #9977cc; margin-top: 2px; }
-.container { width: 100%; max-width: 700px; padding: 38px 20px 80px; }
-.app-title { text-align: center; margin-bottom: 30px; }
-.app-title h1 {
-  font-size: 1.85rem; font-weight: 700;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  margin-bottom: 6px;
+.brand-logo { font-size: 1.5rem; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: #bfdbfe; margin-top: 1px; }
+
+/* ---- Scrollable middle ---- */
+.mid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 16px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.app-title p { color: #7777aa; font-size: 0.87rem; }
-.lang-section { margin-bottom: 28px; }
-.lang-section-label { font-size: 0.7rem; font-weight: 700; color: #6655aa; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 9px; }
-.lang-cards { display: flex; flex-direction: column; gap: 5px; }
-.lang-card { display: flex; align-items: flex-start; gap: 10px; background: #10101c; border: 1px solid #1d1d32; border-radius: 10px; padding: 10px 14px; }
-.lang-flag { font-size: 1.25rem; flex-shrink: 0; line-height: 1.45; }
-.lang-label { font-size: 0.68rem; font-weight: 700; color: #7755bb; letter-spacing: 0.06em; margin-bottom: 3px; text-transform: uppercase; }
-.lang-text { font-size: 0.83rem; color: #ccccee; line-height: 1.55; }
-.lang-text strong { color: #a89af7; }
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.3rem; font-weight: 700; color: #1d4ed8; margin-bottom: 2px; }
+.app-title p { color: #5b87c5; font-size: 0.76rem; }
+
+/* ---- Language accordion ---- */
+.lang-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  border-radius: 9px;
+  padding: 8px 13px;
+  cursor: pointer;
+  user-select: none;
+}
+.lang-toggle-left { display: flex; align-items: center; gap: 8px; }
+.lang-flags { font-size: 0.95rem; letter-spacing: 1px; }
+.lang-toggle-label { font-size: 0.78rem; font-weight: 600; color: #1d4ed8; }
+.lang-arrow { font-size: 0.65rem; color: #3b82f6; transition: transform 0.2s; }
+.lang-arrow.open { transform: rotate(180deg); }
+
+.lang-cards { display: none; flex-direction: column; gap: 4px; margin-top: 5px; }
+.lang-cards.open { display: flex; }
+.lang-card {
+  display: flex; align-items: flex-start; gap: 9px;
+  background: #eff6ff; border: 1px solid #bfdbfe;
+  border-radius: 8px; padding: 8px 12px;
+}
+.lang-flag { font-size: 1.1rem; flex-shrink: 0; line-height: 1.4; }
+.lang-label { font-size: 0.63rem; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.lang-text { font-size: 0.78rem; color: #1e3a5f; line-height: 1.5; }
+.lang-text strong { color: #1d4ed8; }
+
+/* ---- Drop zone ---- */
 .drop-zone {
-  border: 2px dashed #28284a; border-radius: 16px; padding: 42px 24px;
-  text-align: center; cursor: pointer;
+  border: 2px dashed #93c5fd;
+  border-radius: 14px;
+  padding: 22px 16px;
+  text-align: center;
+  cursor: pointer;
+  background: #fff;
   transition: border-color 0.2s, background 0.2s;
-  background: #0e0e1a; margin-bottom: 14px;
+  flex-shrink: 0;
 }
-.drop-zone:hover { border-color: #6366f1; background: #13132a; }
-.drop-zone.dragover { border-color: #a855f7; background: #14102e; }
-.drop-zone.paste-flash { border-color: #22c55e; background: #0d1f14; transition: none; }
-.drop-icon { font-size: 2.4rem; display: block; margin-bottom: 12px; }
-.drop-zone h2 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
-.drop-sub { color: #7777aa; font-size: 0.8rem; margin-bottom: 10px; }
+.drop-zone:hover { border-color: #2563eb; background: #eff6ff; }
+.drop-zone.dragover { border-color: #1d4ed8; background: #dbeafe; }
+.drop-zone.paste-flash { border-color: #16a34a; background: #f0fdf4; transition: none; }
+.drop-icon { font-size: 1.9rem; display: block; margin-bottom: 7px; }
+.drop-zone h2 { font-size: 0.92rem; font-weight: 600; color: #1e3a5f; margin-bottom: 3px; }
+.drop-sub { color: #5b87c5; font-size: 0.74rem; margin-bottom: 6px; }
 .paste-badge {
-  display: inline-block; background: #18182e; border: 1px solid #2e2e50;
-  border-radius: 6px; padding: 3px 11px; font-size: 0.74rem; color: #8888bb;
-  margin-bottom: 16px; font-family: monospace;
+  display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe;
+  border-radius: 5px; padding: 2px 8px; font-size: 0.68rem; color: #3b82f6;
+  margin-bottom: 10px; font-family: monospace;
 }
 .browse-btn {
-  display: inline-block; padding: 9px 22px; background: #6366f1;
-  color: #fff; border-radius: 8px; font-size: 0.84rem; font-weight: 500;
+  display: inline-block; padding: 7px 18px; background: #2563eb;
+  color: #fff; border-radius: 7px; font-size: 0.8rem; font-weight: 500;
   cursor: pointer; transition: background 0.2s;
 }
-.browse-btn:hover { background: #5050cc; }
-.file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.browse-btn:hover { background: #1d4ed8; }
+
+/* ---- File list ---- */
+.file-list { display: flex; flex-direction: column; gap: 5px; }
 .file-item {
-  display: flex; align-items: center; gap: 9px;
-  background: #0e0e1a; border: 1px solid #20203a; border-radius: 11px;
-  padding: 9px 12px; cursor: grab;
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid #bfdbfe; border-radius: 10px;
+  padding: 7px 10px; cursor: grab;
   transition: border-color 0.15s, background 0.15s, opacity 0.15s;
   user-select: none;
 }
 .file-item:active { cursor: grabbing; }
-.file-item.drag-over { border-color: #6366f1; background: #13132a; }
+.file-item.drag-over { border-color: #2563eb; background: #eff6ff; }
 .file-item.dragging { opacity: 0.3; }
-.drag-handle { color: #44446a; font-size: 1rem; flex-shrink: 0; cursor: grab; line-height: 1; }
+.drag-handle { color: #93c5fd; font-size: 0.9rem; flex-shrink: 0; line-height: 1; }
 .file-thumb {
-  width: 44px; height: 44px; border-radius: 7px; background: #18182e;
+  width: 38px; height: 38px; border-radius: 6px; background: #eff6ff;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem; overflow: hidden; position: relative;
+  font-size: 1.2rem; overflow: hidden;
 }
 .file-thumb img {
-  width: 100%; height: 100%; object-fit: cover; border-radius: 7px;
-  transform-origin: center center;
-  transition: transform 0.25s ease;
+  width: 100%; height: 100%; object-fit: cover; border-radius: 6px;
+  transform-origin: center; transition: transform 0.25s ease;
 }
-.file-thumb img.rot90  { transform: rotate(90deg)  scale(1); }
-.file-thumb img.rot180 { transform: rotate(180deg) scale(1); }
-.file-thumb img.rot270 { transform: rotate(270deg) scale(1); }
+.file-thumb img.rot90  { transform: rotate(90deg); }
+.file-thumb img.rot180 { transform: rotate(180deg); }
+.file-thumb img.rot270 { transform: rotate(270deg); }
 .file-info { flex: 1; min-width: 0; }
-.file-name { font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.file-meta { font-size: 0.71rem; color: #7777aa; margin-top: 2px; }
-.rot-label { font-size: 0.65rem; color: #6655aa; margin-top: 2px; }
-.rotate-btns { display: flex; gap: 3px; flex-shrink: 0; }
+.file-name { font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1e3a5f; }
+.file-meta { font-size: 0.66rem; color: #5b87c5; margin-top: 1px; }
+.rotate-btns { display: flex; gap: 2px; flex-shrink: 0; }
 .rot-btn {
-  background: #14142a; border: 1px solid #2a2a44; color: #8888bb;
-  cursor: pointer; font-size: 1rem; width: 28px; height: 28px;
-  border-radius: 6px; display: flex; align-items: center; justify-content: center;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-}
-.rot-btn:hover { color: #e8e8f2; background: #22224a; border-color: #6366f1; }
-.file-remove {
-  background: none; border: none; color: #44446a; cursor: pointer;
-  font-size: 0.88rem; width: 26px; height: 26px;
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb;
+  cursor: pointer; font-size: 1rem; width: 26px; height: 26px;
   border-radius: 5px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s; flex-shrink: 0;
+}
+.rot-btn:hover { background: #dbeafe; border-color: #93c5fd; }
+.file-remove {
+  background: none; border: none; color: #bfdbfe; cursor: pointer;
+  font-size: 0.82rem; width: 24px; height: 24px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
   transition: color 0.15s, background 0.15s; flex-shrink: 0;
 }
-.file-remove:hover { color: #ef4444; background: #2a1010; }
-.reorder-tip { font-size: 0.72rem; color: #44446a; text-align: center; margin-bottom: 16px; }
-.controls { display: flex; gap: 10px; align-items: stretch; }
+.file-remove:hover { color: #ef4444; background: #fef2f2; }
+.reorder-tip { font-size: 0.67rem; color: #93c5fd; text-align: center; padding-bottom: 4px; }
+
+/* ---- Bottom bar (always visible) ---- */
+.bottom-bar {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #bfdbfe;
+  padding: 10px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.controls { display: flex; gap: 8px; align-items: stretch; }
 .filename-wrap { flex: 1; position: relative; }
-.filename-wrap .ext-label {
-  position: absolute; right: 13px; top: 50%;
-  transform: translateY(-50%); color: #55557a; font-size: 0.78rem; pointer-events: none;
+.ext-label {
+  position: absolute; right: 10px; top: 50%;
+  transform: translateY(-50%); color: #93c5fd; font-size: 0.72rem; pointer-events: none;
 }
 .filename-input {
-  width: 100%; background: #0e0e1a; border: 1px solid #20203a;
-  color: #e8e8f2; border-radius: 10px; padding: 13px 48px 13px 15px;
-  font-size: 0.92rem; outline: none; transition: border-color 0.2s;
+  width: 100%; background: #f8faff; border: 1px solid #bfdbfe;
+  color: #1e3a5f; border-radius: 8px; padding: 10px 36px 10px 12px;
+  font-size: 0.88rem; outline: none; transition: border-color 0.2s;
 }
-.filename-input:focus { border-color: #6366f1; }
-.filename-input::placeholder { color: #44446a; }
+.filename-input:focus { border-color: #2563eb; }
+.filename-input::placeholder { color: #93c5fd; }
 .download-btn {
-  padding: 13px 22px;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  color: #fff; border: none; border-radius: 10px;
-  font-size: 0.9rem; font-weight: 600; cursor: pointer; white-space: nowrap;
-  transition: opacity 0.2s, transform 0.1s;
+  padding: 10px 18px; background: #2563eb;
+  color: #fff; border: none; border-radius: 8px;
+  font-size: 0.88rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background 0.2s, transform 0.1s;
 }
-.download-btn:hover { opacity: 0.88; }
+.download-btn:hover { background: #1d4ed8; }
 .download-btn:active { transform: scale(0.97); }
-.download-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.download-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 .progress-wrap {
-  height: 3px; background: #18182e; border-radius: 2px; margin-top: 12px;
-  overflow: hidden; opacity: 0; transition: opacity 0.2s;
+  height: 3px; background: #bfdbfe; border-radius: 2px; overflow: hidden;
+  opacity: 0; transition: opacity 0.2s;
 }
 .progress-wrap.visible { opacity: 1; }
-.progress-bar { height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7); width: 0%; transition: width 0.3s ease; }
-.status { margin-top: 11px; text-align: center; font-size: 0.81rem; color: #7777aa; min-height: 18px; }
+.progress-bar { height: 100%; background: #2563eb; width: 0%; transition: width 0.3s ease; }
+.status { text-align: center; font-size: 0.74rem; color: #5b87c5; min-height: 16px; }
 .status.error { color: #ef4444; }
-.status.success { color: #22c55e; }
+.status.success { color: #16a34a; }
 </style>
 </head>
 <body>
@@ -158,27 +205,33 @@ body {
   </div>
 </div>
 
-<div class="container">
+<div class="mid">
   <div class="app-title">
     <h1>PDF Builder</h1>
-    <p>Combine PDFs &amp; images into one file &mdash; rotate, reorder, download</p>
+    <p>Combine PDFs &amp; images &mdash; rotate, reorder, download</p>
   </div>
 
-  <div class="lang-section">
-    <div class="lang-section-label">How to use</div>
-    <div class="lang-cards">
+  <div>
+    <div class="lang-toggle" id="langToggle" onclick="toggleLang()">
+      <div class="lang-toggle-left">
+        <span class="lang-flags">&#127468;&#127463;&#127471;&#127477;&#127474;&#127474;&#127483;&#127475;&#127470;&#127465;</span>
+        <span class="lang-toggle-label">How to use</span>
+      </div>
+      <span class="lang-arrow" id="langArrow">&#9660;</span>
+    </div>
+    <div class="lang-cards" id="langCards">
       <div class="lang-card">
         <span class="lang-flag">&#127468;&#127463;</span>
         <div>
           <div class="lang-label">English</div>
-          <div class="lang-text">Drop, paste <strong>(Ctrl+V)</strong>, or browse. Use <strong>&#8634; &#8635;</strong> to rotate before export. Drag rows to reorder. Set a name and click <strong>Download PDF</strong>.</div>
+          <div class="lang-text">Drop, paste <strong>(Ctrl+V)</strong>, or browse files. Use <strong>&#8634; &#8635;</strong> to rotate. Drag rows to reorder. Set a name and click <strong>Download PDF</strong>.</div>
         </div>
       </div>
       <div class="lang-card">
         <span class="lang-flag">&#127471;&#127477;</span>
         <div>
           <div class="lang-label">&#26085;&#26412;&#35486;</div>
-          <div class="lang-text">&#12489;&#12525;&#12483;&#12503;&#12289;<strong>Ctrl+V</strong>&#12289;&#12414;&#12383;&#12399;&#12501;&#12449;&#12452;&#12523;&#36984;&#25246;&#12290;<strong>&#8634; &#8635;</strong>&#12391;&#20986;&#21069;&#12395;&#22238;&#36578;&#12290;&#34180;&#12434;&#12489;&#12521;&#12483;&#12464;&#12375;&#12390;&#19006;&#12395;&#20999;&#12426;&#26367;&#12360;&#12290;&#21517;&#21069;&#12434;&#20837;&#21147;&#12375;&#12390;<strong>Download PDF</strong>&#12434;&#12463;&#12522;&#12483;&#12463;&#12290;</div>
+          <div class="lang-text">&#12489;&#12525;&#12483;&#12503;&#12289;<strong>Ctrl+V</strong>&#12289;&#12414;&#12383;&#12399;&#12501;&#12449;&#12452;&#12523;&#36984;&#25246;&#12290;<strong>&#8634; &#8635;</strong>&#12391;&#22238;&#36578;&#12290;&#34180;&#12434;&#12489;&#12521;&#12483;&#12464;&#12375;&#12390;&#20006;&#12403;&#26367;&#12360;&#12290;&#12501;&#12449;&#12452;&#12523;&#21517;&#12434;&#20837;&#21147;&#12375;&#12390;<strong>Download PDF</strong>&#12434;&#12463;&#12522;&#12483;&#12463;&#12290;</div>
         </div>
       </div>
       <div class="lang-card">
@@ -192,14 +245,14 @@ body {
         <span class="lang-flag">&#127483;&#127475;</span>
         <div>
           <div class="lang-label">Ti&#7871;ng Vi&#7879;t</div>
-          <div class="lang-text">K&#233;o th&#7843;, d&#225;n <strong>(Ctrl+V)</strong>, ho&#7863;c ch&#7885;n file. D&#249;ng <strong>&#8634; &#8635;</strong> &#273;&#7875; xoay tr&#432;&#7899;c khi xu&#7845;t. K&#233;o &#273;&#7875; s&#7855;p x&#7871;p l&#7841;i. Nh&#7853;p t&#234;n v&#224; nh&#7845;n <strong>Download PDF</strong>.</div>
+          <div class="lang-text">K&#233;o th&#7843;, d&#225;n <strong>(Ctrl+V)</strong> ho&#7863;c ch&#7885;n file. D&#249;ng <strong>&#8634; &#8635;</strong> &#273;&#7875; xoay. K&#233;o &#273;&#7875; s&#7855;p x&#7871;p. Nh&#7853;p t&#234;n v&#224; nh&#7845;n <strong>Download PDF</strong>.</div>
         </div>
       </div>
       <div class="lang-card">
         <span class="lang-flag">&#127470;&#127465;</span>
         <div>
           <div class="lang-label">Bahasa Indonesia</div>
-          <div class="lang-text">Seret, tempel <strong>(Ctrl+V)</strong>, atau pilih file. Gunakan <strong>&#8634; &#8635;</strong> untuk memutar sebelum ekspor. Seret untuk mengatur urutan. Masukkan nama lalu klik <strong>Download PDF</strong>.</div>
+          <div class="lang-text">Seret, tempel <strong>(Ctrl+V)</strong>, atau pilih file. Gunakan <strong>&#8634; &#8635;</strong> untuk memutar. Seret untuk mengatur urutan. Lalu klik <strong>Download PDF</strong>.</div>
         </div>
       </div>
     </div>
@@ -209,14 +262,16 @@ body {
     <span class="drop-icon">&#128193;</span>
     <h2>Drop files here</h2>
     <p class="drop-sub">PDF &middot; JPG &middot; PNG</p>
-    <div class="paste-badge">Ctrl+V &mdash; paste image from clipboard</div><br>
+    <div class="paste-badge">Ctrl+V &mdash; paste from clipboard</div><br>
     <div class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse files</div>
     <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none">
   </div>
 
   <div class="file-list" id="fileList"></div>
   <div class="reorder-tip" id="reorderTip" style="display:none">&#8597; Drag to reorder &nbsp;&nbsp; &#8634;&#8635; Rotate before export</div>
+</div>
 
+<div class="bottom-bar">
   <div class="controls">
     <div class="filename-wrap">
       <input type="text" class="filename-input" id="filenameInput" placeholder="Output filename" value="output">
@@ -224,7 +279,6 @@ body {
     </div>
     <button class="download-btn" id="downloadBtn" onclick="handleDownload()">&#8595; Download PDF</button>
   </div>
-
   <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
   <div class="status" id="status"></div>
 </div>
@@ -234,6 +288,13 @@ body {
 var files = [];
 var rotations = [];
 var dragSrcIdx = null;
+var langOpen = false;
+
+function toggleLang() {
+  langOpen = !langOpen;
+  document.getElementById('langCards').className = 'lang-cards' + (langOpen ? ' open' : '');
+  document.getElementById('langArrow').className = 'lang-arrow' + (langOpen ? ' open' : '');
+}
 
 var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
@@ -259,35 +320,24 @@ function addFiles(newFiles) {
   var allowed = ['application/pdf', 'image/jpeg', 'image/png'];
   var added = 0;
   newFiles.forEach(function(f) {
-    if (allowed.indexOf(f.type) >= 0) {
-      files.push(f);
-      rotations.push(0);
-      added++;
-    }
+    if (allowed.indexOf(f.type) >= 0) { files.push(f); rotations.push(0); added++; }
   });
   if (added === 0 && newFiles.length > 0) setStatus('Only PDF, JPG, and PNG files are supported.', 'error');
   else setStatus('', '');
   renderList();
 }
 
-function removeFile(i) {
-  files.splice(i, 1);
-  rotations.splice(i, 1);
-  renderList();
-}
+function removeFile(i) { files.splice(i, 1); rotations.splice(i, 1); renderList(); }
 
-function rotate(i, dir) {
-  rotations[i] = (rotations[i] + dir * 90 + 360) % 360;
-  renderList();
-}
+function rotate(i, dir) { rotations[i] = (rotations[i] + dir * 90 + 360) % 360; renderList(); }
 
 function fmt(b) {
   if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-  return (b / 1048576).toFixed(1) + ' MB';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
 }
 
-function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function renderList() {
   var list = document.getElementById('fileList');
@@ -297,7 +347,6 @@ function renderList() {
 
   files.forEach(function(file, i) {
     var rot = rotations[i];
-
     var item = document.createElement('div');
     item.className = 'file-item';
     item.draggable = true;
@@ -313,69 +362,55 @@ function renderList() {
     } else {
       var img = document.createElement('img');
       img.src = URL.createObjectURL(file);
-      if (rot === 90)  img.className = 'rot90';
-      if (rot === 180) img.className = 'rot180';
-      if (rot === 270) img.className = 'rot270';
+      if (rot === 90) img.className = 'rot90';
+      else if (rot === 180) img.className = 'rot180';
+      else if (rot === 270) img.className = 'rot270';
       thumb.appendChild(img);
     }
 
     var info = document.createElement('div');
     info.className = 'file-info';
     var ext = file.type === 'application/pdf' ? 'PDF' : file.type === 'image/png' ? 'PNG' : 'JPG';
-    var rotText = rot > 0 ? ' &mdash; ' + rot + '&deg;' : '';
-    info.innerHTML = '<div class="file-name">' + esc(file.name) + '</div><div class="file-meta">' + ext + ' &middot; ' + fmt(file.size) + rotText + '</div>';
+    var rotTxt = rot > 0 ? ' · ' + rot + '°' : '';
+    info.innerHTML = '<div class="file-name">' + esc(file.name) + '</div><div class="file-meta">' + ext + ' · ' + fmt(file.size) + rotTxt + '</div>';
 
     var rotBtns = document.createElement('div');
     rotBtns.className = 'rotate-btns';
-
     var rotL = document.createElement('button');
-    rotL.className = 'rot-btn';
-    rotL.title = 'Rotate left 90°';
-    rotL.innerHTML = '&#8634;';
-    rotL.onclick = (function(idx) { return function(e) { e.stopPropagation(); rotate(idx, -1); }; })(i);
-
+    rotL.className = 'rot-btn'; rotL.title = 'Rotate left'; rotL.innerHTML = '&#8634;';
+    rotL.onclick = (function(idx){ return function(e){ e.stopPropagation(); rotate(idx,-1); }; })(i);
     var rotR = document.createElement('button');
-    rotR.className = 'rot-btn';
-    rotR.title = 'Rotate right 90°';
-    rotR.innerHTML = '&#8635;';
-    rotR.onclick = (function(idx) { return function(e) { e.stopPropagation(); rotate(idx, 1); }; })(i);
-
-    rotBtns.appendChild(rotL);
-    rotBtns.appendChild(rotR);
+    rotR.className = 'rot-btn'; rotR.title = 'Rotate right'; rotR.innerHTML = '&#8635;';
+    rotR.onclick = (function(idx){ return function(e){ e.stopPropagation(); rotate(idx,1); }; })(i);
+    rotBtns.appendChild(rotL); rotBtns.appendChild(rotR);
 
     var rm = document.createElement('button');
-    rm.className = 'file-remove';
-    rm.innerHTML = '&#10005;';
-    rm.onclick = (function(idx) { return function(e) { e.stopPropagation(); removeFile(idx); }; })(i);
+    rm.className = 'file-remove'; rm.innerHTML = '&#10005;';
+    rm.onclick = (function(idx){ return function(e){ e.stopPropagation(); removeFile(idx); }; })(i);
 
-    item.appendChild(handle);
-    item.appendChild(thumb);
-    item.appendChild(info);
-    item.appendChild(rotBtns);
-    item.appendChild(rm);
+    item.appendChild(handle); item.appendChild(thumb); item.appendChild(info);
+    item.appendChild(rotBtns); item.appendChild(rm);
     list.appendChild(item);
 
     item.addEventListener('dragstart', function(e) {
       dragSrcIdx = i;
-      setTimeout(function() { item.classList.add('dragging'); }, 0);
+      setTimeout(function(){ item.classList.add('dragging'); }, 0);
       e.dataTransfer.effectAllowed = 'move';
     });
     item.addEventListener('dragend', function() {
       item.classList.remove('dragging');
-      Array.from(list.querySelectorAll('.file-item')).forEach(function(el) { el.classList.remove('drag-over'); });
+      Array.from(list.querySelectorAll('.file-item')).forEach(function(el){ el.classList.remove('drag-over'); });
     });
-    item.addEventListener('dragover', function(e) { e.preventDefault(); item.classList.add('drag-over'); });
-    item.addEventListener('dragleave', function() { item.classList.remove('drag-over'); });
+    item.addEventListener('dragover', function(e){ e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', function(){ item.classList.remove('drag-over'); });
     item.addEventListener('drop', function(e) {
       e.preventDefault(); e.stopPropagation();
       item.classList.remove('drag-over');
       if (dragSrcIdx !== null && dragSrcIdx !== i) {
-        var mf = files.splice(dragSrcIdx, 1)[0];
-        var mr = rotations.splice(dragSrcIdx, 1)[0];
-        files.splice(i, 0, mf);
-        rotations.splice(i, 0, mr);
-        dragSrcIdx = null;
-        renderList();
+        var mf = files.splice(dragSrcIdx,1)[0];
+        var mr = rotations.splice(dragSrcIdx,1)[0];
+        files.splice(i,0,mf); rotations.splice(i,0,mr);
+        dragSrcIdx = null; renderList();
       }
     });
   });
@@ -392,12 +427,12 @@ function rotateImageBytes(file, rotation) {
       canvas.width  = swap ? img.naturalHeight : img.naturalWidth;
       canvas.height = swap ? img.naturalWidth  : img.naturalHeight;
       var ctx = canvas.getContext('2d');
-      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.translate(canvas.width/2, canvas.height/2);
       ctx.rotate(rotation * Math.PI / 180);
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
       URL.revokeObjectURL(url);
       var mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-      canvas.toBlob(function(blob) { blob.arrayBuffer().then(resolve); }, mime, 0.95);
+      canvas.toBlob(function(blob){ blob.arrayBuffer().then(resolve); }, mime, 0.95);
     };
     img.src = url;
   });
@@ -406,40 +441,34 @@ function rotateImageBytes(file, rotation) {
 function setProgress(pct) {
   var wrap = document.getElementById('progressWrap');
   var bar  = document.getElementById('progressBar');
-  if (pct < 0) { wrap.classList.remove('visible'); bar.style.width = '0%'; return; }
-  wrap.classList.add('visible');
-  bar.style.width = pct + '%';
+  if (pct < 0) { wrap.classList.remove('visible'); bar.style.width='0%'; return; }
+  wrap.classList.add('visible'); bar.style.width = pct + '%';
 }
 
 function setStatus(msg, type) {
   var el = document.getElementById('status');
   el.textContent = msg;
-  el.className = 'status' + (type ? ' ' + type : '');
+  el.className = 'status' + (type ? ' '+type : '');
 }
 
 function handleDownload() {
-  if (files.length === 0) { setStatus('Add at least one file first.', 'error'); return; }
+  if (files.length === 0) { setStatus('Add at least one file first.','error'); return; }
   var btn = document.getElementById('downloadBtn');
-  btn.disabled = true;
-  btn.textContent = 'Building...';
-  setStatus('Processing files...', '');
-  setProgress(5);
+  btn.disabled = true; btn.textContent = 'Building...';
+  setStatus('Processing files...',''); setProgress(5);
 
   PDFLib.PDFDocument.create().then(function(pdfDoc) {
     var chain = Promise.resolve();
     files.forEach(function(file, idx) {
       chain = chain.then(function() {
-        setProgress(10 + Math.round((idx / files.length) * 80));
+        setProgress(10 + Math.round((idx/files.length)*80));
         var rot = rotations[idx];
         if (file.type === 'application/pdf') {
           return file.arrayBuffer().then(function(bytes) {
             return PDFLib.PDFDocument.load(bytes).then(function(srcDoc) {
               return pdfDoc.copyPages(srcDoc, srcDoc.getPageIndices()).then(function(pages) {
                 pages.forEach(function(p) {
-                  if (rot !== 0) {
-                    var cur = p.getRotation().angle;
-                    p.setRotation(PDFLib.degrees((cur + rot) % 360));
-                  }
+                  if (rot !== 0) { var cur = p.getRotation().angle; p.setRotation(PDFLib.degrees((cur+rot)%360)); }
                   pdfDoc.addPage(p);
                 });
               });
@@ -447,42 +476,36 @@ function handleDownload() {
           });
         } else {
           return rotateImageBytes(file, rot).then(function(bytes) {
-            var embedFn = file.type === 'image/png'
-              ? pdfDoc.embedPng.bind(pdfDoc)
-              : pdfDoc.embedJpg.bind(pdfDoc);
-            return embedFn(bytes).then(function(img) {
-              var maxW = 595, maxH = 842;
-              var w = img.width, h = img.height;
-              var scale = Math.min(1, maxW / w, maxH / h);
-              w = Math.round(w * scale); h = Math.round(h * scale);
-              var page = pdfDoc.addPage([w, h]);
-              page.drawImage(img, { x: 0, y: 0, width: w, height: h });
+            var fn = file.type==='image/png' ? pdfDoc.embedPng.bind(pdfDoc) : pdfDoc.embedJpg.bind(pdfDoc);
+            return fn(bytes).then(function(img) {
+              var maxW=595, maxH=842, w=img.width, h=img.height;
+              var scale = Math.min(1, maxW/w, maxH/h);
+              w=Math.round(w*scale); h=Math.round(h*scale);
+              var page = pdfDoc.addPage([w,h]);
+              page.drawImage(img,{x:0,y:0,width:w,height:h});
             });
           });
         }
       });
     });
-    return chain.then(function() { return pdfDoc.save(); });
+    return chain.then(function(){ return pdfDoc.save(); });
   }).then(function(pdfBytes) {
     setProgress(95);
-    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    var blob = new Blob([pdfBytes],{type:'application/pdf'});
     var url = URL.createObjectURL(blob);
     var name = document.getElementById('filenameInput').value.trim() || 'output';
     if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
     var a = document.createElement('a');
-    a.href = url; a.download = name;
+    a.href=url; a.download=name;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
     setProgress(100);
-    setStatus('Downloaded “' + name + '”', 'success');
-    setTimeout(function() { setProgress(-1); }, 1800);
+    setStatus('Downloaded “'+name+'”','success');
+    setTimeout(function(){ setProgress(-1); },1800);
   }).catch(function(err) {
-    console.error(err);
-    setStatus('Error: ' + err.message, 'error');
-    setProgress(-1);
+    console.error(err); setStatus('Error: '+err.message,'error'); setProgress(-1);
   }).finally(function() {
-    btn.disabled = false;
-    btn.innerHTML = '&#8595; Download PDF';
+    btn.disabled=false; btn.innerHTML='&#8595; Download PDF';
   });
 }
 </script>
