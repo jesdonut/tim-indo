@@ -94,60 +94,21 @@ body {
 .app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
 .app-title p { color: var(--muted); font-size: 0.76rem; }
 
-/* ---- Loading card ---- */
-.loader-card {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 14px; padding: 44px 24px;
-  background: #fff; border: 1px solid var(--border); border-radius: 16px; text-align: center;
-}
-.loader-spinner {
-  width: 48px; height: 48px;
-  border: 4px solid var(--border); border-top-color: var(--primary-2);
-  border-radius: 50%; animation: spin 0.85s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loader-title { font-size: 1rem; font-weight: 600; color: var(--text); }
-.loader-sub { font-size: 0.78rem; color: var(--muted); line-height: 1.6; max-width: 280px; }
-.loader-track {
-  width: 200px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden;
-}
-.loader-fill {
-  height: 100%; width: 38%; background: var(--primary-2); border-radius: 3px;
-  animation: sweep 1.6s ease-in-out infinite;
-}
-@keyframes sweep { 0% { margin-left: -38%; } 100% { margin-left: 100%; } }
-.loader-err-icon { display: none; font-size: 2.6rem; color: #f59e0b; }
-.loader-card.err .loader-spinner { display: none; }
-.loader-card.err .loader-track  { display: none; }
-.loader-card.err .loader-err-icon { display: block; }
-.retry-btn {
-  padding: 7px 20px; background: var(--primary-2); color: #fff;
-  border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
-  cursor: pointer; transition: background 0.2s;
-}
-.retry-btn:hover { background: var(--primary-hover); }
-
-/* ---- Input ---- */
-.input-section { display: none; flex-direction: column; gap: 8px; }
-.input-section.visible { display: flex; }
-.ready-badge {
-  display: none; align-items: center; gap: 6px;
-  background: #f0fdf4; border: 1px solid #86efac;
-  border-radius: 8px; padding: 6px 12px; font-size: 0.76rem; color: #166534; font-weight: 500;
-}
-.ready-badge.visible { display: flex; }
-.ready-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+.input-section { display: flex; flex-direction: column; gap: 8px; }
 .input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 .input-wrap { position: relative; }
 .input-textarea {
   width: 100%; background: #fff; border: 1.5px solid var(--border);
   color: var(--text); border-radius: 10px; padding: 12px 14px 28px;
   font-size: 1rem; line-height: 1.6; outline: none; resize: vertical;
-  min-height: 100px; transition: border-color 0.2s; font-family: inherit;
+  min-height: 110px; transition: border-color 0.2s; font-family: inherit;
 }
 .input-textarea:focus { border-color: var(--primary-2); }
 .input-textarea::placeholder { color: var(--border-soft); }
-.char-count { position: absolute; bottom: 8px; right: 12px; font-size: 0.65rem; color: var(--border-soft); pointer-events: none; }
+.char-count {
+  position: absolute; bottom: 8px; right: 12px;
+  font-size: 0.65rem; color: var(--border-soft); pointer-events: none;
+}
 .char-count.warn { color: #f59e0b; }
 .char-count.over { color: #ef4444; }
 .btn-row { display: flex; justify-content: flex-end; }
@@ -160,7 +121,6 @@ body {
 .translate-btn:active { transform: scale(0.97); }
 .translate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-/* ---- Results ---- */
 .results { display: none; flex-direction: column; gap: 8px; }
 .results.visible { display: flex; }
 .result-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
@@ -177,11 +137,11 @@ body {
 .copy-btn:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
 .copy-btn.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
 .result-body {
-  padding: 10px 14px; font-size: 0.9rem; line-height: 1.9; color: var(--text); min-height: 40px;
+  padding: 10px 14px; font-size: 0.92rem; line-height: 1.75;
+  color: var(--text); min-height: 42px;
 }
-.result-body.furigana-body { font-size: 1.05rem; }
-.result-body ruby rt { font-size: 0.55em; color: var(--muted); }
 .loading-dots { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
+.err-text { color: #ef4444; font-size: 0.82rem; }
 </style>
 </head>
 <body>
@@ -210,25 +170,10 @@ body {
 <div class="mid">
   <div class="app-title">
     <h1>Japanese Translator</h1>
-    <p>Paste Japanese text &mdash; furigana, romaji, Indonesian &amp; English</p>
+    <p>Paste Japanese text &mdash; romaji reading, Indonesian &amp; English</p>
   </div>
 
-  <div class="loader-card" id="loaderCard">
-    <span class="material-icons-outlined loader-err-icon">warning</span>
-    <div class="loader-spinner"></div>
-    <div class="loader-title" id="loaderTitle">Loading Japanese Analyzer</div>
-    <div class="loader-sub" id="loaderSub">
-      Downloading dictionary files&hellip;<br>
-      Usually ready in 5&ndash;15 seconds.
-    </div>
-    <div class="loader-track"><div class="loader-fill"></div></div>
-    <button class="retry-btn" id="retryBtn" style="display:none" onclick="location.reload()">Reload &amp; Retry</button>
-  </div>
-
-  <div class="input-section" id="inputSection">
-    <div class="ready-badge" id="readyBadge">
-      <span class="ready-dot"></span> Japanese analyzer ready
-    </div>
+  <div class="input-section">
     <div class="input-label">Japanese text</div>
     <div class="input-wrap">
       <textarea class="input-textarea" id="inputText" rows="4"
@@ -244,14 +189,7 @@ body {
   <div class="results" id="results">
     <div class="result-card">
       <div class="result-header">
-        <span class="result-label">Furigana</span>
-        <button class="copy-btn" onclick="copyResult('furiganaOut',this)">Copy</button>
-      </div>
-      <div class="result-body furigana-body" id="furiganaOut"></div>
-    </div>
-    <div class="result-card">
-      <div class="result-header">
-        <span class="result-label">Romaji</span>
+        <span class="result-label">Reading (Romaji)</span>
         <button class="copy-btn" onclick="copyResult('romajiOut',this)">Copy</button>
       </div>
       <div class="result-body" id="romajiOut"></div>
@@ -273,14 +211,8 @@ body {
   </div>
 </div>
 
-<!-- kuromoji: tokenizes Japanese text (browser-compatible UMD build) -->
-<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
-<!-- wanakana: converts katakana readings to hiragana / romaji -->
-<script src="https://cdn.jsdelivr.net/npm/wanakana@4.0.2/umd/wanakana.min.js"></script>
 <script>
 var THEME_KEY = 'gaj_theme';
-var tokenizer = null;
-var analyzerReady = false;
 
 function toggleTheme() {
   var isPink = document.body.classList.toggle('pink');
@@ -295,30 +227,6 @@ function toggleTheme() {
   }
 })();
 
-function showError(msg) {
-  var card = document.getElementById('loaderCard');
-  card.className = 'loader-card err';
-  document.getElementById('loaderTitle').textContent = 'Failed to load analyzer';
-  document.getElementById('loaderSub').textContent = msg;
-  document.getElementById('retryBtn').style.display = 'inline-block';
-}
-
-/* 45-second timeout failsafe */
-var loadTimer = setTimeout(function() {
-  if (!analyzerReady) showError('Download timed out. Check your connection and reload.');
-}, 45000);
-
-kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict' })
-  .build(function(err, built) {
-    clearTimeout(loadTimer);
-    if (err) { showError('Error: ' + err.message); return; }
-    tokenizer = built;
-    analyzerReady = true;
-    document.getElementById('loaderCard').style.display = 'none';
-    document.getElementById('inputSection').className = 'input-section visible';
-    document.getElementById('readyBadge').className = 'ready-badge visible';
-  });
-
 function updateCharCount() {
   var len = document.getElementById('inputText').value.length;
   var el  = document.getElementById('charCount');
@@ -326,44 +234,29 @@ function updateCharCount() {
   el.className = 'char-count' + (len > 500 ? ' over' : len > 400 ? ' warn' : '');
 }
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-var KANJI_RE = /[一-龯㐀-䶿]/;
-
-function buildFurigana(text) {
-  var tokens = tokenizer.tokenize(text);
-  var html = '';
-  tokens.forEach(function(t) {
-    var surface = t.surface_form;
-    var reading = t.reading;
-    if (reading && KANJI_RE.test(surface)) {
-      var hira = wanakana.toHiragana(reading);
-      html += '<ruby>' + esc(surface) + '<rt>' + esc(hira) + '</rt></ruby>';
-    } else {
-      html += esc(surface);
-    }
-  });
-  return html;
-}
-
-function buildRomaji(text) {
-  var tokens = tokenizer.tokenize(text);
-  return tokens.map(function(t) {
-    return t.reading ? wanakana.toRomaji(t.reading) : t.surface_form;
-  }).join('');
-}
-
-function fetchTranslation(text, langpair) {
-  return fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=' + langpair)
-    .then(function(r) { return r.json(); })
-    .then(function(d) { return (d.responseStatus === 200) ? d.responseData.translatedText : '(translation unavailable)'; })
-    .catch(function() { return '(connection error)'; });
+function googleTranslate(text, tl, withRomaji) {
+  var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=' + tl +
+            '&dt=t' + (withRomaji ? '&dt=rm' : '') +
+            '&q=' + encodeURIComponent(text);
+  return fetch(url)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      var translation = '', romaji = '';
+      if (data && Array.isArray(data[0])) {
+        data[0].forEach(function(seg) {
+          if (seg[0]) translation += seg[0];
+          if (seg[2]) romaji     += seg[2];
+        });
+      }
+      return { translation: translation.trim(), romaji: romaji.trim() };
+    });
 }
 
 function copyResult(elId, btn) {
-  var text = document.getElementById(elId).innerText || '';
+  var text = (document.getElementById(elId).innerText || '').trim();
   navigator.clipboard.writeText(text).then(function() {
     btn.textContent = 'Copied!';
     btn.className = 'copy-btn copied';
@@ -371,38 +264,38 @@ function copyResult(elId, btn) {
   });
 }
 
+function setResult(id, text, isErr) {
+  var el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'result-body' + (isErr ? ' err-text' : '');
+}
+
 function doTranslate() {
   var text = document.getElementById('inputText').value.trim();
-  if (!text || !analyzerReady) return;
+  if (!text) return;
   if (text.length > 500) { alert('Max 500 characters. Please shorten the text.'); return; }
 
   var btn = document.getElementById('translateBtn');
   btn.disabled = true; btn.textContent = 'Translating…';
 
-  var resultsEl = document.getElementById('results');
-  resultsEl.className = 'results visible';
-  ['furiganaOut','romajiOut','idOut','enOut'].forEach(function(id) {
+  document.getElementById('results').className = 'results visible';
+  ['romajiOut','idOut','enOut'].forEach(function(id) {
     document.getElementById(id).innerHTML = '<span class="loading-dots">…</span>';
+    document.getElementById(id).className = 'result-body';
   });
 
-  /* Furigana and romaji are synchronous once tokenizer is ready */
-  try {
-    document.getElementById('furiganaOut').innerHTML = buildFurigana(text);
-    document.getElementById('romajiOut').textContent = buildRomaji(text);
-  } catch(e) {
-    document.getElementById('furiganaOut').textContent = 'Error: ' + e.message;
-  }
-
-  /* Translations are async API calls */
   Promise.all([
-    fetchTranslation(text, 'ja|id'),
-    fetchTranslation(text, 'ja|en')
+    googleTranslate(text, 'en', true),
+    googleTranslate(text, 'id', false)
   ]).then(function(res) {
-    document.getElementById('idOut').textContent = res[0];
-    document.getElementById('enOut').textContent = res[1];
-  }).catch(function() {
-    document.getElementById('idOut').textContent = '(error)';
-    document.getElementById('enOut').textContent = '(error)';
+    setResult('romajiOut', res[0].romaji || '(no reading returned)', !res[0].romaji);
+    setResult('enOut',     res[0].translation || '(empty)', !res[0].translation);
+    setResult('idOut',     res[1].translation || '(empty)', !res[1].translation);
+  }).catch(function(err) {
+    var msg = 'Error: ' + (err.message || 'request failed');
+    setResult('romajiOut', msg, true);
+    setResult('enOut',     msg, true);
+    setResult('idOut',     msg, true);
   }).finally(function() {
     btn.disabled = false; btn.textContent = 'Translate';
   });
