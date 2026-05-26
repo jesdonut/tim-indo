@@ -56,7 +56,7 @@ body {
 .brand-bar {
   flex-shrink: 0;
   background: var(--brand-bg);
-  padding: 11px 20px;
+  padding: 11px 20px 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -67,12 +67,39 @@ body {
 .brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
 .brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
 .theme-toggle {
-  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: 14px; top: 11px;
   background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
   color: #fff; border-radius: 20px; padding: 4px 11px; font-size: 0.78rem;
   cursor: pointer; transition: background 0.2s; white-space: nowrap;
 }
 .theme-toggle:hover { background: rgba(255,255,255,0.3); }
+
+.nav-bar {
+  flex-shrink: 0;
+  background: var(--brand-bg);
+  padding: 8px 16px 10px;
+  display: flex;
+  justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18);
+  border-radius: 9px;
+  padding: 3px;
+  display: flex;
+  gap: 2px;
+}
+.nav-tab {
+  display: block;
+  padding: 5px 18px;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.72);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
 
 .mid {
   flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
@@ -83,22 +110,69 @@ body {
 .app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
 .app-title p { color: var(--muted); font-size: 0.76rem; }
 
-.init-bar {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--light); border: 1px solid var(--border);
-  border-radius: 8px; padding: 8px 12px; font-size: 0.77rem; color: var(--muted);
+/* ---- Loading card ---- */
+.loader-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 44px 24px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  text-align: center;
 }
-.init-bar.ready { border-color: #86efac; background: #f0fdf4; color: #166534; }
-.init-bar.err   { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
-.init-dot {
-  width: 8px; height: 8px; border-radius: 50%; background: var(--border-soft);
-  flex-shrink: 0; animation: pulse 1.2s infinite;
+.loader-spinner {
+  width: 48px; height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--primary-2);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
 }
-.init-bar.ready .init-dot { background: #22c55e; animation: none; }
-.init-bar.err   .init-dot { background: #ef4444; animation: none; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+.loader-sub { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+.loader-track {
+  width: 200px; height: 5px; background: var(--border);
+  border-radius: 3px; overflow: hidden;
+}
+.loader-fill {
+  height: 100%; width: 38%; background: var(--primary-2);
+  border-radius: 3px;
+  animation: sweep 1.6s ease-in-out infinite;
+}
+@keyframes sweep {
+  0%   { margin-left: -38%; }
+  100% { margin-left: 100%; }
+}
 
-.input-section { display: flex; flex-direction: column; gap: 8px; }
+/* error state inside loader card */
+.loader-card.err .loader-spinner { display: none; }
+.loader-card.err .loader-fill   { display: none; }
+.loader-card.err .loader-track  { display: none; }
+.loader-err-icon { font-size: 2.4rem; display: none; }
+.loader-card.err .loader-err-icon { display: block; }
+.retry-btn {
+  padding: 7px 20px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.retry-btn:hover { background: var(--primary-hover); }
+
+/* ---- Input section ---- */
+.input-section { display: none; flex-direction: column; gap: 8px; }
+.input-section.visible { display: flex; }
+
+.ready-badge {
+  display: none; align-items: center; gap: 6px;
+  background: #f0fdf4; border: 1px solid #86efac;
+  border-radius: 8px; padding: 6px 12px;
+  font-size: 0.76rem; color: #166534; font-weight: 500;
+}
+.ready-badge.visible { display: flex; }
+.ready-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+
 .input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 .input-wrap { position: relative; }
 .input-textarea {
@@ -125,7 +199,9 @@ body {
 .translate-btn:active { transform: scale(0.97); }
 .translate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-.results { display: flex; flex-direction: column; gap: 8px; }
+/* ---- Result cards ---- */
+.results { display: none; flex-direction: column; gap: 8px; }
+.results.visible { display: flex; }
 .result-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .result-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -145,19 +221,25 @@ body {
 }
 .result-body.furigana-body { font-size: 1rem; }
 .result-body ruby rt { font-size: 0.58em; color: var(--muted); }
-.loading { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
+.loading-dots { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
 </style>
 </head>
 <body>
 
 <div class="brand-bar">
-  <div class="brand-logo">&#127758;</div>
+  <div class="brand-logo">&#127760;</div>
   <div>
     <div class="brand-name">Grasp Agent Japan</div>
     <div class="brand-ja">&#12464;&#12521;&#12473;&#12503;&#12456;&#12540;&#12472;&#12455;&#12531;&#12488;&#12472;&#12515;&#12497;&#12531;</div>
   </div>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#127800; Pink</button>
 </div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/">&#128196; PDF</a>
+    <a class="nav-tab active" href="/translate">&#127760; Translate</a>
+  </div>
+</nav>
 
 <div class="mid">
   <div class="app-title">
@@ -165,12 +247,21 @@ body {
     <p>Paste Japanese text &mdash; furigana, romaji, Indonesian &amp; English</p>
   </div>
 
-  <div class="init-bar" id="initBar">
-    <span class="init-dot"></span>
-    <span id="initText">Loading Japanese analyzer&hellip; (may take ~10s on first visit)</span>
+  <!-- Loading card (visible until analyzer is ready) -->
+  <div class="loader-card" id="loaderCard">
+    <div class="loader-err-icon">&#9888;&#65039;</div>
+    <div class="loader-spinner"></div>
+    <div class="loader-title" id="loaderTitle">Loading Japanese Analyzer</div>
+    <div class="loader-sub" id="loaderSub">Downloading dictionary&hellip;<br>This takes about 10 seconds on the first visit.</div>
+    <div class="loader-track"><div class="loader-fill"></div></div>
+    <button class="retry-btn" id="retryBtn" style="display:none" onclick="location.reload()">Reload &amp; Retry</button>
   </div>
 
-  <div class="input-section">
+  <!-- Input + results (hidden until ready) -->
+  <div class="input-section" id="inputSection">
+    <div class="ready-badge" id="readyBadge">
+      <span class="ready-dot"></span> Japanese analyzer ready
+    </div>
     <div class="input-label">Japanese text</div>
     <div class="input-wrap">
       <textarea class="input-textarea" id="inputText" rows="4"
@@ -179,11 +270,11 @@ body {
       <span class="char-count" id="charCount">0 / 500</span>
     </div>
     <div class="btn-row">
-      <button class="translate-btn" id="translateBtn" onclick="doTranslate()" disabled>Translate</button>
+      <button class="translate-btn" id="translateBtn" onclick="doTranslate()">Translate</button>
     </div>
   </div>
 
-  <div class="results" id="results" style="display:none">
+  <div class="results" id="results">
     <div class="result-card">
       <div class="result-header">
         <span class="result-label">Furigana</span>
@@ -245,14 +336,15 @@ kuroshiro.init(new KuromojiAnalyzer({
   dictPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/'
 })).then(function() {
   analyzerReady = true;
-  var bar = document.getElementById('initBar');
-  bar.className = 'init-bar ready';
-  document.getElementById('initText').textContent = 'Japanese analyzer ready';
-  document.getElementById('translateBtn').disabled = false;
+  document.getElementById('loaderCard').style.display = 'none';
+  document.getElementById('inputSection').className = 'input-section visible';
+  document.getElementById('readyBadge').className = 'ready-badge visible';
 }).catch(function() {
-  var bar = document.getElementById('initBar');
-  bar.className = 'init-bar err';
-  document.getElementById('initText').textContent = 'Failed to load analyzer — check your connection and reload';
+  var card = document.getElementById('loaderCard');
+  card.className = 'loader-card err';
+  document.getElementById('loaderTitle').textContent = 'Failed to load analyzer';
+  document.getElementById('loaderSub').textContent = 'Check your internet connection and try reloading.';
+  document.getElementById('retryBtn').style.display = 'inline-block';
 });
 
 function fetchTranslation(text, langpair) {
@@ -283,9 +375,9 @@ function doTranslate() {
   btn.textContent = 'Translating…';
 
   var resultsEl = document.getElementById('results');
-  resultsEl.style.display = 'flex';
+  resultsEl.className = 'results visible';
   ['furiganaOut','romajiOut','idOut','enOut'].forEach(function(id) {
-    document.getElementById(id).innerHTML = '<span class="loading">…</span>';
+    document.getElementById(id).innerHTML = '<span class="loading-dots">…</span>';
   });
 
   Promise.all([
