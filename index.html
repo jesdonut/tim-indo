@@ -151,7 +151,7 @@ body {
 }
 .file-remove:hover { color: #ef4444; background: #fef2f2; }
 
-/* ---- List action bar (tip + clear all) ---- */
+/* ---- List action bar ---- */
 .list-actions {
   display: none;
   align-items: center;
@@ -161,28 +161,71 @@ body {
 .list-actions.visible { display: flex; }
 .reorder-tip { font-size: 0.67rem; color: #93c5fd; }
 .clear-btn {
-  background: none;
-  border: 1px solid #bfdbfe;
-  color: #5b87c5;
-  font-size: 0.68rem;
-  padding: 3px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  background: none; border: 1px solid #bfdbfe; color: #5b87c5;
+  font-size: 0.68rem; padding: 3px 10px; border-radius: 5px;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .clear-btn:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
 
-/* ---- Bottom bar (always visible) ---- */
+/* ---- Bottom bar ---- */
 .bottom-bar {
   flex-shrink: 0;
   background: #fff;
   border-top: 1px solid #bfdbfe;
-  padding: 10px 16px 12px;
+  padding: 8px 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 }
-.controls { display: flex; gap: 8px; align-items: stretch; }
+
+/* ---- Saved names ---- */
+.saved-section { display: none; flex-direction: column; gap: 4px; }
+.saved-section.visible { display: flex; }
+.saved-header {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.saved-label {
+  font-size: 0.65rem; font-weight: 600; color: #93c5fd;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.saved-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.saved-chip {
+  display: flex;
+  align-items: center;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  max-width: 100%;
+  overflow: hidden;
+}
+.saved-chip-name {
+  padding: 4px 2px 4px 9px;
+  font-size: 0.72rem;
+  color: #1d4ed8;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+  transition: color 0.15s;
+}
+.saved-chip-name:hover { color: #1e40af; text-decoration: underline; }
+.saved-chip-del {
+  padding: 4px 7px 4px 4px;
+  font-size: 0.65rem;
+  color: #bfdbfe;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.saved-chip-del:hover { color: #ef4444; }
+
+/* ---- Controls row ---- */
+.controls { display: flex; gap: 6px; align-items: stretch; }
 .filename-wrap { flex: 1; position: relative; }
 .ext-label {
   position: absolute; right: 10px; top: 50%;
@@ -195,8 +238,17 @@ body {
 }
 .filename-input:focus { border-color: #2563eb; }
 .filename-input::placeholder { color: #93c5fd; }
+.save-name-btn {
+  background: #f8faff; border: 1px solid #bfdbfe; color: #bfdbfe;
+  width: 38px; border-radius: 8px; cursor: pointer; font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.save-name-btn:hover { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
+.save-name-btn.flash { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
 .download-btn {
-  padding: 10px 18px; background: #2563eb;
+  padding: 10px 16px; background: #2563eb;
   color: #fff; border: none; border-radius: 8px;
   font-size: 0.88rem; font-weight: 600; cursor: pointer; white-space: nowrap;
   transition: background 0.2s, transform 0.1s;
@@ -244,35 +296,35 @@ body {
         <span class="lang-flag">&#127468;&#127463;</span>
         <div>
           <div class="lang-label">English</div>
-          <div class="lang-text">Drop, paste <strong>(Ctrl+V)</strong>, or browse files. Use <strong>&#8634; &#8635;</strong> to rotate. Drag rows to reorder. Set a name and click <strong>Download PDF</strong>.</div>
+          <div class="lang-text">Drop, paste <strong>(Ctrl+V)</strong>, or browse files. Use <strong>&#8634; &#8635;</strong> to rotate. Drag rows to reorder. Type a name, save it with <strong>&#9733;</strong>, and click <strong>Download PDF</strong>.</div>
         </div>
       </div>
       <div class="lang-card">
         <span class="lang-flag">&#127471;&#127477;</span>
         <div>
           <div class="lang-label">&#26085;&#26412;&#35486;</div>
-          <div class="lang-text">&#12489;&#12525;&#12483;&#12503;&#12289;<strong>Ctrl+V</strong>&#12289;&#12414;&#12383;&#12399;&#12501;&#12449;&#12452;&#12523;&#36984;&#25246;&#12290;<strong>&#8634; &#8635;</strong>&#12391;&#22238;&#36578;&#12290;&#34180;&#12434;&#12489;&#12521;&#12483;&#12464;&#12375;&#12390;&#20006;&#12403;&#26367;&#12360;&#12290;&#12501;&#12449;&#12452;&#12523;&#21517;&#12434;&#20837;&#21147;&#12375;&#12390;<strong>Download PDF</strong>&#12434;&#12463;&#12522;&#12483;&#12463;&#12290;</div>
+          <div class="lang-text">&#12489;&#12525;&#12483;&#12503;&#12289;<strong>Ctrl+V</strong>&#12289;&#12414;&#12383;&#12399;&#12501;&#12449;&#12452;&#12523;&#36984;&#25246;&#12290;<strong>&#8634; &#8635;</strong>&#12391;&#22238;&#36578;&#12290;&#34180;&#12434;&#12489;&#12521;&#12483;&#12464;&#12375;&#12390;&#20006;&#12403;&#26367;&#12360;&#12290;&#12501;&#12449;&#12452;&#12523;&#21517;&#12434;&#20837;&#21147;&#12375;&#12289;<strong>&#9733;</strong>&#12391;&#20445;&#23384;&#12289;<strong>Download PDF</strong>&#12434;&#12463;&#12522;&#12483;&#12463;&#12290;</div>
         </div>
       </div>
       <div class="lang-card">
         <span class="lang-flag">&#127474;&#127474;</span>
         <div>
           <div class="lang-label">&#4121;&#4156;&#4116;&#4154;&#4121;&#4140;</div>
-          <div class="lang-text">&#4127;&#4151;&#4150;&#4101;&#4155;&#4131;&#4145;&#4123;&#4140;&#12289; <strong>Ctrl+V</strong> &#4116;&#4154;&#4126;&#4103;&#4126;&#4154; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#12290; <strong>&#8634; &#8635;</strong> &#4126;&#4140; &#4126;&#4152;&#4126;&#4140;&#4111;&#4150;&#4118;&#4154; &#4126;&#4140;&#4119;&#4140;&#4121;&#4140;&#4118;&#4154;&#12290; &#4100;&#4151;&#4150;&#4125;&#4150;&#4127;&#4150; &#4126;&#4140;&#4150;&#4149;&#4119;&#4154;&#4116;&#4154;&#4126;&#4103;&#12290; <strong>Download PDF</strong> &#4116;&#4154;&#4126;&#4103;&#4121;&#4155;&#4126;&#4140;&#12290;</div>
+          <div class="lang-text">&#4127;&#4151;&#4150;&#4101;&#4155;&#4131;&#4145;&#4123;&#4140;&#12289; <strong>Ctrl+V</strong> &#4116;&#4154;&#4126;&#4103;&#4126;&#4154; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#12290; <strong>&#8634; &#8635;</strong> &#4126;&#4140; &#4126;&#4152;&#4126;&#4140;&#4111;&#4150;&#4118;&#4154;&#12290; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4100;&#4121;&#4154;&#4116;&#4154; &#4126;&#4140;&#4137;&#4150;&#4153; <strong>&#9733;</strong> &#4116;&#4154;&#4126;&#4103;&#4126;&#4140; &#4126;&#4140;&#4137;&#4150;&#4153;&#4123;&#4140;&#4112;&#4140;&#4116;&#4116;&#4154;&#12290; <strong>Download PDF</strong> &#4116;&#4154;&#4126;&#4103;&#4121;&#4155;&#4126;&#4140;&#12290;</div>
         </div>
       </div>
       <div class="lang-card">
         <span class="lang-flag">&#127483;&#127475;</span>
         <div>
           <div class="lang-label">Ti&#7871;ng Vi&#7879;t</div>
-          <div class="lang-text">K&#233;o th&#7843;, d&#225;n <strong>(Ctrl+V)</strong> ho&#7863;c ch&#7885;n file. D&#249;ng <strong>&#8634; &#8635;</strong> &#273;&#7875; xoay. K&#233;o &#273;&#7875; s&#7855;p x&#7871;p. Nh&#7853;p t&#234;n v&#224; nh&#7845;n <strong>Download PDF</strong>.</div>
+          <div class="lang-text">K&#233;o th&#7843;, d&#225;n <strong>(Ctrl+V)</strong> ho&#7863;c ch&#7885;n file. D&#249;ng <strong>&#8634; &#8635;</strong> &#273;&#7875; xoay. K&#233;o &#273;&#7875; s&#7855;p x&#7871;p. Nh&#7853;p t&#234;n, l&#432;u b&#7857;ng <strong>&#9733;</strong>, r&#7891;i nh&#7845;n <strong>Download PDF</strong>.</div>
         </div>
       </div>
       <div class="lang-card">
         <span class="lang-flag">&#127470;&#127465;</span>
         <div>
           <div class="lang-label">Bahasa Indonesia</div>
-          <div class="lang-text">Seret, tempel <strong>(Ctrl+V)</strong>, atau pilih file. Gunakan <strong>&#8634; &#8635;</strong> untuk memutar. Seret untuk mengatur urutan. Lalu klik <strong>Download PDF</strong>.</div>
+          <div class="lang-text">Seret, tempel <strong>(Ctrl+V)</strong>, atau pilih file. Gunakan <strong>&#8634; &#8635;</strong> untuk memutar. Seret untuk mengatur urutan. Ketik nama, simpan dengan <strong>&#9733;</strong>, lalu klik <strong>Download PDF</strong>.</div>
         </div>
       </div>
     </div>
@@ -296,13 +348,25 @@ body {
 </div>
 
 <div class="bottom-bar">
+
+  <!-- Saved names -->
+  <div class="saved-section" id="savedSection">
+    <div class="saved-header">
+      <span class="saved-label">&#9733; Saved names</span>
+    </div>
+    <div class="saved-chips" id="savedChips"></div>
+  </div>
+
+  <!-- Controls -->
   <div class="controls">
     <div class="filename-wrap">
       <input type="text" class="filename-input" id="filenameInput" placeholder="Output filename" value="output">
       <span class="ext-label">.pdf</span>
     </div>
+    <button class="save-name-btn" id="saveNameBtn" onclick="saveName()" title="Save this filename">&#9733;</button>
     <button class="download-btn" id="downloadBtn" onclick="handleDownload()">&#8595; Download PDF</button>
   </div>
+
   <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
   <div class="status" id="status"></div>
 </div>
@@ -313,20 +377,76 @@ var files = [];
 var rotations = [];
 var dragSrcIdx = null;
 var langOpen = false;
+var STORAGE_KEY = 'gaj_pdf_saved_names';
 
+/* ---- Language accordion ---- */
 function toggleLang() {
   langOpen = !langOpen;
   document.getElementById('langCards').className = 'lang-cards' + (langOpen ? ' open' : '');
   document.getElementById('langArrow').className = 'lang-arrow' + (langOpen ? ' open' : '');
 }
 
-function clearAll() {
-  files = [];
-  rotations = [];
-  renderList();
-  setStatus('', '');
+/* ---- Saved names (localStorage) ---- */
+function getSavedNames() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch(e) { return []; }
 }
 
+function saveName() {
+  var name = document.getElementById('filenameInput').value.trim();
+  if (!name || name === 'output') return;
+  var names = getSavedNames();
+  if (names.indexOf(name) === -1) {
+    names.unshift(name);
+    if (names.length > 20) names = names.slice(0, 20);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
+  }
+  renderSavedNames();
+  var btn = document.getElementById('saveNameBtn');
+  btn.classList.add('flash');
+  setTimeout(function() { btn.classList.remove('flash'); }, 800);
+}
+
+function deleteSavedName(name) {
+  var names = getSavedNames().filter(function(n) { return n !== name; });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
+  renderSavedNames();
+}
+
+function loadSavedName(name) {
+  document.getElementById('filenameInput').value = name;
+  document.getElementById('filenameInput').focus();
+}
+
+function renderSavedNames() {
+  var names = getSavedNames();
+  var section = document.getElementById('savedSection');
+  var chips = document.getElementById('savedChips');
+  section.className = 'saved-section' + (names.length > 0 ? ' visible' : '');
+  chips.innerHTML = '';
+  names.forEach(function(name) {
+    var chip = document.createElement('div');
+    chip.className = 'saved-chip';
+    chip.title = name;
+
+    var nameEl = document.createElement('div');
+    nameEl.className = 'saved-chip-name';
+    nameEl.textContent = name;
+    nameEl.onclick = function() { loadSavedName(name); };
+
+    var del = document.createElement('span');
+    del.className = 'saved-chip-del';
+    del.innerHTML = '&#10005;';
+    del.title = 'Remove';
+    del.onclick = function() { deleteSavedName(name); };
+
+    chip.appendChild(nameEl);
+    chip.appendChild(del);
+    chips.appendChild(chip);
+  });
+}
+
+/* ---- File handling ---- */
 var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
 
@@ -358,8 +478,8 @@ function addFiles(newFiles) {
   renderList();
 }
 
+function clearAll() { files = []; rotations = []; renderList(); setStatus('', ''); }
 function removeFile(i) { files.splice(i, 1); rotations.splice(i, 1); renderList(); }
-
 function rotate(i, dir) { rotations[i] = (rotations[i] + dir * 90 + 360) % 360; renderList(); }
 
 function fmt(b) {
@@ -367,7 +487,6 @@ function fmt(b) {
   if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
   return (b/1048576).toFixed(1) + ' MB';
 }
-
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function renderList() {
@@ -539,6 +658,9 @@ function handleDownload() {
     btn.disabled=false; btn.innerHTML='&#8595; Download PDF';
   });
 }
+
+/* ---- Init ---- */
+renderSavedNames();
 </script>
 </body>
 </html>
