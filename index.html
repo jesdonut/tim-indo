@@ -1,582 +1,399 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Builder — Grasp Agent Japan</title>
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"><\/script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Myanmar', sans-serif;
-      background: #0a0a12;
-      color: #e8e8f2;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    /* Brand bar */
-    .brand-bar {
-      width: 100%;
-      background: linear-gradient(135deg, #1c0540, #0e0e28);
-      border-bottom: 1px solid #2d1a5e;
-      padding: 18px 28px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      justify-content: center;
-    }
-
-    .brand-logo { font-size: 2rem; }
-
-    .brand-name {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: 0.01em;
-    }
-
-    .brand-ja {
-      font-size: 0.76rem;
-      color: #9977cc;
-      margin-top: 2px;
-    }
-
-    /* Container */
-    .container {
-      width: 100%;
-      max-width: 700px;
-      padding: 38px 20px 80px;
-    }
-
-    .app-title {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .app-title h1 {
-      font-size: 1.85rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #6366f1, #a855f7);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 6px;
-    }
-
-    .app-title p { color: #7777aa; font-size: 0.87rem; }
-
-    /* Language section */
-    .lang-section { margin-bottom: 28px; }
-
-    .lang-section-label {
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: #6655aa;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 9px;
-    }
-
-    .lang-cards { display: flex; flex-direction: column; gap: 5px; }
-
-    .lang-card {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      background: #10101c;
-      border: 1px solid #1d1d32;
-      border-radius: 10px;
-      padding: 10px 14px;
-    }
-
-    .lang-flag { font-size: 1.25rem; flex-shrink: 0; line-height: 1.45; }
-
-    .lang-label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: #7755bb;
-      letter-spacing: 0.06em;
-      margin-bottom: 3px;
-      text-transform: uppercase;
-    }
-
-    .lang-text { font-size: 0.83rem; color: #ccccee; line-height: 1.55; }
-    .lang-text strong { color: #a89af7; }
-
-    /* Drop zone */
-    .drop-zone {
-      border: 2px dashed #28284a;
-      border-radius: 16px;
-      padding: 42px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      background: #0e0e1a;
-      margin-bottom: 14px;
-    }
-
-    .drop-zone:hover { border-color: #6366f1; background: #13132a; }
-    .drop-zone.dragover { border-color: #a855f7; background: #14102e; }
-    .drop-zone.paste-flash { border-color: #22c55e; background: #0d1f14; transition: none; }
-
-    .drop-icon { font-size: 2.4rem; display: block; margin-bottom: 12px; }
-    .drop-zone h2 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
-    .drop-zone .drop-sub { color: #7777aa; font-size: 0.8rem; margin-bottom: 10px; }
-
-    .paste-badge {
-      display: inline-block;
-      background: #18182e;
-      border: 1px solid #2e2e50;
-      border-radius: 6px;
-      padding: 3px 11px;
-      font-size: 0.74rem;
-      color: #8888bb;
-      margin-bottom: 16px;
-      font-family: monospace;
-    }
-
-    .browse-btn {
-      display: inline-block;
-      padding: 9px 22px;
-      background: #6366f1;
-      color: #fff;
-      border-radius: 8px;
-      font-size: 0.84rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .browse-btn:hover { background: #5050cc; }
-
-    /* File list */
-    .file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-
-    .file-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #0e0e1a;
-      border: 1px solid #20203a;
-      border-radius: 11px;
-      padding: 9px 12px;
-      cursor: grab;
-      transition: border-color 0.15s, background 0.15s, opacity 0.15s;
-      user-select: none;
-    }
-    .file-item:active { cursor: grabbing; }
-    .file-item.drag-over { border-color: #6366f1; background: #13132a; }
-    .file-item.dragging { opacity: 0.3; }
-
-    .drag-handle {
-      color: #44446a;
-      font-size: 1rem;
-      flex-shrink: 0;
-      cursor: grab;
-      line-height: 1;
-    }
-
-    .file-thumb {
-      width: 42px; height: 42px;
-      border-radius: 7px;
-      background: #18182e;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.3rem;
-      overflow: hidden;
-    }
-    .file-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
-
-    .file-info { flex: 1; min-width: 0; }
-
-    .file-name {
-      font-size: 0.85rem; font-weight: 500;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .file-meta { font-size: 0.71rem; color: #7777aa; margin-top: 2px; }
-
-    .file-remove {
-      background: none; border: none;
-      color: #44446a; cursor: pointer;
-      font-size: 0.88rem;
-      width: 26px; height: 26px;
-      border-radius: 5px;
-      display: flex; align-items: center; justify-content: center;
-      transition: color 0.15s, background 0.15s;
-      flex-shrink: 0;
-    }
-    .file-remove:hover { color: #ef4444; background: #2a1010; }
-
-    .reorder-tip {
-      font-size: 0.72rem; color: #44446a;
-      text-align: center; margin-bottom: 16px;
-    }
-
-    /* Controls */
-    .controls { display: flex; gap: 10px; align-items: stretch; }
-
-    .filename-wrap { flex: 1; position: relative; }
-    .filename-wrap .ext-label {
-      position: absolute; right: 13px; top: 50%;
-      transform: translateY(-50%);
-      color: #55557a; font-size: 0.78rem; pointer-events: none;
-    }
-
-    .filename-input {
-      width: 100%;
-      background: #0e0e1a;
-      border: 1px solid #20203a;
-      color: #e8e8f2;
-      border-radius: 10px;
-      padding: 13px 48px 13px 15px;
-      font-size: 0.92rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .filename-input:focus { border-color: #6366f1; }
-    .filename-input::placeholder { color: #44446a; }
-
-    .download-btn {
-      padding: 13px 22px;
-      background: linear-gradient(135deg, #6366f1, #a855f7);
-      color: #fff; border: none;
-      border-radius: 10px;
-      font-size: 0.9rem; font-weight: 600;
-      cursor: pointer; white-space: nowrap;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-    .download-btn:hover { opacity: 0.88; }
-    .download-btn:active { transform: scale(0.97); }
-    .download-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-
-    .progress-wrap {
-      height: 3px; background: #18182e;
-      border-radius: 2px; margin-top: 12px;
-      overflow: hidden; opacity: 0; transition: opacity 0.2s;
-    }
-    .progress-wrap.visible { opacity: 1; }
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #6366f1, #a855f7);
-      width: 0%; transition: width 0.3s ease;
-    }
-
-    .status {
-      margin-top: 11px; text-align: center;
-      font-size: 0.81rem; color: #7777aa; min-height: 18px;
-    }
-    .status.error { color: #ef4444; }
-    .status.success { color: #22c55e; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Builder — Grasp Agent Japan</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  background: #0a0a12;
+  color: #e8e8f2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.brand-bar {
+  width: 100%;
+  background: linear-gradient(135deg, #1c0540, #0e0e28);
+  border-bottom: 1px solid #2d1a5e;
+  padding: 18px 28px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: center;
+}
+.brand-logo { font-size: 2rem; }
+.brand-name { font-size: 1.15rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.76rem; color: #9977cc; margin-top: 2px; }
+.container { width: 100%; max-width: 700px; padding: 38px 20px 80px; }
+.app-title { text-align: center; margin-bottom: 30px; }
+.app-title h1 {
+  font-size: 1.85rem; font-weight: 700;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 6px;
+}
+.app-title p { color: #7777aa; font-size: 0.87rem; }
+.lang-section { margin-bottom: 28px; }
+.lang-section-label { font-size: 0.7rem; font-weight: 700; color: #6655aa; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 9px; }
+.lang-cards { display: flex; flex-direction: column; gap: 5px; }
+.lang-card { display: flex; align-items: flex-start; gap: 10px; background: #10101c; border: 1px solid #1d1d32; border-radius: 10px; padding: 10px 14px; }
+.lang-flag { font-size: 1.25rem; flex-shrink: 0; line-height: 1.45; }
+.lang-label { font-size: 0.68rem; font-weight: 700; color: #7755bb; letter-spacing: 0.06em; margin-bottom: 3px; text-transform: uppercase; }
+.lang-text { font-size: 0.83rem; color: #ccccee; line-height: 1.55; }
+.lang-text strong { color: #a89af7; }
+.drop-zone {
+  border: 2px dashed #28284a; border-radius: 16px; padding: 42px 24px;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #0e0e1a; margin-bottom: 14px;
+}
+.drop-zone:hover { border-color: #6366f1; background: #13132a; }
+.drop-zone.dragover { border-color: #a855f7; background: #14102e; }
+.drop-zone.paste-flash { border-color: #22c55e; background: #0d1f14; transition: none; }
+.drop-icon { font-size: 2.4rem; display: block; margin-bottom: 12px; }
+.drop-zone h2 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+.drop-sub { color: #7777aa; font-size: 0.8rem; margin-bottom: 10px; }
+.paste-badge {
+  display: inline-block; background: #18182e; border: 1px solid #2e2e50;
+  border-radius: 6px; padding: 3px 11px; font-size: 0.74rem; color: #8888bb;
+  margin-bottom: 16px; font-family: monospace;
+}
+.browse-btn {
+  display: inline-block; padding: 9px 22px; background: #6366f1;
+  color: #fff; border-radius: 8px; font-size: 0.84rem; font-weight: 500;
+  cursor: pointer; transition: background 0.2s;
+}
+.browse-btn:hover { background: #5050cc; }
+.file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.file-item {
+  display: flex; align-items: center; gap: 10px;
+  background: #0e0e1a; border: 1px solid #20203a; border-radius: 11px;
+  padding: 9px 12px; cursor: grab;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+  user-select: none;
+}
+.file-item:active { cursor: grabbing; }
+.file-item.drag-over { border-color: #6366f1; background: #13132a; }
+.file-item.dragging { opacity: 0.3; }
+.drag-handle { color: #44446a; font-size: 1rem; flex-shrink: 0; cursor: grab; line-height: 1; }
+.file-thumb {
+  width: 42px; height: 42px; border-radius: 7px; background: #18182e;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; overflow: hidden;
+}
+.file-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
+.file-info { flex: 1; min-width: 0; }
+.file-name { font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-meta { font-size: 0.71rem; color: #7777aa; margin-top: 2px; }
+.file-remove {
+  background: none; border: none; color: #44446a; cursor: pointer;
+  font-size: 0.88rem; width: 26px; height: 26px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s; flex-shrink: 0;
+}
+.file-remove:hover { color: #ef4444; background: #2a1010; }
+.reorder-tip { font-size: 0.72rem; color: #44446a; text-align: center; margin-bottom: 16px; }
+.controls { display: flex; gap: 10px; align-items: stretch; }
+.filename-wrap { flex: 1; position: relative; }
+.filename-wrap .ext-label {
+  position: absolute; right: 13px; top: 50%;
+  transform: translateY(-50%); color: #55557a; font-size: 0.78rem; pointer-events: none;
+}
+.filename-input {
+  width: 100%; background: #0e0e1a; border: 1px solid #20203a;
+  color: #e8e8f2; border-radius: 10px; padding: 13px 48px 13px 15px;
+  font-size: 0.92rem; outline: none; transition: border-color 0.2s;
+}
+.filename-input:focus { border-color: #6366f1; }
+.filename-input::placeholder { color: #44446a; }
+.download-btn {
+  padding: 13px 22px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #fff; border: none; border-radius: 10px;
+  font-size: 0.9rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.download-btn:hover { opacity: 0.88; }
+.download-btn:active { transform: scale(0.97); }
+.download-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.progress-wrap {
+  height: 3px; background: #18182e; border-radius: 2px; margin-top: 12px;
+  overflow: hidden; opacity: 0; transition: opacity 0.2s;
+}
+.progress-wrap.visible { opacity: 1; }
+.progress-bar {
+  height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7);
+  width: 0%; transition: width 0.3s ease;
+}
+.status { margin-top: 11px; text-align: center; font-size: 0.81rem; color: #7777aa; min-height: 18px; }
+.status.error { color: #ef4444; }
+.status.success { color: #22c55e; }
+</style>
 </head>
 <body>
 
-  <!-- Brand bar -->
-  <div class="brand-bar">
-    <div class="brand-logo">&#128196;</div>
-    <div>
-      <div class="brand-name">Grasp Agent Japan</div>
-      <div class="brand-ja">&#12464;&#12521;&#12473;&#12503;&#12456;&#12540;&#12472;&#12455;&#12531;&#12488;&#12472;&#12515;&#12497;&#12531;</div>
+<div class="brand-bar">
+  <div class="brand-logo">&#128196;</div>
+  <div>
+    <div class="brand-name">Grasp Agent Japan</div>
+    <div class="brand-ja">&#12464;&#12521;&#12473;&#12503;&#12456;&#12540;&#12472;&#12455;&#12531;&#12488;&#12472;&#12515;&#12497;&#12531;</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="app-title">
+    <h1>PDF Builder</h1>
+    <p>Combine PDFs &amp; images into one file &mdash; your name, your order, one click</p>
+  </div>
+
+  <div class="lang-section">
+    <div class="lang-section-label">How to use</div>
+    <div class="lang-cards">
+
+      <div class="lang-card">
+        <span class="lang-flag">&#127468;&#127463;</span>
+        <div>
+          <div class="lang-label">English</div>
+          <div class="lang-text">Drop, paste <strong>(Ctrl+V)</strong>, or browse files. Drag rows to reorder. Enter a filename and click <strong>Download PDF</strong>.</div>
+        </div>
+      </div>
+
+      <div class="lang-card">
+        <span class="lang-flag">&#127471;&#127477;</span>
+        <div>
+          <div class="lang-label">&#26085;&#26412;&#35486;</div>
+          <div class="lang-text">&#12501;&#12449;&#12452;&#12523;&#12434;&#12489;&#12525;&#12483;&#12503;&#12289;<strong>Ctrl+V</strong>&#12391;&#36932;&#12426;&#20184;&#12369;&#12289;&#12414;&#12383;&#12399;&#12501;&#12449;&#12452;&#12523;&#12434;&#36984;&#12435;&#12391;&#12367;&#12384;&#12373;&#12356;&#12290;&#34180;&#12434;&#12489;&#12521;&#12483;&#12464;&#12375;&#12390;&#19006;&#12395;&#20999;&#12426;&#26367;&#12360;&#12289;&#12501;&#12449;&#12452;&#12523;&#21517;&#12434;&#20837;&#21147;&#12375;&#12390;<strong>Download PDF</strong>&#12434;&#12463;&#12522;&#12483;&#12463;&#12290;</div>
+        </div>
+      </div>
+
+      <div class="lang-card">
+        <span class="lang-flag">&#127474;&#127474;</span>
+        <div>
+          <div class="lang-label">&#4121;&#4156;&#4116;&#4154;&#4121;&#4140;</div>
+          <div class="lang-text">PDF, JPG &#4126;&#4140;&#4116;&#4154;&#4117;&#4116;&#4154;&#4126;&#4103; PNG &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#4126;&#4140; &#4127;&#4151;&#4150;&#4101;&#4155;&#4131;&#4145;&#4123;&#4140;&#12289; <strong>Ctrl+V</strong> &#4116;&#4154;&#4126;&#4103;&#4126;&#4154; &#4126;&#4140;&#4150;&#4149;&#4119;&#4154;&#4116;&#4154;&#4126;&#4103; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#12290; &#4100;&#4151;&#4150;&#4125;&#4150;&#4127;&#4150; &#4126;&#4140;&#4150;&#4149;&#4119;&#4154;&#4116;&#4154;&#4126;&#4103;&#4126;&#4140; &#4126;&#4140;&#4137;&#4150;&#4153;&#4123;&#4140;&#4112;&#4140;&#4116;&#4116;&#4154;&#12290; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4100;&#4121;&#4154;&#4116;&#4154; &#4126;&#4140;&#4137;&#4150;&#4153;&#4116;&#4154;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#4126;&#4140; <strong>Download PDF</strong> &#4116;&#4154;&#4126;&#4103;&#4121;&#4155;&#4126;&#4140;&#12290;</div>
+        </div>
+      </div>
+
+      <div class="lang-card">
+        <span class="lang-flag">&#127483;&#127475;</span>
+        <div>
+          <div class="lang-label">Ti&#7871;ng Vi&#7879;t</div>
+          <div class="lang-text">K&#233;o th&#7843;, d&#225;n <strong>(Ctrl+V)</strong>, ho&#7863;c ch&#7885;n file PDF, JPG ho&#7863;c PNG. K&#233;o &#273;&#7875; s&#7855;p x&#7871;p l&#7841;i th&#7913; t&#7921;. Nh&#7853;p t&#234;n file v&#224; nh&#7845;n <strong>Download PDF</strong>.</div>
+        </div>
+      </div>
+
+      <div class="lang-card">
+        <span class="lang-flag">&#127470;&#127465;</span>
+        <div>
+          <div class="lang-label">Bahasa Indonesia</div>
+          <div class="lang-text">Seret, tempel <strong>(Ctrl+V)</strong>, atau pilih file PDF, JPG, atau PNG. Seret baris untuk mengatur urutan. Masukkan nama file dan klik <strong>Download PDF</strong>.</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <div class="container">
-
-    <div class="app-title">
-      <h1>PDF Builder</h1>
-      <p>Combine PDFs &amp; images into one file &mdash; your name, your order, one click</p>
-    </div>
-
-    <!-- 5-language instructions -->
-    <div class="lang-section">
-      <div class="lang-section-label">How to use &#8212; &#20351;&#12356;&#26041;</div>
-      <div class="lang-cards">
-
-        <div class="lang-card">
-          <span class="lang-flag">&#127468;&#127463;</span>
-          <div>
-            <div class="lang-label">English</div>
-            <div class="lang-text">Drop, paste <strong>(Ctrl+V)</strong>, or browse files. Drag rows to reorder. Enter a filename and click <strong>Download PDF</strong>.</div>
-          </div>
-        </div>
-
-        <div class="lang-card">
-          <span class="lang-flag">&#127471;&#127477;</span>
-          <div>
-            <div class="lang-label">&#26085;&#26412;&#35486;</div>
-            <div class="lang-text">&#12501;&#12449;&#12452;&#12523;&#12434;&#12489;&#12525;&#12483;&#12503;&#12289;<strong>Ctrl+V</strong>&#12391;&#36932;&#12426;&#20184;&#12369;&#12289;&#12414;&#12383;&#12399;&#12501;&#12449;&#12452;&#12523;&#12434;&#36984;&#12435;&#12391;&#12367;&#12384;&#12373;&#12356;&#12290;&#34ành&#12434;&#30446;&#12395;&#12489;&#12521;&#12483;&#12464;&#12375;&#12390;&#19006;&#12395;&#20999;&#12426;&#26367;&#12360;&#12434;&#12289;&#12501;&#12449;&#12452;&#12523;&#21517;&#12434;&#20837;&#21147;&#12375;&#12390;<strong>Download PDF</strong>&#12434;&#12463;&#12522;&#12483;&#12463;&#12290;</div>
-          </div>
-        </div>
-
-        <div class="lang-card">
-          <span class="lang-flag">&#127474;&#127474;</span>
-          <div>
-            <div class="lang-label">&#4121;&#4156;&#4116;&#4154;&#4121;&#4140;</div>
-            <div class="lang-text">PDF&#12289; JPG &#4126;&#4140;&#4116;&#4154;&#4117;&#4116;&#4154;&#4126;&#4103; PNG &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#4126;&#4140; &#4127;&#4151;&#4150;&#4101;&#4155;&#4131;&#4145;&#4123;&#4140;&#12289; <strong>Ctrl+V</strong> &#4116;&#4154;&#4126;&#4103;&#4126;&#4154; &#4126;&#4140;&#4150;&#4149;&#4119;&#4154;&#4116;&#4154;&#4126;&#4103; &#4126;&#4140;&#4119;&#4140;&#4121;&#4140;&#4126;&#4140; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#12290; &#4100;&#4151;&#4150;&#4125;&#4150;&#4127;&#4150; &#4126;&#4140;&#4150;&#4149;&#4119;&#4154;&#4116;&#4154;&#4126;&#4103;&#4126;&#4140; &#4126;&#4140;&#4137;&#4150;&#4153;&#4123;&#4140;&#4112;&#4140;&#4116;&#4116;&#4154;&#12290; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4100;&#4121;&#4154;&#4116;&#4154; &#4126;&#4140;&#4137;&#4150;&#4153;&#4116;&#4154;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#4126;&#4140; <strong>Download PDF</strong> &#4116;&#4154;&#4126;&#4103;&#4121;&#4155;&#4126;&#4140;&#12290;</div>
-          </div>
-        </div>
-
-        <div class="lang-card">
-          <span class="lang-flag">&#127483;&#127475;</span>
-          <div>
-            <div class="lang-label">Ti&#7871;ng Vi&#7879;t</div>
-            <div class="lang-text">K&#233;o th&#7843;, d&#225;n <strong>(Ctrl+V)</strong>, ho&#7863;c ch&#7885;n file PDF, JPG ho&#7863;c PNG. K&#233;o &#273;&#7875; s&#7855;p x&#7871;p l&#7841;i th&#7913; t&#7921;. Nh&#7853;p t&#234;n file v&#224; nh&#7845;n <strong>Download PDF</strong>.</div>
-          </div>
-        </div>
-
-        <div class="lang-card">
-          <span class="lang-flag">&#127470;&#127465;</span>
-          <div>
-            <div class="lang-label">Bahasa Indonesia</div>
-            <div class="lang-text">Seret, tempel <strong>(Ctrl+V)</strong>, atau pilih file PDF, JPG, atau PNG. Seret baris untuk mengatur urutan. Masukkan nama file dan klik <strong>Download PDF</strong>.</div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Drop zone -->
-    <div class="drop-zone" id="dropZone">
-      <span class="drop-icon">&#128193;</span>
-      <h2>Drop files here</h2>
-      <p class="drop-sub">PDF &middot; JPG &middot; PNG</p>
-      <div class="paste-badge">Ctrl+V &mdash; paste an image from clipboard</div><br>
-      <div class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse files</div>
-      <input type="file" id="fileInput" multiple
-        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-        style="display:none">
-    </div>
-
-    <div class="file-list" id="fileList"></div>
-    <div class="reorder-tip" id="reorderTip" style="display:none">&#8597; Drag rows to reorder</div>
-
-    <div class="controls">
-      <div class="filename-wrap">
-        <input type="text" class="filename-input" id="filenameInput"
-          placeholder="Output filename" value="output">
-        <span class="ext-label">.pdf</span>
-      </div>
-      <button class="download-btn" id="downloadBtn" onclick="handleDownload()">
-        &#8595; Download PDF
-      </button>
-    </div>
-
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-bar" id="progressBar"></div>
-    </div>
-    <div class="status" id="status"></div>
+  <div class="drop-zone" id="dropZone">
+    <span class="drop-icon">&#128193;</span>
+    <h2>Drop files here</h2>
+    <p class="drop-sub">PDF &middot; JPG &middot; PNG</p>
+    <div class="paste-badge">Ctrl+V &mdash; paste image from clipboard</div><br>
+    <div class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse files</div>
+    <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none">
   </div>
 
-  <script>
-    const { PDFDocument } = PDFLib;
-    let files = [];
-    let dragSrcIdx = null;
+  <div class="file-list" id="fileList"></div>
+  <div class="reorder-tip" id="reorderTip" style="display:none">&#8597; Drag rows to reorder</div>
 
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
+  <div class="controls">
+    <div class="filename-wrap">
+      <input type="text" class="filename-input" id="filenameInput" placeholder="Output filename" value="output">
+      <span class="ext-label">.pdf</span>
+    </div>
+    <button class="download-btn" id="downloadBtn" onclick="handleDownload()">&#8595; Download PDF</button>
+  </div>
 
-    dropZone.addEventListener('dragover', e => {
-      e.preventDefault();
-      dropZone.classList.add('dragover');
-    });
-    dropZone.addEventListener('dragleave', e => {
-      if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('dragover');
-    });
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-      addFiles([...e.dataTransfer.files]);
-    });
-    fileInput.addEventListener('change', () => {
-      addFiles([...fileInput.files]);
-      fileInput.value = '';
-    });
+  <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="status" id="status"></div>
+</div>
 
-    document.addEventListener('paste', e => {
-      const pastedFiles = [...e.clipboardData.items]
-        .filter(item => item.kind === 'file')
-        .map(item => item.getAsFile())
-        .filter(Boolean);
-      if (pastedFiles.length > 0) {
-        addFiles(pastedFiles);
-        dropZone.classList.add('paste-flash');
-        setTimeout(() => dropZone.classList.remove('paste-flash'), 500);
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+var PDFDocument = PDFLib.PDFDocument;
+var files = [];
+var dragSrcIdx = null;
+
+var dropZone = document.getElementById('dropZone');
+var fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', function(e) { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('dragover'); });
+dropZone.addEventListener('drop', function(e) { e.preventDefault(); dropZone.classList.remove('dragover'); addFiles(Array.from(e.dataTransfer.files)); });
+fileInput.addEventListener('change', function() { addFiles(Array.from(fileInput.files)); fileInput.value = ''; });
+
+document.addEventListener('paste', function(e) {
+  var pasted = Array.from(e.clipboardData.items).filter(function(i){ return i.kind === 'file'; }).map(function(i){ return i.getAsFile(); }).filter(Boolean);
+  if (pasted.length > 0) { addFiles(pasted); dropZone.classList.add('paste-flash'); setTimeout(function(){ dropZone.classList.remove('paste-flash'); }, 500); }
+});
+
+function addFiles(newFiles) {
+  var allowed = ['application/pdf','image/jpeg','image/png'];
+  var added = 0;
+  newFiles.forEach(function(f) { if (allowed.indexOf(f.type) >= 0) { files.push(f); added++; } });
+  if (added === 0 && newFiles.length > 0) setStatus('Only PDF, JPG, and PNG files are supported.', 'error');
+  else setStatus('', '');
+  renderList();
+}
+
+function removeFile(i) { files.splice(i, 1); renderList(); }
+
+function fmt(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderList() {
+  var list = document.getElementById('fileList');
+  var tip = document.getElementById('reorderTip');
+  list.innerHTML = '';
+  tip.style.display = files.length > 1 ? 'block' : 'none';
+  files.forEach(function(file, i) {
+    var item = document.createElement('div');
+    item.className = 'file-item';
+    item.draggable = true;
+
+    var handle = document.createElement('div');
+    handle.className = 'drag-handle';
+    handle.innerHTML = '&#9776;';
+
+    var thumb = document.createElement('div');
+    thumb.className = 'file-thumb';
+    if (file.type === 'application/pdf') {
+      thumb.textContent = '📋';
+    } else {
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      thumb.appendChild(img);
+    }
+
+    var info = document.createElement('div');
+    info.className = 'file-info';
+    var ext = file.type === 'application/pdf' ? 'PDF' : file.type === 'image/png' ? 'PNG' : 'JPG';
+    info.innerHTML = '<div class="file-name">' + esc(file.name) + '</div><div class="file-meta">' + ext + ' &middot; ' + fmt(file.size) + '</div>';
+
+    var rm = document.createElement('button');
+    rm.className = 'file-remove';
+    rm.innerHTML = '&#10005;';
+    rm.onclick = function(e) { e.stopPropagation(); removeFile(i); };
+
+    item.appendChild(handle);
+    item.appendChild(thumb);
+    item.appendChild(info);
+    item.appendChild(rm);
+    list.appendChild(item);
+
+    item.addEventListener('dragstart', function(e) {
+      dragSrcIdx = i;
+      setTimeout(function(){ item.classList.add('dragging'); }, 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', function() {
+      item.classList.remove('dragging');
+      Array.from(list.querySelectorAll('.file-item')).forEach(function(el){ el.classList.remove('drag-over'); });
+    });
+    item.addEventListener('dragover', function(e) { e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', function() { item.classList.remove('drag-over'); });
+    item.addEventListener('drop', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      item.classList.remove('drag-over');
+      if (dragSrcIdx !== null && dragSrcIdx !== i) {
+        var moved = files.splice(dragSrcIdx, 1)[0];
+        files.splice(i, 0, moved);
+        dragSrcIdx = null;
+        renderList();
       }
     });
+  });
+}
 
-    function addFiles(newFiles) {
-      const allowed = ['application/pdf', 'image/jpeg', 'image/png'];
-      let added = 0;
-      newFiles.forEach(f => {
-        if (allowed.includes(f.type)) { files.push(f); added++; }
-      });
-      if (added === 0 && newFiles.length > 0)
-        setStatus('Only PDF, JPG, and PNG files are supported.', 'error');
-      else
-        setStatus('', '');
-      renderList();
-    }
+function setProgress(pct) {
+  var wrap = document.getElementById('progressWrap');
+  var bar = document.getElementById('progressBar');
+  if (pct < 0) { wrap.classList.remove('visible'); bar.style.width = '0%'; return; }
+  wrap.classList.add('visible');
+  bar.style.width = pct + '%';
+}
 
-    function removeFile(i) { files.splice(i, 1); renderList(); }
+function setStatus(msg, type) {
+  var el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (type ? ' ' + type : '');
+}
 
-    function fmt(b) {
-      if (b < 1024) return b + ' B';
-      if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-      return (b / 1048576).toFixed(1) + ' MB';
-    }
+function handleDownload() {
+  if (files.length === 0) { setStatus('Add at least one file first.', 'error'); return; }
+  var btn = document.getElementById('downloadBtn');
+  btn.disabled = true;
+  btn.textContent = 'Building...';
+  setStatus('Processing files...', '');
+  setProgress(5);
 
-    function esc(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    function renderList() {
-      const list = document.getElementById('fileList');
-      const tip = document.getElementById('reorderTip');
-      list.innerHTML = '';
-      tip.style.display = files.length > 1 ? 'block' : 'none';
-
-      files.forEach((file, i) => {
-        const item = document.createElement('div');
-        item.className = 'file-item';
-        item.draggable = true;
-
-        const handle = document.createElement('div');
-        handle.className = 'drag-handle';
-        handle.innerHTML = '&#9776;';
-        handle.title = 'Drag to reorder';
-
-        const thumb = document.createElement('div');
-        thumb.className = 'file-thumb';
-        if (file.type === 'application/pdf') {
-          thumb.textContent = '📋';
-        } else {
-          const img = document.createElement('img');
-          img.src = URL.createObjectURL(file);
-          thumb.appendChild(img);
-        }
-
-        const info = document.createElement('div');
-        info.className = 'file-info';
-        const ext = file.type === 'application/pdf' ? 'PDF' : file.type === 'image/png' ? 'PNG' : 'JPG';
-        info.innerHTML = `<div class="file-name">${esc(file.name)}</div><div class="file-meta">${ext} &middot; ${fmt(file.size)}</div>`;
-
-        const rm = document.createElement('button');
-        rm.className = 'file-remove';
-        rm.title = 'Remove';
-        rm.innerHTML = '&#10005;';
-        rm.onclick = e => { e.stopPropagation(); removeFile(i); };
-
-        item.append(handle, thumb, info, rm);
-        list.appendChild(item);
-
-        item.addEventListener('dragstart', e => {
-          dragSrcIdx = i;
-          setTimeout(() => item.classList.add('dragging'), 0);
-          e.dataTransfer.effectAllowed = 'move';
-        });
-        item.addEventListener('dragend', () => {
-          item.classList.remove('dragging');
-          list.querySelectorAll('.file-item').forEach(el => el.classList.remove('drag-over'));
-        });
-        item.addEventListener('dragover', e => { e.preventDefault(); item.classList.add('drag-over'); });
-        item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
-        item.addEventListener('drop', e => {
-          e.preventDefault();
-          e.stopPropagation();
-          item.classList.remove('drag-over');
-          if (dragSrcIdx !== null && dragSrcIdx !== i) {
-            const moved = files.splice(dragSrcIdx, 1)[0];
-            files.splice(i, 0, moved);
-            dragSrcIdx = null;
-            renderList();
-          }
-        });
-      });
-    }
-
-    function setProgress(pct) {
-      const wrap = document.getElementById('progressWrap');
-      const bar = document.getElementById('progressBar');
-      if (pct < 0) { wrap.classList.remove('visible'); bar.style.width = '0%'; return; }
-      wrap.classList.add('visible');
-      bar.style.width = pct + '%';
-    }
-
-    function setStatus(msg, type) {
-      const el = document.getElementById('status');
-      el.textContent = msg;
-      el.className = 'status' + (type ? ' ' + type : '');
-    }
-
-    async function handleDownload() {
-      if (files.length === 0) { setStatus('Add at least one file first.', 'error'); return; }
-      const btn = document.getElementById('downloadBtn');
-      btn.disabled = true;
-      btn.textContent = 'Building...';
-      setStatus('Processing files...', '');
-      setProgress(5);
-
-      try {
-        const pdfDoc = await PDFDocument.create();
-
-        for (let idx = 0; idx < files.length; idx++) {
-          const file = files[idx];
-          const bytes = await file.arrayBuffer();
-          setProgress(10 + Math.round((idx / files.length) * 80));
-
+  PDFDocument.create().then(function(pdfDoc) {
+    var chain = Promise.resolve();
+    files.forEach(function(file, idx) {
+      chain = chain.then(function() {
+        setProgress(10 + Math.round((idx / files.length) * 80));
+        return file.arrayBuffer().then(function(bytes) {
           if (file.type === 'application/pdf') {
-            const srcDoc = await PDFDocument.load(bytes);
-            const copied = await pdfDoc.copyPages(srcDoc, srcDoc.getPageIndices());
-            copied.forEach(p => pdfDoc.addPage(p));
+            return PDFDocument.load(bytes).then(function(srcDoc) {
+              return pdfDoc.copyPages(srcDoc, srcDoc.getPageIndices()).then(function(pages) {
+                pages.forEach(function(p){ pdfDoc.addPage(p); });
+              });
+            });
           } else {
-            let img;
-            if (file.type === 'image/png') img = await pdfDoc.embedPng(bytes);
-            else img = await pdfDoc.embedJpg(bytes);
-
-            const maxW = 595, maxH = 842;
-            let w = img.width, h = img.height;
-            const scale = Math.min(1, maxW / w, maxH / h);
-            w = Math.round(w * scale);
-            h = Math.round(h * scale);
-
-            const page = pdfDoc.addPage([w, h]);
-            page.drawImage(img, { x: 0, y: 0, width: w, height: h });
+            var embedFn = file.type === 'image/png' ? pdfDoc.embedPng.bind(pdfDoc) : pdfDoc.embedJpg.bind(pdfDoc);
+            return embedFn(bytes).then(function(img) {
+              var maxW = 595, maxH = 842;
+              var w = img.width, h = img.height;
+              var scale = Math.min(1, maxW/w, maxH/h);
+              w = Math.round(w*scale); h = Math.round(h*scale);
+              var page = pdfDoc.addPage([w, h]);
+              page.drawImage(img, { x:0, y:0, width:w, height:h });
+            });
           }
-        }
-
-        setProgress(95);
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-
-        let name = document.getElementById('filenameInput').value.trim() || 'output';
-        if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-
-        setProgress(100);
-        setStatus('Downloaded “' + name + '”', 'success');
-        setTimeout(() => setProgress(-1), 1800);
-      } catch (err) {
-        console.error(err);
-        setStatus('Error: ' + err.message, 'error');
-        setProgress(-1);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '&#8595; Download PDF';
-      }
-    }
-  <\/script>
+        });
+      });
+    });
+    return chain.then(function() { return pdfDoc.save(); });
+  }).then(function(pdfBytes) {
+    setProgress(95);
+    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    var url = URL.createObjectURL(blob);
+    var name = document.getElementById('filenameInput').value.trim() || 'output';
+    if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    setProgress(100);
+    setStatus('Downloaded “' + name + '”', 'success');
+    setTimeout(function(){ setProgress(-1); }, 1800);
+  }).catch(function(err) {
+    console.error(err);
+    setStatus('Error: ' + err.message, 'error');
+    setProgress(-1);
+  }).finally(function() {
+    btn.disabled = false;
+    btn.innerHTML = '&#8595; Download PDF';
+  });
+}
+</script>
 </body>
 </html>
