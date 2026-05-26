@@ -237,6 +237,7 @@ function updateCharCount() {
 function googleTranslate(text, tl, withRomaji) {
   var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=' + tl +
             '&dt=t' + (withRomaji ? '&dt=rm' : '') +
+            '&dj=1' +
             '&q=' + encodeURIComponent(text);
   return fetch(url)
     .then(function(r) {
@@ -245,11 +246,25 @@ function googleTranslate(text, tl, withRomaji) {
     })
     .then(function(data) {
       var translation = '', romaji = '';
-      if (data && Array.isArray(data[0])) {
+      if (data && Array.isArray(data.sentences)) {
+        // dj=1 format: { sentences: [{trans, orig, src_translit, translit}] }
+        data.sentences.forEach(function(seg) {
+          if (seg.trans) translation += seg.trans;
+          if (withRomaji) {
+            var r = seg.src_translit || seg.translit || '';
+            if (r) romaji += (romaji ? ' ' : '') + r;
+          }
+        });
+      } else if (data && Array.isArray(data[0])) {
+        // Fallback: array format
         data[0].forEach(function(seg) {
           if (seg[0]) translation += seg[0];
-          if (seg[2]) romaji     += seg[2];
+          if (withRomaji) {
+            var r = seg[2] || (Array.isArray(seg) && seg[3]) || '';
+            if (r) romaji += r;
+          }
         });
+        if (!romaji && withRomaji && data[12]) romaji = data[12];
       }
       return { translation: translation.trim(), romaji: romaji.trim() };
     });
