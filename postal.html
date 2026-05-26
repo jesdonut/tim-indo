@@ -94,53 +94,36 @@ body {
 .app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
 .app-title p { color: var(--muted); font-size: 0.76rem; }
 
-.mode-switcher {
-  display: flex; gap: 3px;
-  background: var(--mid); border-radius: 9px; padding: 3px;
-}
-.mode-btn {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
-  padding: 7px 8px; border-radius: 7px; font-size: 0.78rem; font-weight: 600;
-  color: var(--muted); background: none; border: none; cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.mode-btn .material-icons-outlined { font-size: 0.95rem; }
-.mode-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-.mode-btn:hover:not(.active) { background: rgba(255,255,255,0.5); color: var(--text); }
-
-.input-section { display: flex; flex-direction: column; gap: 8px; }
-.input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
-
-.postal-wrap {
+.search-wrap {
   display: flex; align-items: center;
   background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
   overflow: hidden; transition: border-color 0.2s;
 }
-.postal-wrap:focus-within { border-color: var(--primary-2); }
-.postal-wrap.error { border-color: #ef4444; }
-.postal-mark { padding: 0 8px 0 14px; font-size: 1.3rem; color: var(--accent); flex-shrink: 0; user-select: none; line-height: 1; }
-.postal-input {
-  flex: 1; background: transparent; border: none; outline: none;
-  padding: 13px 14px 13px 2px; font-size: 1.3rem; font-weight: 500;
-  color: var(--text); letter-spacing: 0.08em; font-family: 'Courier New', monospace;
+.search-wrap:focus-within { border-color: var(--primary-2); }
+.search-wrap.error { border-color: #ef4444; animation: shake 0.35s ease; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
-.postal-input::placeholder { color: var(--border-soft); font-weight: 400; font-size: 1rem; letter-spacing: 0.02em; font-family: inherit; }
-
-.addr-wrap {
-  display: flex; align-items: center;
-  background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
-  overflow: hidden; transition: border-color 0.2s;
+.search-icon {
+  padding: 0 8px 0 13px; color: var(--border-soft); flex-shrink: 0;
+  font-size: 1.2rem; transition: color 0.2s;
 }
-.addr-wrap:focus-within { border-color: var(--primary-2); }
-.addr-wrap.error { border-color: #ef4444; }
-.addr-icon { padding: 0 8px 0 12px; color: var(--accent); flex-shrink: 0; font-size: 1.1rem; }
-.addr-input {
+.search-wrap:focus-within .search-icon { color: var(--accent); }
+.search-input {
   flex: 1; background: transparent; border: none; outline: none;
-  padding: 13px 14px 13px 2px; font-size: 1rem;
+  padding: 13px 10px 13px 4px; font-size: 1.05rem;
   color: var(--text); font-family: inherit;
 }
-.addr-input::placeholder { color: var(--border-soft); }
-.addr-hint { font-size: 0.68rem; color: var(--border-soft); }
+.search-input::placeholder { color: var(--border-soft); font-size: 0.92rem; }
+.detect-pill {
+  font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+  margin-right: 10px; white-space: nowrap; flex-shrink: 0;
+  background: var(--mid); color: var(--accent);
+  opacity: 0; transition: opacity 0.2s;
+}
+.detect-pill.visible { opacity: 1; }
 
 .btn-row { display: flex; justify-content: flex-end; }
 .search-btn {
@@ -239,42 +222,22 @@ body {
 <div class="mid">
   <div class="app-title">
     <h1>Japan Postal Code</h1>
-    <p id="subtitle">Enter a 〒 code to get the address, kana &amp; romaji</p>
+    <p>Paste a 〒 code or type an address — it figures out which</p>
   </div>
 
-  <div class="input-section">
-    <div class="mode-switcher">
-      <button class="mode-btn active" id="modeBtnCode" onclick="setMode('code')">
-        <span class="material-icons-outlined">pin</span> Code → Address
-      </button>
-      <button class="mode-btn" id="modeBtnAddr" onclick="setMode('address')">
-        <span class="material-icons-outlined">location_on</span> Address → Code
-      </button>
+  <div>
+    <div class="search-wrap" id="searchWrap">
+      <span class="material-icons-outlined search-icon" id="searchIcon">search</span>
+      <input class="search-input" id="searchInput" type="text"
+        placeholder="123-4567 or 渋谷区..." autocomplete="off" autocorrect="off" spellcheck="false">
+      <span class="detect-pill" id="detectPill"></span>
     </div>
-
-    <div id="codeSection">
-      <div class="input-label">〒 Postal code</div>
-      <div class="postal-wrap" id="postalWrap">
-        <span class="postal-mark">〒</span>
-        <input class="postal-input" id="postalInput" type="text" inputmode="numeric"
-          placeholder="123-4567" maxlength="8" autocomplete="off">
+    <div style="margin-top:8px">
+      <div class="btn-row">
+        <button class="search-btn" id="searchBtn" onclick="detectAndSearch()">
+          <span class="material-icons-outlined">search</span> Search
+        </button>
       </div>
-    </div>
-
-    <div id="addrSection" style="display:none">
-      <div class="input-label">Address (Japanese)</div>
-      <div class="addr-wrap" id="addrWrap">
-        <span class="material-icons-outlined addr-icon">location_on</span>
-        <input class="addr-input" id="addrInput" type="text"
-          placeholder="e.g. 渋谷区 or 大阪市北区" autocomplete="off">
-      </div>
-      <div class="addr-hint">Building numbers are stripped automatically if needed</div>
-    </div>
-
-    <div class="btn-row">
-      <button class="search-btn" id="searchBtn" onclick="doSearch()">
-        <span class="material-icons-outlined">search</span> Search
-      </button>
     </div>
   </div>
 
@@ -319,7 +282,6 @@ body {
 
 <script>
 var THEME_KEY = 'gaj_theme';
-var mode = 'code';
 
 function toggleTheme() {
   var isPink = document.body.classList.toggle('pink');
@@ -334,32 +296,39 @@ function toggleTheme() {
   }
 })();
 
-function setMode(m) {
-  mode = m;
-  document.getElementById('codeResults').className = 'results';
-  document.getElementById('addrResults').className = 'results';
-  document.getElementById('modeBtnCode').className = 'mode-btn' + (m === 'code' ? ' active' : '');
-  document.getElementById('modeBtnAddr').className = 'mode-btn' + (m === 'address' ? ' active' : '');
-  document.getElementById('codeSection').style.display = m === 'code' ? '' : 'none';
-  document.getElementById('addrSection').style.display = m === 'address' ? '' : 'none';
-  document.getElementById('subtitle').textContent = m === 'code'
-    ? 'Enter a 〒 code to get the address, kana & romaji'
-    : 'Type a Japanese address to find matching 〒 codes';
-  (m === 'code' ? postalInput : addrInput).focus();
+var searchInput = document.getElementById('searchInput');
+var detectPill  = document.getElementById('detectPill');
+var searchIcon  = document.getElementById('searchIcon');
+
+function updateHints() {
+  var val = searchInput.value;
+  if (!val) {
+    detectPill.textContent = ''; detectPill.className = 'detect-pill';
+    searchIcon.textContent = 'search';
+    return;
+  }
+  if (/^[\d\-\s]*$/.test(val)) {
+    detectPill.textContent = '〒 code'; detectPill.className = 'detect-pill visible';
+    searchIcon.textContent = 'pin';
+  } else {
+    detectPill.textContent = 'address'; detectPill.className = 'detect-pill visible';
+    searchIcon.textContent = 'location_on';
+  }
 }
 
-var postalInput = document.getElementById('postalInput');
-var addrInput   = document.getElementById('addrInput');
+searchInput.addEventListener('input', function() {
+  var val = searchInput.value;
+  // Auto-format as postal code when input is all digits/hyphens
+  if (/^[\d\-]*$/.test(val) && val.length > 0) {
+    var d = val.replace(/\D/g, '').slice(0, 7);
+    var formatted = d.length > 3 ? d.slice(0,3) + '-' + d.slice(3) : d;
+    if (searchInput.value !== formatted) searchInput.value = formatted;
+  }
+  updateHints();
+});
 
-postalInput.addEventListener('input', function() {
-  var digits = postalInput.value.replace(/\D/g, '').slice(0, 7);
-  postalInput.value = digits.length > 3 ? digits.slice(0,3) + '-' + digits.slice(3) : digits;
-});
-postalInput.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
-});
-addrInput.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+searchInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); detectAndSearch(); }
 });
 
 function esc(s) {
@@ -378,15 +347,13 @@ function setCard(id, html, isErr) {
 function copyEl(elId, btn) {
   var text = (document.getElementById(elId).innerText || '').trim();
   navigator.clipboard.writeText(text).then(function() {
-    btn.textContent = 'Copied!';
-    btn.className = 'copy-btn copied';
+    btn.textContent = 'Copied!'; btn.className = 'copy-btn copied';
     setTimeout(function() { btn.textContent = 'Copy'; btn.className = 'copy-btn'; }, 1500);
   });
 }
 function copyCode(code, btn) {
   navigator.clipboard.writeText(code).then(function() {
-    btn.textContent = 'Copied!';
-    btn.className = 'addr-item-copy copied';
+    btn.textContent = 'Copied!'; btn.className = 'addr-item-copy copied';
     setTimeout(function() { btn.textContent = 'Copy 〒'; btn.className = 'addr-item-copy'; }, 1500);
   });
 }
@@ -415,55 +382,37 @@ function googleRomaji(text) {
 }
 
 function stripBlockNumbers(s) {
-  return s
-    .replace(/[\s　]*[0-9０-９][0-9０-９\-ー―丁目番地号\s]*/u, '')
-    .trim();
+  return s.replace(/[\s　]*[0-9０-９][0-9０-９\-ー―丁目番地号\s]*/u, '').trim();
 }
 
-// Search address -> postal codes via Nominatim (OSM), then verify each code via zipcloud for kana
 function searchByAddress(query) {
-  var url = 'https://nominatim.openstreetmap.org/search?' +
-    'q=' + encodeURIComponent(query) +
-    '&format=json&addressdetails=1&countrycodes=jp&limit=10';
-  return fetch(url, { headers: { 'Accept-Language': 'ja' } })
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
-    .then(function(items) {
-      var seen = {};
-      var codes = [];
-      (items || []).forEach(function(item) {
-        var pc = (item.address || {}).postcode;
-        if (!pc) return;
-        var d = pc.replace(/\D/g, '');
-        if (d.length === 7 && !seen[d]) { seen[d] = true; codes.push(d); }
-      });
-      if (codes.length === 0) return [];
-      // Verify each code with zipcloud to get official Japanese address + kana (max 5)
-      return Promise.all(codes.slice(0, 5).map(function(code) {
-        return fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + code)
-          .then(function(r) { return r.json(); })
-          .then(function(d) { return d.results ? d.results[0] : null; })
-          .catch(function() { return null; });
-      })).then(function(results) {
-        return results.filter(Boolean);
-      });
-    });
+  var url = 'https://zipcloud.ibsnet.co.jp/api/search?address=' + encodeURIComponent(query) + '&limit=20';
+  return fetch(url)
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(data) { return data.results || []; });
 }
 
-function doSearch() {
-  if (mode === 'code') doCodeSearch(); else doAddrSearch();
+function shake() {
+  var wrap = document.getElementById('searchWrap');
+  wrap.classList.add('error');
+  setTimeout(function() { wrap.classList.remove('error'); }, 400);
 }
 
-function doCodeSearch() {
-  var digits = postalInput.value.replace(/\D/g, '');
-  if (digits.length !== 7) {
-    var wrap = document.getElementById('postalWrap');
-    wrap.classList.add('error');
-    setTimeout(function() { wrap.classList.remove('error'); }, 800);
-    return;
+function detectAndSearch() {
+  var val = searchInput.value.trim();
+  if (!val) { shake(); return; }
+
+  var digits = val.replace(/\D/g, '');
+  if (/^[\d\-\s]*$/.test(val)) {
+    // Looks like a postal code attempt
+    if (digits.length !== 7) { shake(); return; }
+    doCodeSearch(digits);
+  } else {
+    doAddrSearch(val);
   }
+}
+
+function doCodeSearch(digits) {
   var btn = document.getElementById('searchBtn');
   btn.disabled = true;
   document.getElementById('addrResults').className = 'results';
@@ -500,14 +449,7 @@ function doCodeSearch() {
     .finally(function() { btn.disabled = false; });
 }
 
-function doAddrSearch() {
-  var query = addrInput.value.trim();
-  if (!query) {
-    var wrap = document.getElementById('addrWrap');
-    wrap.classList.add('error');
-    setTimeout(function() { wrap.classList.remove('error'); }, 800);
-    return;
-  }
+function doAddrSearch(query) {
   var btn = document.getElementById('searchBtn');
   btn.disabled = true;
   document.getElementById('codeResults').className = 'results';
@@ -549,13 +491,13 @@ function renderAddrResults(results, usedQuery, originalQuery) {
   if (!results || results.length === 0) {
     document.getElementById('resultCountNote').textContent = '';
     document.getElementById('addrList').innerHTML =
-      '<div class="result-body err-text">No results found. Try searching just the area name.</div>';
+      '<div class="result-body err-text">No results found. Try a shorter or different address.</div>';
     return;
   }
 
-  var atMax = results.length >= 5;
+  var atMax = results.length >= 20;
   document.getElementById('resultCountNote').textContent =
-    atMax ? '5 shown — try a more specific address' : results.length + ' result' + (results.length > 1 ? 's' : '');
+    atMax ? '20 shown — try a more specific address' : results.length + ' result' + (results.length > 1 ? 's' : '');
 
   var html = '';
   results.forEach(function(r) {
