@@ -94,6 +94,7 @@ body {
 .app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
 .app-title p { color: var(--muted); font-size: 0.76rem; }
 
+/* ── Input ── */
 .search-wrap {
   display: flex; align-items: center;
   background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
@@ -103,8 +104,8 @@ body {
 .search-wrap.error { border-color: #ef4444; animation: shake 0.35s ease; }
 @keyframes shake {
   0%,100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
 }
 .search-icon {
   padding: 0 8px 0 13px; color: var(--border-soft); flex-shrink: 0;
@@ -116,7 +117,7 @@ body {
   padding: 13px 10px 13px 4px; font-size: 1.05rem;
   color: var(--text); font-family: inherit;
 }
-.search-input::placeholder { color: var(--border-soft); font-size: 0.92rem; }
+.search-input::placeholder { color: var(--border-soft); font-size: 0.9rem; }
 .detect-pill {
   font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 10px;
   margin-right: 10px; white-space: nowrap; flex-shrink: 0;
@@ -125,7 +126,15 @@ body {
 }
 .detect-pill.visible { opacity: 1; }
 
-.btn-row { display: flex; justify-content: flex-end; }
+.data-status {
+  font-size: 0.68rem; color: var(--border-soft);
+  display: flex; align-items: center; gap: 4px; margin-top: 4px;
+}
+.data-status.ready { color: var(--border-soft); }
+.data-status.error { color: #ef4444; }
+.data-status .material-icons-outlined { font-size: 0.85rem; }
+
+.btn-row { display: flex; justify-content: flex-end; margin-top: 8px; }
 .search-btn {
   padding: 10px 24px; background: var(--primary-2); color: #fff;
   border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
@@ -137,6 +146,7 @@ body {
 .search-btn:active { transform: scale(0.97); }
 .search-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
+/* ── Result shared ── */
 .results { display: none; flex-direction: column; gap: 8px; }
 .results.visible { display: flex; }
 .result-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
@@ -145,7 +155,7 @@ body {
   padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--light);
 }
 .result-label { font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
-.result-meta { font-size: 0.68rem; color: var(--muted); font-style: italic; text-align: right; }
+.result-meta { font-size: 0.68rem; color: var(--muted); font-style: italic; }
 .copy-btn {
   background: none; border: 1px solid var(--border); color: var(--muted);
   font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
@@ -158,15 +168,8 @@ body {
 .err-text { color: #ef4444; font-size: 0.82rem; }
 .addr-code { font-size: 0.78rem; color: var(--muted); margin-bottom: 3px; }
 .addr-main { font-size: 1rem; font-weight: 600; }
-.addr-extra { font-size: 0.78rem; color: var(--accent); margin-top: 4px; }
 
-.narrowed-note {
-  font-size: 0.72rem; color: var(--accent); background: var(--light);
-  border: 1px solid var(--border); border-radius: 7px;
-  padding: 6px 10px; display: flex; align-items: center; gap: 5px;
-}
-.narrowed-note .material-icons-outlined { font-size: 0.9rem; }
-
+/* ── Address→code list ── */
 .addr-list { display: flex; flex-direction: column; }
 .addr-list-item {
   display: flex; align-items: center; gap: 10px;
@@ -182,7 +185,7 @@ body {
 }
 .addr-item-info { flex: 1; min-width: 0; }
 .addr-item-address { font-size: 0.85rem; font-weight: 500; color: var(--text); }
-.addr-item-kana { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+.addr-item-area { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
 .addr-item-copy {
   background: none; border: 1px solid var(--border); color: var(--muted);
   font-size: 0.62rem; padding: 2px 7px; border-radius: 4px;
@@ -191,6 +194,25 @@ body {
 }
 .addr-item-copy:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
 .addr-item-copy.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
+
+/* ── "Too broad" grouped view ── */
+.broad-note {
+  font-size: 0.8rem; color: var(--text); padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--light);
+}
+.broad-note strong { color: var(--primary); }
+.broad-groups { display: flex; flex-direction: column; }
+.broad-group {
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.1s;
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+}
+.broad-group:last-child { border-bottom: none; }
+.broad-group:hover { background: var(--light); }
+.broad-group-city { font-size: 0.88rem; font-weight: 600; color: var(--primary); }
+.broad-group-count { font-size: 0.7rem; color: var(--muted); }
+.broad-group-towns { font-size: 0.72rem; color: var(--muted); font-style: italic; }
 </style>
 </head>
 <body>
@@ -229,18 +251,20 @@ body {
     <div class="search-wrap" id="searchWrap">
       <span class="material-icons-outlined search-icon" id="searchIcon">search</span>
       <input class="search-input" id="searchInput" type="text"
-        placeholder="123-4567 or 渋谷区..." autocomplete="off" autocorrect="off" spellcheck="false">
+        placeholder="123-4567  or  横浜市港北区新横浜..." autocomplete="off" autocorrect="off" spellcheck="false">
       <span class="detect-pill" id="detectPill"></span>
     </div>
-    <div style="margin-top:8px">
-      <div class="btn-row">
-        <button class="search-btn" id="searchBtn" onclick="detectAndSearch()">
-          <span class="material-icons-outlined">search</span> Search
-        </button>
-      </div>
+    <div class="data-status" id="dataStatus">
+      <span class="material-icons-outlined">cloud_download</span> Loading address data…
+    </div>
+    <div class="btn-row">
+      <button class="search-btn" id="searchBtn" onclick="detectAndSearch()" disabled>
+        <span class="material-icons-outlined">search</span> Search
+      </button>
     </div>
   </div>
 
+  <!-- Code → address results -->
   <div class="results" id="codeResults">
     <div class="result-card">
       <div class="result-header">
@@ -251,13 +275,6 @@ body {
     </div>
     <div class="result-card">
       <div class="result-header">
-        <span class="result-label">Reading (Kana)</span>
-        <button class="copy-btn" onclick="copyEl('kanaOut',this)">Copy</button>
-      </div>
-      <div class="result-body" id="kanaOut"></div>
-    </div>
-    <div class="result-card">
-      <div class="result-header">
         <span class="result-label">Reading (Romaji)</span>
         <button class="copy-btn" onclick="copyEl('romajiOut',this)">Copy</button>
       </div>
@@ -265,17 +282,14 @@ body {
     </div>
   </div>
 
+  <!-- Address → code results -->
   <div class="results" id="addrResults">
-    <div id="narrowedNote" style="display:none" class="narrowed-note">
-      <span class="material-icons-outlined">info</span>
-      <span id="narrowedText"></span>
-    </div>
     <div class="result-card">
       <div class="result-header">
-        <span class="result-label">Matching postal codes</span>
-        <span class="result-meta" id="resultCountNote"></span>
+        <span class="result-label" id="addrResultLabel">Matching postal codes</span>
+        <span class="result-meta" id="addrResultMeta"></span>
       </div>
-      <div class="addr-list" id="addrList"></div>
+      <div id="addrResultBody"></div>
     </div>
   </div>
 </div>
@@ -296,48 +310,76 @@ function toggleTheme() {
   }
 })();
 
+/* ─── Data loading ─── */
+var postalData = null;   // array of [code7, pref, city, town]
+var codeMap    = null;   // Map: code7 → record
+
+fetch('/postal_data.json')
+  .then(function(r) { return r.json(); })
+  .then(function(records) {
+    postalData = records;
+    codeMap = new Map();
+    records.forEach(function(r) { codeMap.set(r[0], r); });
+    var status = document.getElementById('dataStatus');
+    status.style.display = 'none';
+    document.getElementById('searchBtn').disabled = false;
+    document.getElementById('searchInput').focus();
+  })
+  .catch(function() {
+    var status = document.getElementById('dataStatus');
+    status.className = 'data-status error';
+    status.innerHTML = '<span class="material-icons-outlined">error_outline</span> Failed to load address data.';
+  });
+
+/* ─── Input handling ─── */
 var searchInput = document.getElementById('searchInput');
 var detectPill  = document.getElementById('detectPill');
 var searchIcon  = document.getElementById('searchIcon');
 
-function updateHints() {
+searchInput.addEventListener('input', function() {
   var val = searchInput.value;
   if (!val) {
-    detectPill.textContent = ''; detectPill.className = 'detect-pill';
+    detectPill.className = 'detect-pill';
     searchIcon.textContent = 'search';
     return;
   }
   if (/^[\d\-\s]*$/.test(val)) {
-    detectPill.textContent = '〒 code'; detectPill.className = 'detect-pill visible';
+    var d = val.replace(/\D/g, '').slice(0, 7);
+    var fmt = d.length > 3 ? d.slice(0,3) + '-' + d.slice(3) : d;
+    if (searchInput.value !== fmt) searchInput.value = fmt;
+    detectPill.textContent = '〒 code';
+    detectPill.className = 'detect-pill visible';
     searchIcon.textContent = 'pin';
   } else {
-    detectPill.textContent = 'address'; detectPill.className = 'detect-pill visible';
+    detectPill.textContent = 'address';
+    detectPill.className = 'detect-pill visible';
     searchIcon.textContent = 'location_on';
   }
-}
-
-searchInput.addEventListener('input', function() {
-  var val = searchInput.value;
-  // Auto-format as postal code when input is all digits/hyphens
-  if (/^[\d\-]*$/.test(val) && val.length > 0) {
-    var d = val.replace(/\D/g, '').slice(0, 7);
-    var formatted = d.length > 3 ? d.slice(0,3) + '-' + d.slice(3) : d;
-    if (searchInput.value !== formatted) searchInput.value = formatted;
-  }
-  updateHints();
 });
-
 searchInput.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { e.preventDefault(); detectAndSearch(); }
 });
 
+/* ─── Normalization ─── */
+function normalize(s) {
+  s = s.normalize('NFKC');            // full-width → half-width
+  s = s.replace(/[\s　]/g, '');       // strip spaces
+  s = s.replace(/[ー－‐—―−]/g, 'ー'); // normalize dashes (keep Japanese dash)
+  return s;
+}
+
+/* ─── Helpers ─── */
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+function fmtCode(c) { return c.slice(0,3) + '-' + c.slice(3); }
+function shake() {
+  var wrap = document.getElementById('searchWrap');
+  wrap.classList.add('error');
+  setTimeout(function() { wrap.classList.remove('error'); }, 400);
+}
 function setLoading(id) {
-  var el = document.getElementById(id);
-  el.innerHTML = '<span class="loading-dots">…</span>';
-  el.className = 'result-body';
+  document.getElementById(id).innerHTML = '<span class="loading-dots">…</span>';
 }
 function setCard(id, html, isErr) {
   var el = document.getElementById(id);
@@ -358,6 +400,7 @@ function copyCode(code, btn) {
   });
 }
 
+/* ─── Romaji via Google Translate ─── */
 function googleRomaji(text) {
   var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en' +
             '&dt=t&dt=rm&dj=1&q=' + encodeURIComponent(text);
@@ -370,150 +413,150 @@ function googleRomaji(text) {
           var r = seg.src_translit || seg.translit || '';
           if (r) romaji += (romaji ? ' ' : '') + r;
         });
-      } else if (data && Array.isArray(data[0])) {
-        data[0].forEach(function(seg) {
-          var r = seg[2] || (Array.isArray(seg) && seg[3]) || '';
-          if (r) romaji += r;
-        });
-        if (!romaji && data[12]) romaji = data[12];
       }
       return romaji.trim();
     });
 }
 
-function stripBlockNumbers(s) {
-  return s.replace(/[\s　]*[0-9０-９][0-9０-９\-ー―丁目番地号\s]*/u, '').trim();
-}
-
-function searchByAddress(query) {
-  var url = 'https://zipcloud.ibsnet.co.jp/api/search?address=' + encodeURIComponent(query) + '&limit=20';
-  return fetch(url)
-    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(function(data) { return data.results || []; });
-}
-
-function shake() {
-  var wrap = document.getElementById('searchWrap');
-  wrap.classList.add('error');
-  setTimeout(function() { wrap.classList.remove('error'); }, 400);
-}
-
+/* ─── Main dispatcher ─── */
 function detectAndSearch() {
   var val = searchInput.value.trim();
   if (!val) { shake(); return; }
+  if (!postalData) { shake(); return; }
 
   var digits = val.replace(/\D/g, '');
   if (/^[\d\-\s]*$/.test(val)) {
-    // Looks like a postal code attempt
     if (digits.length !== 7) { shake(); return; }
     doCodeSearch(digits);
   } else {
-    doAddrSearch(val);
+    doAddrSearch(normalize(val));
   }
 }
 
+/* ─── Code → address ─── */
 function doCodeSearch(digits) {
-  var btn = document.getElementById('searchBtn');
-  btn.disabled = true;
   document.getElementById('addrResults').className = 'results';
   document.getElementById('codeResults').className = 'results visible';
-  setLoading('addressOut'); setLoading('kanaOut'); setLoading('romajiOut');
+  setLoading('addressOut'); setLoading('romajiOut');
 
-  fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + digits)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (!data.results || data.results.length === 0) {
-        var code = digits.slice(0,3) + '-' + digits.slice(3);
-        setCard('addressOut', '〒 ' + esc(code) + ' — no address found.', true);
-        setCard('kanaOut', '—', false); setCard('romajiOut', '—', false);
-        return;
-      }
-      var first = data.results[0];
-      var code  = first.zipcode.slice(0,3) + '-' + first.zipcode.slice(3);
-      var addrHtml = '<div class="addr-code">〒 ' + esc(code) + '</div>' +
-        '<div class="addr-main">' + esc(first.address1) + '　' + esc(first.address2) + '　' + esc(first.address3) + '</div>';
-      if (data.results.length > 1) {
-        addrHtml += '<div class="addr-extra">+ ' + (data.results.length - 1) + ' more area' + (data.results.length > 2 ? 's' : '') + ' share this code</div>';
-      }
-      setCard('addressOut', addrHtml, false);
-      var kana = [first.kana1, first.kana2, first.kana3].filter(Boolean).join('　');
-      setCard('kanaOut', esc(kana) || '—', false);
-      googleRomaji(first.address1 + first.address2 + first.address3)
-        .then(function(r) { setCard('romajiOut', esc(r) || '(no reading returned)', !r); })
-        .catch(function(e) { setCard('romajiOut', 'Error: ' + esc(e.message), true); });
-    })
-    .catch(function(e) {
-      setCard('addressOut', 'Error: ' + esc(e.message), true);
-      setCard('kanaOut', '—', false); setCard('romajiOut', '—', false);
-    })
-    .finally(function() { btn.disabled = false; });
-}
-
-function doAddrSearch(query) {
-  var btn = document.getElementById('searchBtn');
-  btn.disabled = true;
-  document.getElementById('codeResults').className = 'results';
-  document.getElementById('addrResults').className = 'results visible';
-  document.getElementById('narrowedNote').style.display = 'none';
-  document.getElementById('resultCountNote').textContent = '';
-  document.getElementById('addrList').innerHTML =
-    '<div style="padding:12px 14px"><span class="loading-dots">Searching…</span></div>';
-
-  searchByAddress(query)
-    .then(function(results) {
-      if (!results || results.length === 0) {
-        var stripped = stripBlockNumbers(query);
-        if (stripped && stripped !== query) {
-          return searchByAddress(stripped).then(function(results2) {
-            renderAddrResults(results2, stripped, query);
-          });
-        }
-        renderAddrResults([], query, null);
-        return;
-      }
-      renderAddrResults(results, query, null);
-    })
-    .catch(function(e) {
-      document.getElementById('addrList').innerHTML =
-        '<div class="result-body err-text">Error: ' + esc(e.message) + '</div>';
-    })
-    .finally(function() { btn.disabled = false; });
-}
-
-function renderAddrResults(results, usedQuery, originalQuery) {
-  if (originalQuery && originalQuery !== usedQuery) {
-    var note = document.getElementById('narrowedNote');
-    note.style.display = 'flex';
-    document.getElementById('narrowedText').textContent =
-      'Building numbers removed — showing results for 「' + usedQuery + '」';
-  }
-
-  if (!results || results.length === 0) {
-    document.getElementById('resultCountNote').textContent = '';
-    document.getElementById('addrList').innerHTML =
-      '<div class="result-body err-text">No results found. Try a shorter or different address.</div>';
+  var row = codeMap.get(digits);
+  if (!row) {
+    setCard('addressOut', '〒 ' + esc(fmtCode(digits)) + ' — not found.', true);
+    setCard('romajiOut', '—', false);
     return;
   }
 
-  var atMax = results.length >= 20;
-  document.getElementById('resultCountNote').textContent =
-    atMax ? '20 shown — try a more specific address' : results.length + ' result' + (results.length > 1 ? 's' : '');
+  var code = fmtCode(row[0]);
+  var addr = row[1] + row[2] + (row[3] ? '　' + row[3] : '');
+  setCard('addressOut',
+    '<div class="addr-code">〒 ' + esc(code) + '</div>' +
+    '<div class="addr-main">' + esc(addr) + '</div>', false);
 
-  var html = '';
+  googleRomaji(addr)
+    .then(function(r) { setCard('romajiOut', esc(r) || '(no reading returned)', !r); })
+    .catch(function() { setCard('romajiOut', '—', false); });
+}
+
+/* ─── Address → codes ─── */
+function doAddrSearch(query) {
+  document.getElementById('codeResults').className = 'results';
+  document.getElementById('addrResults').className = 'results visible';
+  document.getElementById('addrResultMeta').textContent = '';
+  document.getElementById('addrResultBody').innerHTML =
+    '<div class="result-body"><span class="loading-dots">Searching…</span></div>';
+
+  // Linear scan — ~127k rows, fast enough in practice
+  var results = [];
+  var cap = 300;
+  for (var i = 0; i < postalData.length; i++) {
+    var r = postalData[i];
+    // Search: city+town, or pref+city+town, or just city
+    var full     = r[1] + r[2] + r[3];
+    var citytown = r[2] + r[3];
+    if (full.indexOf(query) !== -1 || citytown.indexOf(query) !== -1) {
+      results.push(r);
+      if (results.length >= cap) break;
+    }
+  }
+
+  renderAddrResults(results, query, results.length >= cap);
+}
+
+function renderAddrResults(results, query, hitCap) {
+  var label = document.getElementById('addrResultLabel');
+  var meta  = document.getElementById('addrResultMeta');
+  var body  = document.getElementById('addrResultBody');
+
+  // ── No results ──
+  if (results.length === 0) {
+    label.textContent = 'Matching postal codes';
+    meta.textContent = '';
+    body.innerHTML = '<div class="result-body err-text">No results for「' + esc(query) + '」. Try a shorter or different address.</div>';
+    return;
+  }
+
+  // ── Too broad: group by city ──
+  // Triggered when we hit the scan cap or when many unique cities appear
+  var uniqueCities = {};
   results.forEach(function(r) {
-    var code    = r.zipcode.slice(0,3) + '-' + r.zipcode.slice(3);
-    var address = esc(r.address1) + esc(r.address2) + esc(r.address3);
-    var kana    = esc([r.kana1, r.kana2, r.kana3].filter(Boolean).join('　'));
+    var k = r[1] + r[2];
+    if (!uniqueCities[k]) uniqueCities[k] = { pref: r[1], city: r[2], count: 0, towns: [] };
+    uniqueCities[k].count++;
+    if (uniqueCities[k].towns.length < 3 && r[3]) uniqueCities[k].towns.push(r[3]);
+  });
+  var cityList = Object.values(uniqueCities).sort(function(a,b){ return b.count - a.count; });
+
+  if (hitCap || results.length > 80 || cityList.length > 8) {
+    label.textContent = 'Too broad — narrow it down';
+    meta.textContent = (hitCap ? '300+' : results.length) + ' matches';
+
+    var note = '<div class="broad-note">「<strong>' + esc(query) + '</strong>」 matches too many codes. ' +
+      'Add a ward or town name to narrow the results.</div>' +
+      '<div class="broad-groups">';
+    cityList.slice(0, 20).forEach(function(g) {
+      var towns = g.towns.length ? ' — ' + g.towns.map(esc).join('、') + (g.count > 3 ? '…' : '') : '';
+      note += '<div class="broad-group" onclick="refineSearch(\'' + esc(g.pref + g.city).replace(/'/g,"\\'") + '\')">' +
+        '<span class="broad-group-city">' + esc(g.city) + '</span>' +
+        '<span class="broad-group-count">' + g.count + ' codes</span>' +
+        '<span class="broad-group-towns">' + towns + '</span>' +
+      '</div>';
+    });
+    if (cityList.length > 20) {
+      note += '<div style="padding:8px 14px;font-size:0.72rem;color:var(--muted)">+ ' + (cityList.length - 20) + ' more areas — type more to narrow down.</div>';
+    }
+    note += '</div>';
+    body.innerHTML = note;
+    return;
+  }
+
+  // ── List view ──
+  label.textContent = 'Matching postal codes';
+  meta.textContent = results.length + ' result' + (results.length > 1 ? 's' : '');
+
+  var html = '<div class="addr-list">';
+  results.forEach(function(r) {
+    var code  = fmtCode(r[0]);
+    var town  = r[3] ? r[1] + r[2] + '　' + r[3] : r[1] + r[2];
+    var area  = r[3] ? r[1] + r[2] : '';
     html += '<div class="addr-list-item">' +
       '<div class="addr-item-code">〒 ' + esc(code) + '</div>' +
       '<div class="addr-item-info">' +
-        '<div class="addr-item-address">' + (address || '—') + '</div>' +
-        (kana ? '<div class="addr-item-kana">' + kana + '</div>' : '') +
+        '<div class="addr-item-address">' + esc(r[3] || (r[2] || r[1])) + '</div>' +
+        (area ? '<div class="addr-item-area">' + esc(r[1] + r[2]) + '</div>' : '') +
       '</div>' +
       '<button class="addr-item-copy" onclick="copyCode(\'' + esc(code) + '\',this)">Copy 〒</button>' +
     '</div>';
   });
-  document.getElementById('addrList').innerHTML = html;
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+function refineSearch(text) {
+  searchInput.value = text;
+  detectPill.textContent = 'address';
+  detectPill.className = 'detect-pill visible';
+  searchIcon.textContent = 'location_on';
+  detectAndSearch();
 }
 </script>
 </body>
