@@ -94,7 +94,6 @@ body {
 .app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
 .app-title p { color: var(--muted); font-size: 0.76rem; }
 
-/* Mode switcher */
 .mode-switcher {
   display: flex; gap: 3px;
   background: var(--mid); border-radius: 9px; padding: 3px;
@@ -112,7 +111,6 @@ body {
 .input-section { display: flex; flex-direction: column; gap: 8px; }
 .input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 
-/* Postal code input */
 .postal-wrap {
   display: flex; align-items: center;
   background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
@@ -120,10 +118,7 @@ body {
 }
 .postal-wrap:focus-within { border-color: var(--primary-2); }
 .postal-wrap.error { border-color: #ef4444; }
-.postal-mark {
-  padding: 0 8px 0 14px; font-size: 1.3rem; color: var(--accent);
-  flex-shrink: 0; user-select: none; line-height: 1;
-}
+.postal-mark { padding: 0 8px 0 14px; font-size: 1.3rem; color: var(--accent); flex-shrink: 0; user-select: none; line-height: 1; }
 .postal-input {
   flex: 1; background: transparent; border: none; outline: none;
   padding: 13px 14px 13px 2px; font-size: 1.3rem; font-weight: 500;
@@ -131,7 +126,6 @@ body {
 }
 .postal-input::placeholder { color: var(--border-soft); font-weight: 400; font-size: 1rem; letter-spacing: 0.02em; font-family: inherit; }
 
-/* Address text input */
 .addr-wrap {
   display: flex; align-items: center;
   background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
@@ -160,7 +154,6 @@ body {
 .search-btn:active { transform: scale(0.97); }
 .search-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-/* Code-mode result cards */
 .results { display: none; flex-direction: column; gap: 8px; }
 .results.visible { display: flex; }
 .result-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
@@ -169,7 +162,7 @@ body {
   padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--light);
 }
 .result-label { font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
-.result-count-note { font-size: 0.7rem; color: var(--muted); font-style: italic; }
+.result-meta { font-size: 0.68rem; color: var(--muted); font-style: italic; text-align: right; }
 .copy-btn {
   background: none; border: 1px solid var(--border); color: var(--muted);
   font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
@@ -177,21 +170,25 @@ body {
 }
 .copy-btn:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
 .copy-btn.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
-.result-body {
-  padding: 10px 14px; font-size: 0.92rem; line-height: 1.75;
-  color: var(--text); min-height: 42px;
-}
+.result-body { padding: 10px 14px; font-size: 0.92rem; line-height: 1.75; color: var(--text); min-height: 42px; }
 .loading-dots { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
 .err-text { color: #ef4444; font-size: 0.82rem; }
 .addr-code { font-size: 0.78rem; color: var(--muted); margin-bottom: 3px; }
 .addr-main { font-size: 1rem; font-weight: 600; }
 .addr-extra { font-size: 0.78rem; color: var(--accent); margin-top: 4px; }
 
-/* Address-mode result list */
+.narrowed-note {
+  font-size: 0.72rem; color: var(--accent); background: var(--light);
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 6px 10px; display: flex; align-items: center; gap: 5px;
+}
+.narrowed-note .material-icons-outlined { font-size: 0.9rem; }
+
 .addr-list { display: flex; flex-direction: column; }
 .addr-list-item {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 14px; border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
 }
 .addr-list-item:last-child { border-bottom: none; }
 .addr-list-item:hover { background: var(--light); }
@@ -207,8 +204,7 @@ body {
   background: none; border: 1px solid var(--border); color: var(--muted);
   font-size: 0.62rem; padding: 2px 7px; border-radius: 4px;
   cursor: pointer; flex-shrink: 0;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s; white-space: nowrap;
 }
 .addr-item-copy:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
 .addr-item-copy.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
@@ -256,7 +252,6 @@ body {
       </button>
     </div>
 
-    <!-- Code mode input -->
     <div id="codeSection">
       <div class="input-label">〒 Postal code</div>
       <div class="postal-wrap" id="postalWrap">
@@ -266,15 +261,14 @@ body {
       </div>
     </div>
 
-    <!-- Address mode input -->
     <div id="addrSection" style="display:none">
       <div class="input-label">Address (Japanese)</div>
       <div class="addr-wrap" id="addrWrap">
         <span class="material-icons-outlined addr-icon">location_on</span>
         <input class="addr-input" id="addrInput" type="text"
-          placeholder="e.g. 渋谷区 or 大阪市北区梅田">
+          placeholder="e.g. 渋谷区 or 大阪市北区">
       </div>
-      <div class="addr-hint">Tip: paste Japanese text from the Translate page</div>
+      <div class="addr-hint">Building numbers are stripped automatically if needed</div>
     </div>
 
     <div class="btn-row">
@@ -284,7 +278,6 @@ body {
     </div>
   </div>
 
-  <!-- Code-mode results (3 cards) -->
   <div class="results" id="codeResults">
     <div class="result-card">
       <div class="result-header">
@@ -309,12 +302,15 @@ body {
     </div>
   </div>
 
-  <!-- Address-mode results (list) -->
   <div class="results" id="addrResults">
+    <div id="narrowedNote" style="display:none" class="narrowed-note">
+      <span class="material-icons-outlined">info</span>
+      <span id="narrowedText"></span>
+    </div>
     <div class="result-card">
       <div class="result-header">
         <span class="result-label">Matching postal codes</span>
-        <span class="result-count-note" id="resultCountNote"></span>
+        <span class="result-meta" id="resultCountNote"></span>
       </div>
       <div class="addr-list" id="addrList"></div>
     </div>
@@ -369,19 +365,16 @@ addrInput.addEventListener('keydown', function(e) {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-
 function setLoading(id) {
   var el = document.getElementById(id);
   el.innerHTML = '<span class="loading-dots">…</span>';
   el.className = 'result-body';
 }
-
 function setCard(id, html, isErr) {
   var el = document.getElementById(id);
   el.innerHTML = html;
   el.className = 'result-body' + (isErr ? ' err-text' : '');
 }
-
 function copyEl(elId, btn) {
   var text = (document.getElementById(elId).innerText || '').trim();
   navigator.clipboard.writeText(text).then(function() {
@@ -390,7 +383,6 @@ function copyEl(elId, btn) {
     setTimeout(function() { btn.textContent = 'Copy'; btn.className = 'copy-btn'; }, 1500);
   });
 }
-
 function copyCode(code, btn) {
   navigator.clipboard.writeText(code).then(function() {
     btn.textContent = 'Copied!';
@@ -422,6 +414,44 @@ function googleRomaji(text) {
     });
 }
 
+function stripBlockNumbers(s) {
+  return s
+    .replace(/[\s　]*[0-9０-９][0-9０-９\-ー―丁目番地号\s]*/u, '')
+    .trim();
+}
+
+// Search address -> postal codes via Nominatim (OSM), then verify each code via zipcloud for kana
+function searchByAddress(query) {
+  var url = 'https://nominatim.openstreetmap.org/search?' +
+    'q=' + encodeURIComponent(query) +
+    '&format=json&addressdetails=1&countrycodes=jp&limit=10';
+  return fetch(url, { headers: { 'Accept-Language': 'ja' } })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(items) {
+      var seen = {};
+      var codes = [];
+      (items || []).forEach(function(item) {
+        var pc = (item.address || {}).postcode;
+        if (!pc) return;
+        var d = pc.replace(/\D/g, '');
+        if (d.length === 7 && !seen[d]) { seen[d] = true; codes.push(d); }
+      });
+      if (codes.length === 0) return [];
+      // Verify each code with zipcloud to get official Japanese address + kana (max 5)
+      return Promise.all(codes.slice(0, 5).map(function(code) {
+        return fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + code)
+          .then(function(r) { return r.json(); })
+          .then(function(d) { return d.results ? d.results[0] : null; })
+          .catch(function() { return null; });
+      })).then(function(results) {
+        return results.filter(Boolean);
+      });
+    });
+}
+
 function doSearch() {
   if (mode === 'code') doCodeSearch(); else doAddrSearch();
 }
@@ -446,8 +476,7 @@ function doCodeSearch() {
       if (!data.results || data.results.length === 0) {
         var code = digits.slice(0,3) + '-' + digits.slice(3);
         setCard('addressOut', '〒 ' + esc(code) + ' — no address found.', true);
-        setCard('kanaOut', '—', false);
-        setCard('romajiOut', '—', false);
+        setCard('kanaOut', '—', false); setCard('romajiOut', '—', false);
         return;
       }
       var first = data.results[0];
@@ -483,44 +512,66 @@ function doAddrSearch() {
   btn.disabled = true;
   document.getElementById('codeResults').className = 'results';
   document.getElementById('addrResults').className = 'results visible';
+  document.getElementById('narrowedNote').style.display = 'none';
   document.getElementById('resultCountNote').textContent = '';
   document.getElementById('addrList').innerHTML =
     '<div style="padding:12px 14px"><span class="loading-dots">Searching…</span></div>';
 
-  fetch('https://zipcloud.ibsnet.co.jp/api/search?address=' + encodeURIComponent(query))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (!data.results || data.results.length === 0) {
-        document.getElementById('addrList').innerHTML =
-          '<div class="result-body err-text">No results found. Try a more specific Japanese address.</div>';
+  searchByAddress(query)
+    .then(function(results) {
+      if (!results || results.length === 0) {
+        var stripped = stripBlockNumbers(query);
+        if (stripped && stripped !== query) {
+          return searchByAddress(stripped).then(function(results2) {
+            renderAddrResults(results2, stripped, query);
+          });
+        }
+        renderAddrResults([], query, null);
         return;
       }
-      var results = data.results;
-      var atMax = results.length >= 20;
-      document.getElementById('resultCountNote').textContent =
-        atMax ? '20 shown — try a narrower search' : results.length + ' result' + (results.length > 1 ? 's' : '');
-
-      var html = '';
-      results.forEach(function(r) {
-        var code    = r.zipcode.slice(0,3) + '-' + r.zipcode.slice(3);
-        var address = esc(r.address1) + esc(r.address2) + esc(r.address3);
-        var kana    = esc([r.kana1, r.kana2, r.kana3].filter(Boolean).join('　'));
-        html += '<div class="addr-list-item">' +
-          '<div class="addr-item-code">〒 ' + esc(code) + '</div>' +
-          '<div class="addr-item-info">' +
-            '<div class="addr-item-address">' + address + '</div>' +
-            '<div class="addr-item-kana">' + kana + '</div>' +
-          '</div>' +
-          '<button class="addr-item-copy" onclick="copyCode(\'' + esc(code) + '\',this)">Copy 〒</button>' +
-        '</div>';
-      });
-      document.getElementById('addrList').innerHTML = html;
+      renderAddrResults(results, query, null);
     })
     .catch(function(e) {
       document.getElementById('addrList').innerHTML =
         '<div class="result-body err-text">Error: ' + esc(e.message) + '</div>';
     })
     .finally(function() { btn.disabled = false; });
+}
+
+function renderAddrResults(results, usedQuery, originalQuery) {
+  if (originalQuery && originalQuery !== usedQuery) {
+    var note = document.getElementById('narrowedNote');
+    note.style.display = 'flex';
+    document.getElementById('narrowedText').textContent =
+      'Building numbers removed — showing results for 「' + usedQuery + '」';
+  }
+
+  if (!results || results.length === 0) {
+    document.getElementById('resultCountNote').textContent = '';
+    document.getElementById('addrList').innerHTML =
+      '<div class="result-body err-text">No results found. Try searching just the area name.</div>';
+    return;
+  }
+
+  var atMax = results.length >= 5;
+  document.getElementById('resultCountNote').textContent =
+    atMax ? '5 shown — try a more specific address' : results.length + ' result' + (results.length > 1 ? 's' : '');
+
+  var html = '';
+  results.forEach(function(r) {
+    var code    = r.zipcode.slice(0,3) + '-' + r.zipcode.slice(3);
+    var address = esc(r.address1) + esc(r.address2) + esc(r.address3);
+    var kana    = esc([r.kana1, r.kana2, r.kana3].filter(Boolean).join('　'));
+    html += '<div class="addr-list-item">' +
+      '<div class="addr-item-code">〒 ' + esc(code) + '</div>' +
+      '<div class="addr-item-info">' +
+        '<div class="addr-item-address">' + (address || '—') + '</div>' +
+        (kana ? '<div class="addr-item-kana">' + kana + '</div>' : '') +
+      '</div>' +
+      '<button class="addr-item-copy" onclick="copyCode(\'' + esc(code) + '\',this)">Copy 〒</button>' +
+    '</div>';
+  });
+  document.getElementById('addrList').innerHTML = html;
 }
 </script>
 </body>
