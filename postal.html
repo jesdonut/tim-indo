@@ -94,9 +94,25 @@ body {
 .app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
 .app-title p { color: var(--muted); font-size: 0.76rem; }
 
+/* Mode switcher */
+.mode-switcher {
+  display: flex; gap: 3px;
+  background: var(--mid); border-radius: 9px; padding: 3px;
+}
+.mode-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 7px 8px; border-radius: 7px; font-size: 0.78rem; font-weight: 600;
+  color: var(--muted); background: none; border: none; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mode-btn .material-icons-outlined { font-size: 0.95rem; }
+.mode-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.mode-btn:hover:not(.active) { background: rgba(255,255,255,0.5); color: var(--text); }
+
 .input-section { display: flex; flex-direction: column; gap: 8px; }
 .input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 
+/* Postal code input */
 .postal-wrap {
   display: flex; align-items: center;
   background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
@@ -115,6 +131,23 @@ body {
 }
 .postal-input::placeholder { color: var(--border-soft); font-weight: 400; font-size: 1rem; letter-spacing: 0.02em; font-family: inherit; }
 
+/* Address text input */
+.addr-wrap {
+  display: flex; align-items: center;
+  background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
+  overflow: hidden; transition: border-color 0.2s;
+}
+.addr-wrap:focus-within { border-color: var(--primary-2); }
+.addr-wrap.error { border-color: #ef4444; }
+.addr-icon { padding: 0 8px 0 12px; color: var(--accent); flex-shrink: 0; font-size: 1.1rem; }
+.addr-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  padding: 13px 14px 13px 2px; font-size: 1rem;
+  color: var(--text); font-family: inherit;
+}
+.addr-input::placeholder { color: var(--border-soft); }
+.addr-hint { font-size: 0.68rem; color: var(--border-soft); }
+
 .btn-row { display: flex; justify-content: flex-end; }
 .search-btn {
   padding: 10px 24px; background: var(--primary-2); color: #fff;
@@ -127,6 +160,7 @@ body {
 .search-btn:active { transform: scale(0.97); }
 .search-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
+/* Code-mode result cards */
 .results { display: none; flex-direction: column; gap: 8px; }
 .results.visible { display: flex; }
 .result-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
@@ -135,6 +169,7 @@ body {
   padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--light);
 }
 .result-label { font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+.result-count-note { font-size: 0.7rem; color: var(--muted); font-style: italic; }
 .copy-btn {
   background: none; border: 1px solid var(--border); color: var(--muted);
   font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
@@ -151,6 +186,32 @@ body {
 .addr-code { font-size: 0.78rem; color: var(--muted); margin-bottom: 3px; }
 .addr-main { font-size: 1rem; font-weight: 600; }
 .addr-extra { font-size: 0.78rem; color: var(--accent); margin-top: 4px; }
+
+/* Address-mode result list */
+.addr-list { display: flex; flex-direction: column; }
+.addr-list-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+}
+.addr-list-item:last-child { border-bottom: none; }
+.addr-list-item:hover { background: var(--light); }
+.addr-item-code {
+  font-size: 0.82rem; font-weight: 700; color: var(--primary);
+  font-family: 'Courier New', monospace; letter-spacing: 0.04em;
+  white-space: nowrap; flex-shrink: 0; min-width: 76px;
+}
+.addr-item-info { flex: 1; min-width: 0; }
+.addr-item-address { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+.addr-item-kana { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+.addr-item-copy {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.62rem; padding: 2px 7px; border-radius: 4px;
+  cursor: pointer; flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.addr-item-copy:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
+.addr-item-copy.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
 </style>
 </head>
 <body>
@@ -182,16 +243,40 @@ body {
 <div class="mid">
   <div class="app-title">
     <h1>Japan Postal Code</h1>
-    <p>Enter a 〒 code to get the address, kana &amp; romaji reading</p>
+    <p id="subtitle">Enter a 〒 code to get the address, kana &amp; romaji</p>
   </div>
 
   <div class="input-section">
-    <div class="input-label">Postal code</div>
-    <div class="postal-wrap" id="postalWrap">
-      <span class="postal-mark">〒</span>
-      <input class="postal-input" id="postalInput" type="text" inputmode="numeric"
-        placeholder="123-4567" maxlength="8">
+    <div class="mode-switcher">
+      <button class="mode-btn active" id="modeBtnCode" onclick="setMode('code')">
+        <span class="material-icons-outlined">pin</span> Code → Address
+      </button>
+      <button class="mode-btn" id="modeBtnAddr" onclick="setMode('address')">
+        <span class="material-icons-outlined">location_on</span> Address → Code
+      </button>
     </div>
+
+    <!-- Code mode input -->
+    <div id="codeSection">
+      <div class="input-label">〒 Postal code</div>
+      <div class="postal-wrap" id="postalWrap">
+        <span class="postal-mark">〒</span>
+        <input class="postal-input" id="postalInput" type="text" inputmode="numeric"
+          placeholder="123-4567" maxlength="8">
+      </div>
+    </div>
+
+    <!-- Address mode input -->
+    <div id="addrSection" style="display:none">
+      <div class="input-label">Address (Japanese)</div>
+      <div class="addr-wrap" id="addrWrap">
+        <span class="material-icons-outlined addr-icon">location_on</span>
+        <input class="addr-input" id="addrInput" type="text"
+          placeholder="e.g. 渋谷区 or 大阪市北区梅田">
+      </div>
+      <div class="addr-hint">Tip: paste Japanese text from the Translate page</div>
+    </div>
+
     <div class="btn-row">
       <button class="search-btn" id="searchBtn" onclick="doSearch()">
         <span class="material-icons-outlined">search</span> Search
@@ -199,33 +284,46 @@ body {
     </div>
   </div>
 
-  <div class="results" id="results">
+  <!-- Code-mode results (3 cards) -->
+  <div class="results" id="codeResults">
     <div class="result-card">
       <div class="result-header">
         <span class="result-label">Address</span>
-        <button class="copy-btn" onclick="copyResult('addressOut',this)">Copy</button>
+        <button class="copy-btn" onclick="copyEl('addressOut',this)">Copy</button>
       </div>
       <div class="result-body" id="addressOut"></div>
     </div>
     <div class="result-card">
       <div class="result-header">
         <span class="result-label">Reading (Kana)</span>
-        <button class="copy-btn" onclick="copyResult('kanaOut',this)">Copy</button>
+        <button class="copy-btn" onclick="copyEl('kanaOut',this)">Copy</button>
       </div>
       <div class="result-body" id="kanaOut"></div>
     </div>
     <div class="result-card">
       <div class="result-header">
         <span class="result-label">Reading (Romaji)</span>
-        <button class="copy-btn" onclick="copyResult('romajiOut',this)">Copy</button>
+        <button class="copy-btn" onclick="copyEl('romajiOut',this)">Copy</button>
       </div>
       <div class="result-body" id="romajiOut"></div>
+    </div>
+  </div>
+
+  <!-- Address-mode results (list) -->
+  <div class="results" id="addrResults">
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Matching postal codes</span>
+        <span class="result-count-note" id="resultCountNote"></span>
+      </div>
+      <div class="addr-list" id="addrList"></div>
     </div>
   </div>
 </div>
 
 <script>
 var THEME_KEY = 'gaj_theme';
+var mode = 'code';
 
 function toggleTheme() {
   var isPink = document.body.classList.toggle('pink');
@@ -240,14 +338,31 @@ function toggleTheme() {
   }
 })();
 
+function setMode(m) {
+  mode = m;
+  document.getElementById('codeResults').className = 'results';
+  document.getElementById('addrResults').className = 'results';
+  document.getElementById('modeBtnCode').className = 'mode-btn' + (m === 'code' ? ' active' : '');
+  document.getElementById('modeBtnAddr').className = 'mode-btn' + (m === 'address' ? ' active' : '');
+  document.getElementById('codeSection').style.display = m === 'code' ? '' : 'none';
+  document.getElementById('addrSection').style.display = m === 'address' ? '' : 'none';
+  document.getElementById('subtitle').textContent = m === 'code'
+    ? 'Enter a 〒 code to get the address, kana & romaji'
+    : 'Type a Japanese address to find matching 〒 codes';
+  (m === 'code' ? postalInput : addrInput).focus();
+}
+
 var postalInput = document.getElementById('postalInput');
+var addrInput   = document.getElementById('addrInput');
 
 postalInput.addEventListener('input', function() {
   var digits = postalInput.value.replace(/\D/g, '').slice(0, 7);
   postalInput.value = digits.length > 3 ? digits.slice(0,3) + '-' + digits.slice(3) : digits;
 });
-
 postalInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+});
+addrInput.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
 });
 
@@ -261,18 +376,26 @@ function setLoading(id) {
   el.className = 'result-body';
 }
 
-function setResult(id, html, isErr) {
+function setCard(id, html, isErr) {
   var el = document.getElementById(id);
   el.innerHTML = html;
   el.className = 'result-body' + (isErr ? ' err-text' : '');
 }
 
-function copyResult(elId, btn) {
+function copyEl(elId, btn) {
   var text = (document.getElementById(elId).innerText || '').trim();
   navigator.clipboard.writeText(text).then(function() {
     btn.textContent = 'Copied!';
     btn.className = 'copy-btn copied';
     setTimeout(function() { btn.textContent = 'Copy'; btn.className = 'copy-btn'; }, 1500);
+  });
+}
+
+function copyCode(code, btn) {
+  navigator.clipboard.writeText(code).then(function() {
+    btn.textContent = 'Copied!';
+    btn.className = 'addr-item-copy copied';
+    setTimeout(function() { btn.textContent = 'Copy 〒'; btn.className = 'addr-item-copy'; }, 1500);
   });
 }
 
@@ -300,6 +423,10 @@ function googleRomaji(text) {
 }
 
 function doSearch() {
+  if (mode === 'code') doCodeSearch(); else doAddrSearch();
+}
+
+function doCodeSearch() {
   var digits = postalInput.value.replace(/\D/g, '');
   if (digits.length !== 7) {
     var wrap = document.getElementById('postalWrap');
@@ -307,51 +434,91 @@ function doSearch() {
     setTimeout(function() { wrap.classList.remove('error'); }, 800);
     return;
   }
-
   var btn = document.getElementById('searchBtn');
   btn.disabled = true;
-  document.getElementById('results').className = 'results visible';
-  setLoading('addressOut');
-  setLoading('kanaOut');
-  setLoading('romajiOut');
+  document.getElementById('addrResults').className = 'results';
+  document.getElementById('codeResults').className = 'results visible';
+  setLoading('addressOut'); setLoading('kanaOut'); setLoading('romajiOut');
 
   fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + digits)
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data.results || data.results.length === 0) {
         var code = digits.slice(0,3) + '-' + digits.slice(3);
-        setResult('addressOut', '〒 ' + esc(code) + ' — no address found.', true);
-        setResult('kanaOut', '—', false);
-        setResult('romajiOut', '—', false);
+        setCard('addressOut', '〒 ' + esc(code) + ' — no address found.', true);
+        setCard('kanaOut', '—', false);
+        setCard('romajiOut', '—', false);
+        return;
+      }
+      var first = data.results[0];
+      var code  = first.zipcode.slice(0,3) + '-' + first.zipcode.slice(3);
+      var addrHtml = '<div class="addr-code">〒 ' + esc(code) + '</div>' +
+        '<div class="addr-main">' + esc(first.address1) + '　' + esc(first.address2) + '　' + esc(first.address3) + '</div>';
+      if (data.results.length > 1) {
+        addrHtml += '<div class="addr-extra">+ ' + (data.results.length - 1) + ' more area' + (data.results.length > 2 ? 's' : '') + ' share this code</div>';
+      }
+      setCard('addressOut', addrHtml, false);
+      var kana = [first.kana1, first.kana2, first.kana3].filter(Boolean).join('　');
+      setCard('kanaOut', esc(kana) || '—', false);
+      googleRomaji(first.address1 + first.address2 + first.address3)
+        .then(function(r) { setCard('romajiOut', esc(r) || '(no reading returned)', !r); })
+        .catch(function(e) { setCard('romajiOut', 'Error: ' + esc(e.message), true); });
+    })
+    .catch(function(e) {
+      setCard('addressOut', 'Error: ' + esc(e.message), true);
+      setCard('kanaOut', '—', false); setCard('romajiOut', '—', false);
+    })
+    .finally(function() { btn.disabled = false; });
+}
+
+function doAddrSearch() {
+  var query = addrInput.value.trim();
+  if (!query) {
+    var wrap = document.getElementById('addrWrap');
+    wrap.classList.add('error');
+    setTimeout(function() { wrap.classList.remove('error'); }, 800);
+    return;
+  }
+  var btn = document.getElementById('searchBtn');
+  btn.disabled = true;
+  document.getElementById('codeResults').className = 'results';
+  document.getElementById('addrResults').className = 'results visible';
+  document.getElementById('resultCountNote').textContent = '';
+  document.getElementById('addrList').innerHTML =
+    '<div style="padding:12px 14px"><span class="loading-dots">Searching…</span></div>';
+
+  fetch('https://zipcloud.ibsnet.co.jp/api/search?address=' + encodeURIComponent(query))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.results || data.results.length === 0) {
+        document.getElementById('addrList').innerHTML =
+          '<div class="result-body err-text">No results found. Try a more specific Japanese address.</div>';
         return;
       }
       var results = data.results;
-      var first = results[0];
-      var code = first.zipcode.slice(0,3) + '-' + first.zipcode.slice(3);
+      var atMax = results.length >= 20;
+      document.getElementById('resultCountNote').textContent =
+        atMax ? '20 shown — try a narrower search' : results.length + ' result' + (results.length > 1 ? 's' : '');
 
-      var addrHtml = '<div class="addr-code">〒 ' + esc(code) + '</div>';
-      addrHtml += '<div class="addr-main">' + esc(first.address1) + '　' + esc(first.address2) + '　' + esc(first.address3) + '</div>';
-      if (results.length > 1) {
-        addrHtml += '<div class="addr-extra">+ ' + (results.length - 1) + ' more area' + (results.length > 2 ? 's' : '') + ' share this code</div>';
-      }
-      setResult('addressOut', addrHtml, false);
-
-      var kana = [first.kana1, first.kana2, first.kana3].filter(Boolean).join('　');
-      setResult('kanaOut', esc(kana) || '—', false);
-
-      var fullAddr = first.address1 + first.address2 + first.address3;
-      googleRomaji(fullAddr)
-        .then(function(romaji) {
-          setResult('romajiOut', esc(romaji) || '(no reading returned)', !romaji);
-        })
-        .catch(function(err) {
-          setResult('romajiOut', 'Error: ' + esc(err.message), true);
-        });
+      var html = '';
+      results.forEach(function(r) {
+        var code    = r.zipcode.slice(0,3) + '-' + r.zipcode.slice(3);
+        var address = esc(r.address1) + esc(r.address2) + esc(r.address3);
+        var kana    = esc([r.kana1, r.kana2, r.kana3].filter(Boolean).join('　'));
+        html += '<div class="addr-list-item">' +
+          '<div class="addr-item-code">〒 ' + esc(code) + '</div>' +
+          '<div class="addr-item-info">' +
+            '<div class="addr-item-address">' + address + '</div>' +
+            '<div class="addr-item-kana">' + kana + '</div>' +
+          '</div>' +
+          '<button class="addr-item-copy" onclick="copyCode(\'' + esc(code) + '\',this)">Copy 〒</button>' +
+        '</div>';
+      });
+      document.getElementById('addrList').innerHTML = html;
     })
-    .catch(function(err) {
-      setResult('addressOut', 'Error: ' + esc(err.message), true);
-      setResult('kanaOut', '—', false);
-      setResult('romajiOut', '—', false);
+    .catch(function(e) {
+      document.getElementById('addrList').innerHTML =
+        '<div class="result-body err-text">Error: ' + esc(e.message) + '</div>';
     })
     .finally(function() { btn.disabled = false; });
 }
