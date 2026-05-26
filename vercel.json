@@ -3,11 +3,13 @@
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "translate.html", "use": "@vercel/static" },
-    { "src": "postal.html", "use": "@vercel/static" }
+    { "src": "postal.html", "use": "@vercel/static" },
+    { "src": "greetings.js", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/translate", "dest": "/translate.html" },
     { "src": "/postal", "dest": "/postal.html" },
+    { "src": "/greetings.js", "dest": "/greetings.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
