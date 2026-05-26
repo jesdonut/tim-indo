@@ -107,7 +107,7 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loader-title { font-size: 1rem; font-weight: 600; color: var(--text); }
-.loader-sub { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+.loader-sub { font-size: 0.78rem; color: var(--muted); line-height: 1.6; max-width: 280px; }
 .loader-track {
   width: 200px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden;
 }
@@ -133,8 +133,7 @@ body {
 .ready-badge {
   display: none; align-items: center; gap: 6px;
   background: #f0fdf4; border: 1px solid #86efac;
-  border-radius: 8px; padding: 6px 12px;
-  font-size: 0.76rem; color: #166534; font-weight: 500;
+  border-radius: 8px; padding: 6px 12px; font-size: 0.76rem; color: #166534; font-weight: 500;
 }
 .ready-badge.visible { display: flex; }
 .ready-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
@@ -178,10 +177,10 @@ body {
 .copy-btn:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
 .copy-btn.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
 .result-body {
-  padding: 10px 14px; font-size: 0.9rem; line-height: 1.8; color: var(--text); min-height: 40px;
+  padding: 10px 14px; font-size: 0.9rem; line-height: 1.9; color: var(--text); min-height: 40px;
 }
-.result-body.furigana-body { font-size: 1rem; }
-.result-body ruby rt { font-size: 0.58em; color: var(--muted); }
+.result-body.furigana-body { font-size: 1.05rem; }
+.result-body ruby rt { font-size: 0.55em; color: var(--muted); }
 .loading-dots { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
 </style>
 </head>
@@ -218,7 +217,10 @@ body {
     <span class="material-icons-outlined loader-err-icon">warning</span>
     <div class="loader-spinner"></div>
     <div class="loader-title" id="loaderTitle">Loading Japanese Analyzer</div>
-    <div class="loader-sub" id="loaderSub">Downloading dictionary&hellip;<br>This takes about 10 seconds on the first visit.</div>
+    <div class="loader-sub" id="loaderSub">
+      Downloading dictionary files&hellip;<br>
+      Usually ready in 5&ndash;15 seconds.
+    </div>
     <div class="loader-track"><div class="loader-fill"></div></div>
     <button class="retry-btn" id="retryBtn" style="display:none" onclick="location.reload()">Reload &amp; Retry</button>
   </div>
@@ -271,12 +273,14 @@ body {
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.1.2/dist/kuroshiro.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
+<!-- kuromoji: tokenizes Japanese text (browser-compatible UMD build) -->
+<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+<!-- wanakana: converts katakana readings to hiragana / romaji -->
+<script src="https://cdn.jsdelivr.net/npm/wanakana@4.0.2/umd/wanakana.min.js"></script>
 <script>
 var THEME_KEY = 'gaj_theme';
+var tokenizer = null;
 var analyzerReady = false;
-var kuroshiro = new Kuroshiro();
 
 function toggleTheme() {
   var isPink = document.body.classList.toggle('pink');
@@ -291,6 +295,30 @@ function toggleTheme() {
   }
 })();
 
+function showError(msg) {
+  var card = document.getElementById('loaderCard');
+  card.className = 'loader-card err';
+  document.getElementById('loaderTitle').textContent = 'Failed to load analyzer';
+  document.getElementById('loaderSub').textContent = msg;
+  document.getElementById('retryBtn').style.display = 'inline-block';
+}
+
+/* 45-second timeout failsafe */
+var loadTimer = setTimeout(function() {
+  if (!analyzerReady) showError('Download timed out. Check your connection and reload.');
+}, 45000);
+
+kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict' })
+  .build(function(err, built) {
+    clearTimeout(loadTimer);
+    if (err) { showError('Error: ' + err.message); return; }
+    tokenizer = built;
+    analyzerReady = true;
+    document.getElementById('loaderCard').style.display = 'none';
+    document.getElementById('inputSection').className = 'input-section visible';
+    document.getElementById('readyBadge').className = 'ready-badge visible';
+  });
+
 function updateCharCount() {
   var len = document.getElementById('inputText').value.length;
   var el  = document.getElementById('charCount');
@@ -298,20 +326,34 @@ function updateCharCount() {
   el.className = 'char-count' + (len > 500 ? ' over' : len > 400 ? ' warn' : '');
 }
 
-kuroshiro.init(new KuromojiAnalyzer({
-  dictPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/'
-})).then(function() {
-  analyzerReady = true;
-  document.getElementById('loaderCard').style.display = 'none';
-  document.getElementById('inputSection').className = 'input-section visible';
-  document.getElementById('readyBadge').className = 'ready-badge visible';
-}).catch(function() {
-  var card = document.getElementById('loaderCard');
-  card.className = 'loader-card err';
-  document.getElementById('loaderTitle').textContent = 'Failed to load analyzer';
-  document.getElementById('loaderSub').textContent = 'Check your internet connection and try reloading.';
-  document.getElementById('retryBtn').style.display = 'inline-block';
-});
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+var KANJI_RE = /[一-龯㐀-䶿]/;
+
+function buildFurigana(text) {
+  var tokens = tokenizer.tokenize(text);
+  var html = '';
+  tokens.forEach(function(t) {
+    var surface = t.surface_form;
+    var reading = t.reading;
+    if (reading && KANJI_RE.test(surface)) {
+      var hira = wanakana.toHiragana(reading);
+      html += '<ruby>' + esc(surface) + '<rt>' + esc(hira) + '</rt></ruby>';
+    } else {
+      html += esc(surface);
+    }
+  });
+  return html;
+}
+
+function buildRomaji(text) {
+  var tokens = tokenizer.tokenize(text);
+  return tokens.map(function(t) {
+    return t.reading ? wanakana.toRomaji(t.reading) : t.surface_form;
+  }).join('');
+}
 
 function fetchTranslation(text, langpair) {
   return fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=' + langpair)
@@ -343,19 +385,25 @@ function doTranslate() {
     document.getElementById(id).innerHTML = '<span class="loading-dots">…</span>';
   });
 
+  /* Furigana and romaji are synchronous once tokenizer is ready */
+  try {
+    document.getElementById('furiganaOut').innerHTML = buildFurigana(text);
+    document.getElementById('romajiOut').textContent = buildRomaji(text);
+  } catch(e) {
+    document.getElementById('furiganaOut').textContent = 'Error: ' + e.message;
+  }
+
+  /* Translations are async API calls */
   Promise.all([
-    kuroshiro.convert(text, { mode: 'furigana', to: 'hiragana' }),
-    kuroshiro.convert(text, { mode: 'normal',   to: 'romaji', romajiSystem: 'hepburn' }),
     fetchTranslation(text, 'ja|id'),
     fetchTranslation(text, 'ja|en')
   ]).then(function(res) {
-    document.getElementById('furiganaOut').innerHTML  = res[0];
-    document.getElementById('romajiOut').textContent  = res[1];
-    document.getElementById('idOut').textContent      = res[2];
-    document.getElementById('enOut').textContent      = res[3];
-    btn.disabled = false; btn.textContent = 'Translate';
-  }).catch(function(err) {
-    document.getElementById('furiganaOut').textContent = 'Error: ' + err.message;
+    document.getElementById('idOut').textContent = res[0];
+    document.getElementById('enOut').textContent = res[1];
+  }).catch(function() {
+    document.getElementById('idOut').textContent = '(error)';
+    document.getElementById('enOut').textContent = '(error)';
+  }).finally(function() {
     btn.disabled = false; btn.textContent = 'Translate';
   });
 }
