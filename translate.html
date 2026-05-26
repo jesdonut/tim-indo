@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Japanese Translator — Grasp Agent Japan</title>
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0;
+  background: var(--brand-bg);
+  padding: 11px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  position: relative;
+}
+.brand-logo { font-size: 1.5rem; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 11px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+
+.mid {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+.init-bar {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--light); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; font-size: 0.77rem; color: var(--muted);
+}
+.init-bar.ready { border-color: #86efac; background: #f0fdf4; color: #166534; }
+.init-bar.err   { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
+.init-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--border-soft);
+  flex-shrink: 0; animation: pulse 1.2s infinite;
+}
+.init-bar.ready .init-dot { background: #22c55e; animation: none; }
+.init-bar.err   .init-dot { background: #ef4444; animation: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.input-section { display: flex; flex-direction: column; gap: 8px; }
+.input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+.input-wrap { position: relative; }
+.input-textarea {
+  width: 100%; background: #fff; border: 1.5px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 12px 14px 28px;
+  font-size: 1rem; line-height: 1.6; outline: none; resize: vertical;
+  min-height: 100px; transition: border-color 0.2s; font-family: inherit;
+}
+.input-textarea:focus { border-color: var(--primary-2); }
+.input-textarea::placeholder { color: var(--border-soft); }
+.char-count {
+  position: absolute; bottom: 8px; right: 12px;
+  font-size: 0.65rem; color: var(--border-soft); pointer-events: none;
+}
+.char-count.warn { color: #f59e0b; }
+.char-count.over { color: #ef4444; }
+.btn-row { display: flex; justify-content: flex-end; }
+.translate-btn {
+  padding: 10px 24px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+}
+.translate-btn:hover { background: var(--primary-hover); }
+.translate-btn:active { transform: scale(0.97); }
+.translate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.results { display: flex; flex-direction: column; gap: 8px; }
+.result-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--light);
+}
+.result-label { font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+.copy-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.copy-btn:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
+.copy-btn.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
+.result-body {
+  padding: 10px 14px; font-size: 0.9rem; line-height: 1.8;
+  color: var(--text); min-height: 40px;
+}
+.result-body.furigana-body { font-size: 1rem; }
+.result-body ruby rt { font-size: 0.58em; color: var(--muted); }
+.loading { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <div class="brand-logo">&#127758;</div>
+  <div>
+    <div class="brand-name">Grasp Agent Japan</div>
+    <div class="brand-ja">&#12464;&#12521;&#12473;&#12503;&#12456;&#12540;&#12472;&#12455;&#12531;&#12488;&#12472;&#12515;&#12497;&#12531;</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#127800; Pink</button>
+</div>
+
+<div class="mid">
+  <div class="app-title">
+    <h1>Japanese Translator</h1>
+    <p>Paste Japanese text &mdash; furigana, romaji, Indonesian &amp; English</p>
+  </div>
+
+  <div class="init-bar" id="initBar">
+    <span class="init-dot"></span>
+    <span id="initText">Loading Japanese analyzer&hellip; (may take ~10s on first visit)</span>
+  </div>
+
+  <div class="input-section">
+    <div class="input-label">Japanese text</div>
+    <div class="input-wrap">
+      <textarea class="input-textarea" id="inputText" rows="4"
+        placeholder="&#12371;&#12371;&#12395;&#26085;&#26412;&#35486;&#12434;&#36984;&#12387;&#12390;&#12367;&#12384;&#12373;&#12356;&#12288;&#12288;&#12288;(Paste Japanese text here)"
+        oninput="updateCharCount()"></textarea>
+      <span class="char-count" id="charCount">0 / 500</span>
+    </div>
+    <div class="btn-row">
+      <button class="translate-btn" id="translateBtn" onclick="doTranslate()" disabled>Translate</button>
+    </div>
+  </div>
+
+  <div class="results" id="results" style="display:none">
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Furigana</span>
+        <button class="copy-btn" onclick="copyResult('furiganaOut',this)">Copy</button>
+      </div>
+      <div class="result-body furigana-body" id="furiganaOut"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Romaji</span>
+        <button class="copy-btn" onclick="copyResult('romajiOut',this)">Copy</button>
+      </div>
+      <div class="result-body" id="romajiOut"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">&#127470;&#127465; Bahasa Indonesia</span>
+        <button class="copy-btn" onclick="copyResult('idOut',this)">Copy</button>
+      </div>
+      <div class="result-body" id="idOut"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">&#127468;&#127463; English</span>
+        <button class="copy-btn" onclick="copyResult('enOut',this)">Copy</button>
+      </div>
+      <div class="result-body" id="enOut"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.1.2/dist/kuroshiro.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
+<script>
+var THEME_KEY = 'gaj_theme';
+var analyzerReady = false;
+var kuroshiro = new Kuroshiro();
+
+function toggleTheme() {
+  var isPink = document.body.classList.toggle('pink');
+  localStorage.setItem(THEME_KEY, isPink ? 'pink' : 'blue');
+  document.getElementById('themeToggle').innerHTML = isPink ? '&#128153; Blue' : '&#127800; Pink';
+}
+(function() {
+  if (localStorage.getItem(THEME_KEY) === 'pink') {
+    document.body.classList.add('pink');
+    document.getElementById('themeToggle').innerHTML = '&#128153; Blue';
+  }
+})();
+
+function updateCharCount() {
+  var len = document.getElementById('inputText').value.length;
+  var el  = document.getElementById('charCount');
+  el.textContent = len + ' / 500';
+  el.className = 'char-count' + (len > 500 ? ' over' : len > 400 ? ' warn' : '');
+}
+
+kuroshiro.init(new KuromojiAnalyzer({
+  dictPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/'
+})).then(function() {
+  analyzerReady = true;
+  var bar = document.getElementById('initBar');
+  bar.className = 'init-bar ready';
+  document.getElementById('initText').textContent = 'Japanese analyzer ready';
+  document.getElementById('translateBtn').disabled = false;
+}).catch(function() {
+  var bar = document.getElementById('initBar');
+  bar.className = 'init-bar err';
+  document.getElementById('initText').textContent = 'Failed to load analyzer — check your connection and reload';
+});
+
+function fetchTranslation(text, langpair) {
+  return fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=' + langpair)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      return (d.responseStatus === 200) ? d.responseData.translatedText : '(translation unavailable)';
+    })
+    .catch(function() { return '(connection error)'; });
+}
+
+function copyResult(elId, btn) {
+  var text = document.getElementById(elId).innerText || '';
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.className = 'copy-btn copied';
+    setTimeout(function() { btn.textContent = 'Copy'; btn.className = 'copy-btn'; }, 1500);
+  });
+}
+
+function doTranslate() {
+  var text = document.getElementById('inputText').value.trim();
+  if (!text || !analyzerReady) return;
+  if (text.length > 500) { alert('Max 500 characters. Please shorten the text.'); return; }
+
+  var btn = document.getElementById('translateBtn');
+  btn.disabled = true;
+  btn.textContent = 'Translating…';
+
+  var resultsEl = document.getElementById('results');
+  resultsEl.style.display = 'flex';
+  ['furiganaOut','romajiOut','idOut','enOut'].forEach(function(id) {
+    document.getElementById(id).innerHTML = '<span class="loading">…</span>';
+  });
+
+  Promise.all([
+    kuroshiro.convert(text, { mode: 'furigana', to: 'hiragana' }),
+    kuroshiro.convert(text, { mode: 'normal',   to: 'romaji', romajiSystem: 'hepburn' }),
+    fetchTranslation(text, 'ja|id'),
+    fetchTranslation(text, 'ja|en')
+  ]).then(function(res) {
+    document.getElementById('furiganaOut').innerHTML  = res[0];
+    document.getElementById('romajiOut').textContent  = res[1];
+    document.getElementById('idOut').textContent      = res[2];
+    document.getElementById('enOut').textContent      = res[3];
+    btn.disabled = false;
+    btn.textContent = 'Translate';
+  }).catch(function(err) {
+    document.getElementById('furiganaOut').textContent = 'Error: ' + err.message;
+    btn.disabled = false;
+    btn.textContent = 'Translate';
+  });
+}
+
+document.getElementById('inputText').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); doTranslate(); }
+});
+</script>
+</body>
+</html>

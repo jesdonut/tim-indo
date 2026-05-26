@@ -23,21 +23,21 @@
   --input-bg: #f8faff;
 }
 body.pink {
-  --bg: #fef3f6;
-  --text: #5c1a2e;
-  --primary: #c2185b;
-  --primary-2: #d81b60;
-  --primary-hover: #b5355e;
-  --primary-dark: #880e4f;
-  --light: #fde8ef;
-  --mid: #fcd5e3;
-  --border: #f4a8c2;
-  --border-soft: #f9c5d5;
-  --muted: #b07090;
-  --accent: #e05080;
-  --brand-bg: #c2185b;
-  --brand-sub: #f9c5d5;
-  --input-bg: #fff5f8;
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,7 +53,6 @@ body {
   flex-direction: column;
 }
 
-/* ---- Brand bar ---- */
 .brand-bar {
   flex-shrink: 0;
   background: var(--brand-bg);
@@ -80,12 +79,10 @@ body {
   font-size: 0.78rem;
   cursor: pointer;
   transition: background 0.2s;
-  line-height: 1.6;
   white-space: nowrap;
 }
 .theme-toggle:hover { background: rgba(255,255,255,0.3); }
 
-/* ---- Scrollable middle ---- */
 .mid {
   flex: 1;
   min-height: 0;
@@ -101,7 +98,6 @@ body {
 .app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
 .app-title p { color: var(--muted); font-size: 0.76rem; }
 
-/* ---- Language accordion ---- */
 .lang-toggle {
   display: flex;
   align-items: center;
@@ -131,7 +127,6 @@ body {
 .lang-text { font-size: 0.78rem; color: var(--text); line-height: 1.5; }
 .lang-text strong { color: var(--primary); }
 
-/* ---- Drop zone ---- */
 .drop-zone {
   border: 2px dashed var(--border-soft);
   border-radius: 14px;
@@ -160,7 +155,6 @@ body {
 }
 .browse-btn:hover { background: var(--primary-hover); }
 
-/* ---- File list ---- */
 .file-list { display: flex; flex-direction: column; gap: 5px; }
 .file-item {
   display: flex; align-items: center; gap: 8px;
@@ -174,7 +168,6 @@ body {
 .file-item.dragging { opacity: 0.3; }
 .drag-handle { color: var(--border-soft); font-size: 0.9rem; flex-shrink: 0; line-height: 1; }
 
-/* ---- Thumbnail (50px) ---- */
 .file-thumb {
   width: 50px; height: 50px; border-radius: 7px; background: var(--light);
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -188,26 +181,16 @@ body {
 .file-thumb img.rot180 { transform: rotate(180deg); }
 .file-thumb img.rot270 { transform: rotate(270deg); }
 
-/* ---- Hover preview popup ---- */
 #imgPreview {
-  position: fixed;
-  z-index: 9999;
-  display: none;
-  width: 200px;
-  height: 200px;
-  background: #fff;
-  border: 1.5px solid var(--border-soft);
-  border-radius: 12px;
-  box-shadow: 0 6px 28px rgba(0,0,0,0.14);
-  overflow: hidden;
-  pointer-events: none;
+  position: fixed; z-index: 9999; display: none;
+  width: 200px; height: 200px;
+  background: #fff; border: 1.5px solid var(--border-soft);
+  border-radius: 12px; box-shadow: 0 6px 28px rgba(0,0,0,0.14);
+  overflow: hidden; pointer-events: none;
 }
-#imgPreview img {
-  width: 100%; height: 100%; object-fit: contain;
-  transform-origin: center;
-}
+#imgPreview img { width: 100%; height: 100%; object-fit: contain; transform-origin: center; }
 #imgPreview img.rot90  { transform: rotate(90deg)  scale(0.9); }
-#imgPreview img.rot180 { transform: rotate(180deg) scale(1);   }
+#imgPreview img.rot180 { transform: rotate(180deg) scale(1); }
 #imgPreview img.rot270 { transform: rotate(270deg) scale(0.9); }
 
 .file-info { flex: 1; min-width: 0; }
@@ -229,13 +212,7 @@ body {
 }
 .file-remove:hover { color: #ef4444; background: #fef2f2; }
 
-/* ---- List action bar ---- */
-.list-actions {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 4px;
-}
+.list-actions { display: none; align-items: center; justify-content: space-between; padding-bottom: 4px; }
 .list-actions.visible { display: flex; }
 .reorder-tip { font-size: 0.67rem; color: var(--border-soft); }
 .clear-btn {
@@ -245,7 +222,6 @@ body {
 }
 .clear-btn:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
 
-/* ---- Bottom bar ---- */
 .bottom-bar {
   flex-shrink: 0;
   background: #fff;
@@ -256,7 +232,6 @@ body {
   gap: 6px;
 }
 
-/* ---- Saved names ---- */
 .saved-section { display: none; flex-direction: column; gap: 4px; }
 .saved-section.visible { display: flex; }
 .saved-header { display: flex; align-items: center; justify-content: space-between; }
@@ -279,7 +254,6 @@ body {
 }
 .saved-chip-del:hover { color: #ef4444; }
 
-/* ---- Controls row ---- */
 .controls { display: flex; gap: 6px; align-items: stretch; }
 .filename-wrap { flex: 1; position: relative; }
 .ext-label {
@@ -421,7 +395,6 @@ body {
   <div class="status" id="status"></div>
 </div>
 
-<!-- Hover preview -->
 <div id="imgPreview"><img id="imgPreviewImg" src="" alt=""></div>
 
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -436,7 +409,6 @@ var THEME_KEY   = 'gaj_theme';
 var imgPreview    = document.getElementById('imgPreview');
 var imgPreviewImg = document.getElementById('imgPreviewImg');
 
-/* ---- Theme toggle ---- */
 function toggleTheme() {
   var isPink = document.body.classList.toggle('pink');
   localStorage.setItem(THEME_KEY, isPink ? 'pink' : 'blue');
@@ -466,14 +438,12 @@ function movePreview(e) {
 }
 function hidePreview() { imgPreview.style.display = 'none'; }
 
-/* ---- Language accordion ---- */
 function toggleLang() {
   langOpen = !langOpen;
   document.getElementById('langCards').className = 'lang-cards' + (langOpen ? ' open' : '');
   document.getElementById('langArrow').className = 'lang-arrow' + (langOpen ? ' open' : '');
 }
 
-/* ---- Saved names ---- */
 function getSavedNames() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch(e) { return []; }
@@ -524,7 +494,6 @@ function renderSavedNames() {
   });
 }
 
-/* ---- File handling ---- */
 var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
 
@@ -595,7 +564,6 @@ function renderList() {
       imgEl.src = URL.createObjectURL(file);
       if (rotClass) imgEl.className = rotClass;
       thumb.appendChild(imgEl);
-
       (function(src, rc) {
         thumb.addEventListener('mouseenter', function(e) { showPreview(src, rc, e); });
         thumb.addEventListener('mousemove',  function(e) { movePreview(e); });
