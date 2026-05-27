@@ -5,6 +5,7 @@
     { "src": "translate.html", "use": "@vercel/static" },
     { "src": "postal.html", "use": "@vercel/static" },
     { "src": "spell.html", "use": "@vercel/static" },
+    { "src": "compress.html", "use": "@vercel/static" },
     { "src": "greetings.js", "use": "@vercel/static" },
     { "src": "postal_data.json", "use": "@vercel/static" }
   ],
@@ -12,6 +13,7 @@
     { "src": "/translate", "dest": "/translate.html" },
     { "src": "/postal", "dest": "/postal.html" },
     { "src": "/spell", "dest": "/spell.html" },
+    { "src": "/compress", "dest": "/compress.html" },
     { "src": "/greetings.js", "dest": "/greetings.js" },
     { "src": "/postal_data.json", "dest": "/postal_data.json" },
     { "src": "/(.*)", "dest": "/index.html" }
