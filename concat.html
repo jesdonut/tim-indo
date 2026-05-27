@@ -236,7 +236,41 @@ function toggleTheme() {
 
 /* ── State ── */
 var colCount = 0;
-var colIds   = [];  // ordered list of column ids
+var colIds   = [];
+
+/* ── Output column (created once, always pinned last before + button) ── */
+var outputTa = (function() {
+  var box = document.createElement('div');
+  box.className = 'col-box output-col';
+  box.id = 'output-box';
+
+  var head = document.createElement('div');
+  head.className = 'col-head';
+  var label = document.createElement('span');
+  label.className = 'col-label';
+  label.style.color = 'var(--accent)';
+  label.textContent = 'Output';
+  var cnt = document.createElement('span');
+  cnt.className = 'col-count';
+  cnt.id = 'output-cnt';
+  head.appendChild(label);
+  head.appendChild(cnt);
+
+  var ta = document.createElement('textarea');
+  ta.className = 'col-ta output-ta';
+  ta.id = 'output-ta';
+  ta.readOnly = true;
+  ta.placeholder = '…';
+  ta.spellcheck = false;
+
+  box.appendChild(head);
+  box.appendChild(ta);
+
+  var scroll = document.getElementById('colScroll');
+  var addBtn = document.getElementById('addColBtn');
+  scroll.insertBefore(box, addBtn);
+  return ta;
+})();
 
 /* ── Init with 3 columns ── */
 addCol('Col 1');
@@ -258,11 +292,23 @@ function addCol(defaultVal) {
 
   var label = document.createElement('span');
   label.className = 'col-label';
-  label.textContent = 'Col ' + colIds.length;
 
   var count = document.createElement('span');
   count.className = 'col-count';
   count.id = 'cnt-' + id;
+
+  // Move left/right buttons
+  var moveLeft = document.createElement('button');
+  moveLeft.className = 'col-del';
+  moveLeft.title = 'Move left';
+  moveLeft.innerHTML = '<span class="material-icons-outlined">chevron_left</span>';
+  moveLeft.onclick = (function(cid){ return function(){ moveCol(cid, -1); }; })(id);
+
+  var moveRight = document.createElement('button');
+  moveRight.className = 'col-del';
+  moveRight.title = 'Move right';
+  moveRight.innerHTML = '<span class="material-icons-outlined">chevron_right</span>';
+  moveRight.onclick = (function(cid){ return function(){ moveCol(cid, 1); }; })(id);
 
   var del = document.createElement('button');
   del.className = 'col-del';
@@ -272,6 +318,8 @@ function addCol(defaultVal) {
 
   head.appendChild(label);
   head.appendChild(count);
+  head.appendChild(moveLeft);
+  head.appendChild(moveRight);
   head.appendChild(del);
 
   var ta = document.createElement('textarea');
@@ -287,10 +335,11 @@ function addCol(defaultVal) {
   box.appendChild(head);
   box.appendChild(ta);
 
-  var scroll = document.getElementById('colScroll');
-  var addBtn = document.getElementById('addColBtn');
-  scroll.insertBefore(box, addBtn);
+  // Insert before output column (which is always before + button)
+  var outputBox = document.getElementById('output-box');
+  document.getElementById('colScroll').insertBefore(box, outputBox);
 
+  renumberCols();
   recompute();
   return id;
 }
@@ -300,6 +349,28 @@ function removeCol(id) {
   if (idx !== -1) colIds.splice(idx, 1);
   var box = document.getElementById('box-' + id);
   if (box) box.remove();
+  renumberCols();
+  recompute();
+}
+
+function moveCol(id, dir) {
+  var idx = colIds.indexOf(id);
+  var newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= colIds.length) return;
+
+  // Swap in array
+  var tmp = colIds[idx];
+  colIds[idx] = colIds[newIdx];
+  colIds[newIdx] = tmp;
+
+  // Reorder DOM
+  var scroll = document.getElementById('colScroll');
+  var outputBox = document.getElementById('output-box');
+  colIds.forEach(function(cid) {
+    var box = document.getElementById('box-' + cid);
+    scroll.insertBefore(box, outputBox);
+  });
+
   renumberCols();
   recompute();
 }
@@ -321,43 +392,6 @@ function clearAll() {
   recompute();
 }
 
-/* ── Output column ── */
-var outputBox = null;
-var outputTa  = null;
-
-function ensureOutputCol() {
-  if (outputBox) return;
-  outputBox = document.createElement('div');
-  outputBox.className = 'col-box output-col';
-  outputBox.id = 'output-box';
-
-  var head = document.createElement('div');
-  head.className = 'col-head';
-  var label = document.createElement('span');
-  label.className = 'col-label';
-  label.style.color = 'var(--accent)';
-  label.textContent = 'Output';
-  var count = document.createElement('span');
-  count.className = 'col-count';
-  count.id = 'output-cnt';
-  head.appendChild(label);
-  head.appendChild(count);
-
-  outputTa = document.createElement('textarea');
-  outputTa.className = 'col-ta output-ta';
-  outputTa.id = 'output-ta';
-  outputTa.readOnly = true;
-  outputTa.placeholder = '…';
-  outputTa.spellcheck = false;
-
-  outputBox.appendChild(head);
-  outputBox.appendChild(outputTa);
-
-  var scroll = document.getElementById('colScroll');
-  var addBtn = document.getElementById('addColBtn');
-  scroll.insertBefore(outputBox, addBtn);
-}
-
 /* ── Compute ── */
 function getLines(id) {
   var ta = document.getElementById('ta-' + id);
@@ -367,7 +401,7 @@ function getLines(id) {
 
 function recompute() {
   if (colIds.length === 0) {
-    if (outputTa) outputTa.value = '';
+    outputTa.value = '';
     document.getElementById('rowInfo').textContent = '0 rows';
     return;
   }
@@ -375,23 +409,19 @@ function recompute() {
   var cols = colIds.map(getLines);
   var maxLen = Math.max.apply(null, cols.map(function(c){ return c.length; }));
 
-  // Update per-column row counts
   colIds.forEach(function(id, i) {
     var cnt = document.getElementById('cnt-' + id);
     var nonEmpty = cols[i].filter(function(l){ return l !== ''; }).length;
     if (cnt) cnt.textContent = nonEmpty ? nonEmpty + ' rows' : '';
   });
 
-  // Build output — skip trailing empty rows
   var rows = [];
   for (var r = 0; r < maxLen; r++) {
     var line = cols.map(function(c){ return c[r] !== undefined ? c[r] : ''; }).join('');
     rows.push(line);
   }
-  // Trim trailing blank lines
   while (rows.length && rows[rows.length-1] === '') rows.pop();
 
-  ensureOutputCol();
   outputTa.value = rows.join('\n');
 
   var nonEmptyRows = rows.filter(function(r){ return r !== ''; }).length;
@@ -402,9 +432,8 @@ function recompute() {
 
 /* ── Copy output ── */
 function copyOutput() {
-  var ta = document.getElementById('output-ta');
-  if (!ta || !ta.value.trim()) return;
-  navigator.clipboard.writeText(ta.value).then(function() {
+  if (!outputTa.value.trim()) return;
+  navigator.clipboard.writeText(outputTa.value).then(function() {
     var btn = document.getElementById('copyBtn');
     btn.classList.add('copied');
     btn.innerHTML = '<span class="material-icons-outlined">check</span> Copied!';
