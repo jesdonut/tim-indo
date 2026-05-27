@@ -200,34 +200,34 @@ body {
 <div class="mid">
   <div class="app-title">
     <h1>Japanese Translator</h1>
-    <p>Paste Japanese text, romaji reading, Indonesian &amp; English</p>
+    <p>Tempel teks Jepang, langsung dapet bacaan romaji + terjemahan</p>
   </div>
 
   <div class="input-section">
-    <div class="input-label">Japanese text</div>
+    <div class="input-label">Teks Jepang</div>
     <div class="input-wrap">
       <textarea class="input-textarea" id="inputText" rows="4"
-        placeholder="&#12371;&#12371;&#12395;&#26085;&#26412;&#35486;&#12434;&#36984;&#12387;&#12390;&#12367;&#12384;&#12373;&#12356;&#12288;&#12288;&#12288;(Paste Japanese text here)"
+        placeholder="&#12371;&#12371;&#12395;&#26085;&#26412;&#35486;&#12434;&#36984;&#12387;&#12390;&#12367;&#12384;&#12373;&#12356;&#12288;&#12288;&#12288;(Paste Teks Jepang here)"
         oninput="updateCharCount()"></textarea>
       <span class="char-count" id="charCount">0 / 500</span>
     </div>
     <div class="btn-row">
-      <button class="translate-btn" id="translateBtn" onclick="doTranslate()">Translate</button>
+      <button class="translate-btn" id="translateBtn" onclick="doTranslate()">Terjemahkan</button>
     </div>
   </div>
 
   <div class="results" id="results">
     <div class="result-card">
       <div class="result-header">
-        <span class="result-label">Reading (Romaji)</span>
-        <button class="copy-btn" onclick="copyResult('romajiOut',this)">Copy</button>
+        <span class="result-label">Bacaan (Romaji)</span>
+        <button class="copy-btn" onclick="copyResult('romajiOut',this)">Salin</button>
       </div>
       <div class="result-body" id="romajiOut"></div>
     </div>
     <div class="result-card">
       <div class="result-header">
         <span class="result-label">Bahasa Indonesia</span>
-        <button class="copy-btn" onclick="copyResult('idOut',this)">Copy</button>
+        <button class="copy-btn" onclick="copyResult('idOut',this)">Salin</button>
       </div>
       <div class="result-body" id="idOut"></div>
       <div class="result-alt" id="idAlt">
@@ -237,8 +237,8 @@ body {
     </div>
     <div class="result-card">
       <div class="result-header">
-        <span class="result-label">English</span>
-        <button class="copy-btn" onclick="copyResult('enOut',this)">Copy</button>
+        <span class="result-label">Inggris</span>
+        <button class="copy-btn" onclick="copyResult('enOut',this)">Salin</button>
       </div>
       <div class="result-body" id="enOut"></div>
       <div class="result-alt" id="enAlt">
@@ -344,10 +344,10 @@ function myMemoryTranslate(text, tl) {
 function doTranslate() {
   var text = document.getElementById('inputText').value.trim();
   if (!text) return;
-  if (text.length > 500) { alert('Max 500 characters. Please shorten the text.'); return; }
+  if (text.length > 500) { alert('Maksimal 500 karakter ya, tolong diperpendek.'); return; }
 
   var btn = document.getElementById('translateBtn');
-  btn.disabled = true; btn.textContent = 'Translating…';
+  btn.disabled = true; btn.textContent = 'Lagi nerjemahin…';
 
   document.getElementById('results').className = 'results visible';
   ['romajiOut','idOut','enOut'].forEach(function(id) {
@@ -383,5 +383,6 @@ document.getElementById('inputText').addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); doTranslate(); }
 });
 </script>
+<script src="/greetings.js"></script>
 </body>
 </html>

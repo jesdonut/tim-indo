@@ -222,7 +222,7 @@ body {
 <div class="mid">
   <div class="app-title">
     <h1>String Builder</h1>
-    <p>Paste Excel columns, add as many as you need, output stitches each row</p>
+    <p>Paste kolom Excel, tambah sesuka hati, output langsung nyambungin tiap baris</p>
   </div>
 
   <div class="builder-area">
@@ -237,7 +237,7 @@ body {
         <span class="material-icons-outlined">delete_sweep</span> Clear
       </button>
       <button class="tool-btn btn-copy" id="copyBtn" onclick="copyOutput()">
-        <span class="material-icons-outlined">content_copy</span> <span id="copyLabel">Copy all</span>
+        <span class="material-icons-outlined">content_copy</span> <span id="copyLabel">Salin semua</span>
       </button>
     </div>
   </div>
@@ -459,7 +459,7 @@ function getLines(id) {
 function recompute() {
   if (colIds.length === 0) {
     outputRows = [];
-    outputList.innerHTML = '<div class="out-empty">Output appears here</div>';
+    outputList.innerHTML = '<div class="out-empty">Output muncul di sini</div>';
     document.getElementById('rowInfo').textContent = '0 rows';
     return;
   }
@@ -485,7 +485,7 @@ function recompute() {
   // Render cells
   outputList.innerHTML = '';
   if (!rows.length) {
-    outputList.innerHTML = '<div class="out-empty">Output appears here</div>';
+    outputList.innerHTML = '<div class="out-empty">Output muncul di sini</div>';
   } else {
     rows.forEach(function(row) {
       var cell = document.createElement('div');
@@ -545,5 +545,6 @@ function fillCol(id) {
   recompute();
 }
 </script>
+<script src="/greetings.js"></script>
 </body>
 </html>
