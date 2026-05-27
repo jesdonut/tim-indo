@@ -75,11 +75,13 @@ body {
 }
 .nav-tabs {
   background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px; display: flex; gap: 2px;
+  overflow-x: auto;
 }
 .nav-tab {
   display: flex; align-items: center; gap: 5px;
-  padding: 5px 16px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  padding: 5px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
   color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 .nav-tab .material-icons-outlined { font-size: 0.95rem; }
 .nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
@@ -158,15 +160,10 @@ body {
 </div>
 <nav class="nav-bar">
   <div class="nav-tabs">
-    <a class="nav-tab" href="/">
-      <span class="material-icons-outlined">description</span> PDF
-    </a>
-    <a class="nav-tab active" href="/translate">
-      <span class="material-icons-outlined">translate</span> Translate
-    </a>
-    <a class="nav-tab" href="/postal">
-      <span class="material-icons-outlined">local_post_office</span> Postal
-    </a>
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab active" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
   </div>
 </nav>
 
