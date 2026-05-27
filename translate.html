@@ -161,6 +161,19 @@ body {
 }
 .loading-dots { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
 .err-text { color: #ef4444; font-size: 0.82rem; }
+.crosscheck-row {
+  display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 0.72rem; color: var(--muted); padding: 2px 0;
+}
+.crosscheck-row.visible { display: flex; }
+.crosscheck-label { flex-shrink: 0; }
+.crosscheck-link {
+  color: var(--accent); text-decoration: none;
+  padding: 2px 9px; border: 1px solid var(--border); border-radius: 4px;
+  transition: background 0.15s, border-color 0.15s;
+  font-weight: 600;
+}
+.crosscheck-link:hover { background: var(--mid); border-color: var(--border-soft); }
 </style>
 </head>
 <body>
@@ -190,7 +203,7 @@ body {
 <div class="mid">
   <div class="app-title">
     <h1>Japanese Translator</h1>
-    <p>Paste Japanese text &mdash; romaji reading, Indonesian &amp; English</p>
+    <p>Paste Japanese text, romaji reading, Indonesian &amp; English</p>
   </div>
 
   <div class="input-section">
@@ -227,6 +240,12 @@ body {
         <button class="copy-btn" onclick="copyResult('enOut',this)">Copy</button>
       </div>
       <div class="result-body" id="enOut"></div>
+    </div>
+    <div class="crosscheck-row" id="crosscheckRow">
+      <span class="crosscheck-label">Cross-check reading:</span>
+      <a class="crosscheck-link" id="linkWeblio" href="#" target="_blank" rel="noopener">Weblio</a>
+      <a class="crosscheck-link" id="linkJisho" href="#" target="_blank" rel="noopener">Jisho</a>
+      <a class="crosscheck-link" id="linkGoo" href="#" target="_blank" rel="noopener">goo辞書</a>
     </div>
   </div>
 </div>
@@ -321,6 +340,8 @@ function doTranslate() {
     document.getElementById(id).className = 'result-body';
   });
 
+  updateCrosscheckLinks(text);
+
   Promise.all([
     googleTranslate(text, 'en', true),
     googleTranslate(text, 'id', false)
@@ -336,6 +357,14 @@ function doTranslate() {
   }).finally(function() {
     btn.disabled = false; btn.textContent = 'Translate';
   });
+}
+
+function updateCrosscheckLinks(text) {
+  var enc = encodeURIComponent(text);
+  document.getElementById('linkWeblio').href = 'https://translate.weblio.jp/?lp=JA_EN&q=' + enc;
+  document.getElementById('linkJisho').href  = 'https://jisho.org/search/' + enc;
+  document.getElementById('linkGoo').href    = 'https://dictionary.goo.ne.jp/word/' + enc + '/';
+  document.getElementById('crosscheckRow').className = 'crosscheck-row visible';
 }
 
 document.getElementById('inputText').addEventListener('keydown', function(e) {
