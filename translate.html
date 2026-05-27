@@ -161,19 +161,16 @@ body {
 }
 .loading-dots { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
 .err-text { color: #ef4444; font-size: 0.82rem; }
-.crosscheck-row {
-  display: none; align-items: center; gap: 8px; flex-wrap: wrap;
-  font-size: 0.72rem; color: var(--muted); padding: 2px 0;
+.result-alt {
+  display: none; padding: 6px 14px 9px;
+  border-top: 1px dashed var(--border);
 }
-.crosscheck-row.visible { display: flex; }
-.crosscheck-label { flex-shrink: 0; }
-.crosscheck-link {
-  color: var(--accent); text-decoration: none;
-  padding: 2px 9px; border: 1px solid var(--border); border-radius: 4px;
-  transition: background 0.15s, border-color 0.15s;
-  font-weight: 600;
+.result-alt.visible { display: block; }
+.result-alt-label {
+  font-size: 0.6rem; font-weight: 700; color: var(--border-soft);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px;
 }
-.crosscheck-link:hover { background: var(--mid); border-color: var(--border-soft); }
+.result-alt-text { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -233,6 +230,10 @@ body {
         <button class="copy-btn" onclick="copyResult('idOut',this)">Copy</button>
       </div>
       <div class="result-body" id="idOut"></div>
+      <div class="result-alt" id="idAlt">
+        <div class="result-alt-label">MyMemory</div>
+        <div class="result-alt-text" id="idAltText"></div>
+      </div>
     </div>
     <div class="result-card">
       <div class="result-header">
@@ -240,12 +241,10 @@ body {
         <button class="copy-btn" onclick="copyResult('enOut',this)">Copy</button>
       </div>
       <div class="result-body" id="enOut"></div>
-    </div>
-    <div class="crosscheck-row" id="crosscheckRow">
-      <span class="crosscheck-label">Cross-check reading:</span>
-      <a class="crosscheck-link" id="linkJisho" href="#" target="_blank" rel="noopener">Jisho</a>
-      <a class="crosscheck-link" id="linkDeepl" href="#" target="_blank" rel="noopener">DeepL</a>
-      <a class="crosscheck-link" id="linkGoogleTL" href="#" target="_blank" rel="noopener">Google TL</a>
+      <div class="result-alt" id="enAlt">
+        <div class="result-alt-label">MyMemory</div>
+        <div class="result-alt-text" id="enAltText"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -326,6 +325,22 @@ function setResult(id, text, isErr) {
   el.className = 'result-body' + (isErr ? ' err-text' : '');
 }
 
+function setAlt(altId, textId, text) {
+  if (!text || text.length < 2) return;
+  document.getElementById(textId).textContent = text;
+  document.getElementById(altId).className = 'result-alt visible';
+}
+
+function myMemoryTranslate(text, tl) {
+  var url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=ja|' + tl;
+  return fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      return (data && data.responseData && data.responseData.translatedText) || null;
+    })
+    .catch(function() { return null; });
+}
+
 function doTranslate() {
   var text = document.getElementById('inputText').value.trim();
   if (!text) return;
@@ -339,16 +354,21 @@ function doTranslate() {
     document.getElementById(id).innerHTML = '<span class="loading-dots">…</span>';
     document.getElementById(id).className = 'result-body';
   });
-
-  updateCrosscheckLinks(text);
+  ['idAlt','enAlt'].forEach(function(id) {
+    document.getElementById(id).className = 'result-alt';
+  });
 
   Promise.all([
     googleTranslate(text, 'en', true),
-    googleTranslate(text, 'id', false)
+    googleTranslate(text, 'id', false),
+    myMemoryTranslate(text, 'en'),
+    myMemoryTranslate(text, 'id')
   ]).then(function(res) {
     setResult('romajiOut', res[0].romaji || '(no reading returned)', !res[0].romaji);
     setResult('enOut',     res[0].translation || '(empty)', !res[0].translation);
     setResult('idOut',     res[1].translation || '(empty)', !res[1].translation);
+    setAlt('enAlt', 'enAltText', res[2]);
+    setAlt('idAlt', 'idAltText', res[3]);
   }).catch(function(err) {
     var msg = 'Error: ' + (err.message || 'request failed');
     setResult('romajiOut', msg, true);
@@ -357,14 +377,6 @@ function doTranslate() {
   }).finally(function() {
     btn.disabled = false; btn.textContent = 'Translate';
   });
-}
-
-function updateCrosscheckLinks(text) {
-  var enc = encodeURIComponent(text);
-  document.getElementById('linkJisho').href    = 'https://jisho.org/search/' + enc;
-  document.getElementById('linkDeepl').href    = 'https://www.deepl.com/translator#ja/en/' + enc;
-  document.getElementById('linkGoogleTL').href = 'https://translate.google.com/?sl=ja&tl=en&text=' + enc + '&op=translate';
-  document.getElementById('crosscheckRow').className = 'crosscheck-row visible';
 }
 
 document.getElementById('inputText').addEventListener('keydown', function(e) {
