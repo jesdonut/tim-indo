@@ -114,101 +114,110 @@ body {
 .app-title p { color: var(--muted); font-size: 0.76rem; }
 
 .drop-zone {
-  border: 2px dashed var(--border-soft); border-radius: 14px; padding: 28px 16px;
+  border: 2px dashed var(--border-soft); border-radius: 14px; padding: 20px 16px;
   text-align: center; cursor: pointer; background: var(--input-bg);
-  transition: border-color 0.2s, background 0.2s; flex-shrink: 0;
+  transition: border-color 0.2s, background 0.2s;
 }
 .drop-zone:hover { border-color: var(--primary-2); background: var(--light); }
 .drop-zone.dragover { border-color: var(--primary); background: var(--mid); }
-.drop-icon { font-size: 3rem; display: block; margin-bottom: 7px; color: var(--border-soft); line-height: 1; }
-.drop-zone h2 { font-size: 0.92rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
-.drop-sub { color: var(--muted); font-size: 0.74rem; margin-bottom: 10px; }
-.browse-btn {
-  display: inline-block; padding: 7px 18px; background: var(--primary-2);
-  color: #fff; border-radius: 7px; font-size: 0.8rem; font-weight: 500;
-  cursor: pointer; transition: background 0.2s;
-}
-.browse-btn:hover { background: var(--primary-hover); }
-
-.file-info-bar {
-  display: none; align-items: center; gap: 10px;
-  background: var(--light); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 14px;
-}
-.file-info-bar.visible { display: flex; }
-.file-info-icon { font-size: 1.8rem; color: var(--accent); flex-shrink: 0; }
-.file-info-text { flex: 1; min-width: 0; }
-.file-info-name { font-size: 0.88rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.file-info-size { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
-.file-clear { background: none; border: none; color: var(--border-soft); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; transition: color 0.15s; }
-.file-clear:hover { color: #ef4444; }
+.drop-icon { font-size: 2.4rem; display: block; margin-bottom: 5px; color: var(--border-soft); }
+.drop-zone h2 { font-size: 0.88rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.drop-sub { color: var(--muted); font-size: 0.72rem; }
 
 .section-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 
 .quality-btns { display: flex; gap: 6px; }
 .quality-btn {
-  flex: 1; padding: 9px 6px; border-radius: 8px;
+  flex: 1; padding: 8px 4px; border-radius: 8px;
   border: 1.5px solid var(--border); background: var(--input-bg);
   color: var(--muted); font-size: 0.78rem; font-weight: 600;
   cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s;
-  text-align: center;
+  text-align: center; line-height: 1.3;
 }
-.quality-btn .q-icon { font-size: 1.3rem; display: block; margin-bottom: 2px; }
-.quality-btn .q-label { display: block; }
-.quality-btn .q-desc { display: block; font-size: 0.62rem; font-weight: 400; color: var(--muted); margin-top: 1px; }
+.quality-btn .q-desc { display: block; font-size: 0.62rem; font-weight: 400; color: var(--muted); }
 .quality-btn:hover { border-color: var(--border-soft); color: var(--text); }
 .quality-btn.active { border-color: var(--primary-2); background: var(--mid); color: var(--primary); }
 .quality-btn.active .q-desc { color: var(--primary); opacity: 0.75; }
 
-.compress-btn {
-  padding: 12px 24px; background: var(--primary-2); color: #fff;
-  border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600;
-  cursor: pointer; transition: background 0.2s, transform 0.1s;
-  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+.actions-bar {
+  display: none; align-items: center; justify-content: space-between; gap: 8px;
 }
-.compress-btn .material-icons-outlined { font-size: 1.1rem; }
-.compress-btn:hover { background: var(--primary-hover); }
-.compress-btn:active { transform: scale(0.98); }
-.compress-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-.progress-wrap {
-  height: 3px; background: var(--border); border-radius: 2px; overflow: hidden;
-  opacity: 0; transition: opacity 0.2s;
-}
-.progress-wrap.visible { opacity: 1; }
-.progress-bar { height: 100%; background: var(--primary-2); width: 0%; transition: width 0.25s ease; }
-
-.result-card {
-  background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-  display: none;
-}
-.result-card.visible { display: block; }
-.result-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--light);
-}
-.result-header .material-icons-outlined { font-size: 1.1rem; color: #16a34a; }
-.result-title { font-size: 0.78rem; font-weight: 700; color: var(--text); }
-.result-body { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.size-stat { text-align: center; }
-.size-stat-val { font-size: 1.1rem; font-weight: 700; color: var(--text); }
-.size-stat-lbl { font-size: 0.65rem; color: var(--muted); margin-top: 1px; }
-.size-arrow { color: var(--border-soft); font-size: 1.2rem; }
-.size-saving {
-  flex: 1; text-align: right;
-  font-size: 0.85rem; font-weight: 700; color: #16a34a;
-}
-.download-btn {
-  width: 100%; padding: 10px 14px; background: var(--primary-2); color: #fff;
+.actions-bar.visible { display: flex; }
+.compress-all-btn {
+  flex: 1; padding: 10px 14px; background: var(--primary-2); color: #fff;
   border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600;
   cursor: pointer; transition: background 0.2s;
-  display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
 }
-.download-btn .material-icons-outlined { font-size: 1.1rem; }
-.download-btn:hover { background: var(--primary-hover); }
+.compress-all-btn .material-icons-outlined { font-size: 1.05rem; }
+.compress-all-btn:hover { background: var(--primary-hover); }
+.compress-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.clear-all-btn {
+  padding: 10px 12px; background: none; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.clear-all-btn:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
 
-.status { text-align: center; font-size: 0.74rem; color: var(--muted); min-height: 16px; }
-.status.error { color: #ef4444; }
+.file-list { display: flex; flex-direction: column; gap: 6px; }
+
+.file-card {
+  background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.file-card.done { border-color: #86efac; }
+.file-card.error { border-color: #fca5a5; }
+
+.file-card-top {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+}
+.file-card-icon { color: var(--accent); flex-shrink: 0; font-size: 1.4rem; }
+.file-card-info { flex: 1; min-width: 0; }
+.file-card-name {
+  font-size: 0.82rem; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.file-card-size { font-size: 0.68rem; color: var(--muted); margin-top: 1px; }
+.file-card-remove {
+  background: none; border: none; color: var(--border-soft);
+  cursor: pointer; flex-shrink: 0; display: flex; align-items: center;
+  transition: color 0.15s; padding: 2px;
+}
+.file-card-remove:hover { color: #ef4444; }
+.file-card-remove .material-icons-outlined { font-size: 1rem; }
+
+.file-card-bar {
+  display: none; height: 3px; background: var(--border); margin: 0 12px 9px;
+  border-radius: 2px; overflow: hidden;
+}
+.file-card-bar.visible { display: block; }
+.file-card-bar-fill { height: 100%; background: var(--primary-2); width: 0%; transition: width 0.25s; }
+
+.file-card-result {
+  display: none; align-items: center; gap: 8px;
+  padding: 7px 12px; border-top: 1px solid var(--border);
+  background: var(--light);
+}
+.file-card-result.visible { display: flex; }
+.result-sizes { flex: 1; font-size: 0.78rem; color: var(--text); display: flex; align-items: center; gap: 5px; }
+.result-saving { font-size: 0.78rem; font-weight: 700; color: #16a34a; margin-right: 4px; }
+.result-saving.worse { color: #ef4444; }
+.dl-btn {
+  padding: 5px 12px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+  display: flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0;
+}
+.dl-btn .material-icons-outlined { font-size: 0.9rem; }
+.dl-btn:hover { background: var(--primary-hover); }
+
+.file-card-error {
+  display: none; padding: 6px 12px; border-top: 1px solid #fca5a5;
+  background: #fef2f2; font-size: 0.72rem; color: #dc2626;
+}
+.file-card-error.visible { display: block; }
 </style>
 </head>
 <body>
@@ -236,86 +245,45 @@ body {
 <div class="mid">
   <div class="app-title">
     <h1>PDF Compressor</h1>
-    <p>Shrink a PDF — same filename, smaller size</p>
+    <p>Drop one or more PDFs — download each compressed version</p>
   </div>
 
   <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
     <span class="material-icons-outlined drop-icon">picture_as_pdf</span>
-    <h2>Drop a PDF here</h2>
-    <p class="drop-sub">or click to browse</p>
-    <div class="browse-btn">Choose PDF</div>
-    <input type="file" id="fileInput" accept=".pdf,application/pdf" style="display:none">
-  </div>
-
-  <div class="file-info-bar" id="fileInfoBar">
-    <span class="material-icons-outlined file-info-icon">picture_as_pdf</span>
-    <div class="file-info-text">
-      <div class="file-info-name" id="fileInfoName"></div>
-      <div class="file-info-size" id="fileInfoSize"></div>
-    </div>
-    <button class="file-clear" onclick="clearFile()" title="Remove">
-      <span class="material-icons-outlined">close</span>
-    </button>
+    <h2>Drop PDFs here or click to browse</h2>
+    <p class="drop-sub">Multiple files supported</p>
+    <input type="file" id="fileInput" accept=".pdf,application/pdf" multiple style="display:none">
   </div>
 
   <div style="display:flex;flex-direction:column;gap:6px">
     <div class="section-label">Quality</div>
     <div class="quality-btns">
       <button class="quality-btn" data-q="high" onclick="setQuality('high')">
-        <span class="q-icon">&#128264;</span>
-        <span class="q-label">High</span>
-        <span class="q-desc">Best quality</span>
+        High<span class="q-desc">Best quality</span>
       </button>
       <button class="quality-btn active" data-q="balanced" onclick="setQuality('balanced')">
-        <span class="q-icon">&#9881;</span>
-        <span class="q-label">Balanced</span>
-        <span class="q-desc">Recommended</span>
+        Balanced<span class="q-desc">Recommended</span>
       </button>
       <button class="quality-btn" data-q="small" onclick="setQuality('small')">
-        <span class="q-icon">&#128190;</span>
-        <span class="q-label">Small</span>
-        <span class="q-desc">Smallest file</span>
+        Small<span class="q-desc">Smallest file</span>
       </button>
     </div>
   </div>
 
-  <button class="compress-btn" id="compressBtn" onclick="doCompress()" disabled>
-    <span class="material-icons-outlined">compress</span> Compress &amp; Download
-  </button>
-
-  <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
-  <div class="status" id="status"></div>
-
-  <div class="result-card" id="resultCard">
-    <div class="result-header">
-      <span class="material-icons-outlined">check_circle</span>
-      <span class="result-title">Compression complete</span>
-    </div>
-    <div class="result-body">
-      <div class="size-stat">
-        <div class="size-stat-val" id="origSize">—</div>
-        <div class="size-stat-lbl">Original</div>
-      </div>
-      <span class="size-arrow material-icons-outlined">arrow_forward</span>
-      <div class="size-stat">
-        <div class="size-stat-val" id="newSize">—</div>
-        <div class="size-stat-lbl">Compressed</div>
-      </div>
-      <div class="size-saving" id="savingPct"></div>
-    </div>
-    <div style="padding:0 14px 14px">
-      <button class="download-btn" id="downloadBtn">
-        <span class="material-icons-outlined">download</span>
-        <span id="downloadLabel">Download</span>
-      </button>
-    </div>
+  <div class="actions-bar" id="actionsBar">
+    <button class="compress-all-btn" id="compressAllBtn" onclick="compressAll()">
+      <span class="material-icons-outlined">compress</span> Compress All
+    </button>
+    <button class="clear-all-btn" onclick="clearAll()">Clear all</button>
   </div>
+
+  <div class="file-list" id="fileList"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>
-var THEME_KEY = 'gaj_theme';
+var THEME_KEY   = 'gaj_theme';
 var THEMES      = ['blue','pink','dark'];
 var THEME_ICONS = {blue:'palette',pink:'dark_mode',dark:'light_mode'};
 var THEME_LABELS= {blue:'Pink',pink:'Dark',dark:'Blue'};
@@ -343,96 +311,161 @@ var QUALITY_SETTINGS = {
   small:    { scale: 1.2, jpegQuality: 0.62 }
 };
 
-var currentFile = null;
 var currentQuality = 'balanced';
-var resultBlob = null;
+var fileEntries = [];
+var idCounter = 0;
+var isCompressing = false;
 
 function setQuality(q) {
   currentQuality = q;
-  document.querySelectorAll('.quality-btn').forEach(function(btn) {
-    btn.classList.toggle('active', btn.dataset.q === q);
+  document.querySelectorAll('.quality-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.q === q);
   });
 }
 
 function fmtSize(bytes) {
-  if (bytes >= 1048576) return (bytes/1048576).toFixed(1) + ' MB';
-  return (bytes/1024).toFixed(0) + ' KB';
-}
-
-function setProgress(pct) {
-  var wrap = document.getElementById('progressWrap');
-  var bar  = document.getElementById('progressBar');
-  if (pct < 0) { wrap.classList.remove('visible'); bar.style.width = '0%'; return; }
-  wrap.classList.add('visible'); bar.style.width = pct + '%';
-}
-
-function setStatus(msg, type) {
-  var el = document.getElementById('status');
-  el.textContent = msg;
-  el.className = 'status' + (type ? ' ' + type : '');
+  if (bytes >= 1048576) return (bytes/1048576).toFixed(1)+' MB';
+  return (bytes/1024).toFixed(0)+' KB';
 }
 
 var dropZone = document.getElementById('dropZone');
-dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
+dropZone.addEventListener('dragover',  function(e){ e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', function(){ dropZone.classList.remove('dragover'); });
 dropZone.addEventListener('drop', function(e) {
   e.preventDefault(); dropZone.classList.remove('dragover');
-  var f = e.dataTransfer.files[0];
-  if (f && f.type === 'application/pdf') loadFile(f);
-  else setStatus('Please drop a PDF file.', 'error');
+  addFiles(Array.from(e.dataTransfer.files));
 });
 document.getElementById('fileInput').addEventListener('change', function() {
-  if (this.files[0]) loadFile(this.files[0]);
+  addFiles(Array.from(this.files));
+  this.value = '';
 });
 
-function loadFile(f) {
-  currentFile = f;
-  resultBlob = null;
-  document.getElementById('fileInfoName').textContent = f.name;
-  document.getElementById('fileInfoSize').textContent = fmtSize(f.size);
-  document.getElementById('fileInfoBar').classList.add('visible');
-  document.getElementById('dropZone').style.display = 'none';
-  document.getElementById('compressBtn').disabled = false;
-  document.getElementById('resultCard').classList.remove('visible');
-  setStatus(''); setProgress(-1);
+function addFiles(files) {
+  files.forEach(function(f) {
+    if (f.type !== 'application/pdf') return;
+    var entry = { id: ++idCounter, file: f, status: 'pending', blob: null };
+    fileEntries.push(entry);
+    renderCard(entry);
+  });
+  updateActionsBar();
 }
 
-function clearFile() {
-  currentFile = null; resultBlob = null;
-  document.getElementById('fileInfoBar').classList.remove('visible');
-  document.getElementById('dropZone').style.display = '';
-  document.getElementById('compressBtn').disabled = true;
-  document.getElementById('resultCard').classList.remove('visible');
-  document.getElementById('fileInput').value = '';
-  setStatus(''); setProgress(-1);
+function renderCard(entry) {
+  var el = document.createElement('div');
+  el.className = 'file-card';
+  el.id = 'fc-' + entry.id;
+  el.innerHTML =
+    '<div class="file-card-top">'+
+      '<span class="material-icons-outlined file-card-icon">picture_as_pdf</span>'+
+      '<div class="file-card-info">'+
+        '<div class="file-card-name">'+escHtml(entry.file.name)+'</div>'+
+        '<div class="file-card-size">'+fmtSize(entry.file.size)+'</div>'+
+      '</div>'+
+      '<button class="file-card-remove" onclick="removeEntry('+entry.id+')" title="Remove">'+
+        '<span class="material-icons-outlined">close</span>'+
+      '</button>'+
+    '</div>'+
+    '<div class="file-card-bar" id="fcbar-'+entry.id+'">'+
+      '<div class="file-card-bar-fill" id="fcfill-'+entry.id+'"></div>'+
+    '</div>'+
+    '<div class="file-card-result" id="fcres-'+entry.id+'"></div>'+
+    '<div class="file-card-error" id="fcerr-'+entry.id+'"></div>';
+  document.getElementById('fileList').appendChild(el);
 }
 
-function doCompress() {
-  if (!currentFile) return;
-  var btn = document.getElementById('compressBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="material-icons-outlined">hourglass_top</span> Compressing…';
-  document.getElementById('resultCard').classList.remove('visible');
-  setStatus('Loading PDF…', '');
-  setProgress(2);
+function removeEntry(id) {
+  fileEntries = fileEntries.filter(function(e){ return e.id !== id; });
+  var el = document.getElementById('fc-'+id);
+  if (el) el.remove();
+  updateActionsBar();
+}
 
+function clearAll() {
+  fileEntries = [];
+  document.getElementById('fileList').innerHTML = '';
+  updateActionsBar();
+}
+
+function updateActionsBar() {
+  var bar = document.getElementById('actionsBar');
+  bar.classList.toggle('visible', fileEntries.length > 0);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function setCardProgress(id, pct) {
+  var bar  = document.getElementById('fcbar-'+id);
+  var fill = document.getElementById('fcfill-'+id);
+  if (!bar || !fill) return;
+  bar.classList.add('visible');
+  fill.style.width = pct+'%';
+}
+
+function setCardDone(entry, outBytes) {
+  var card = document.getElementById('fc-'+entry.id);
+  if (card) card.classList.add('done');
+  var bar = document.getElementById('fcbar-'+entry.id);
+  if (bar) bar.classList.remove('visible');
+
+  var origBytes = entry.file.size;
+  var saving = Math.round((1 - outBytes.byteLength / origBytes) * 100);
+  var savingEl = saving > 0
+    ? '<span class="result-saving">-'+saving+'%</span>'
+    : '<span class="result-saving worse">+'+Math.abs(saving)+'%</span>';
+
+  var res = document.getElementById('fcres-'+entry.id);
+  if (!res) return;
+  res.className = 'file-card-result visible';
+  res.innerHTML =
+    '<div class="result-sizes">'+
+      fmtSize(origBytes)+
+      ' <span class="material-icons-outlined" style="font-size:0.85rem;color:var(--border-soft)">arrow_forward</span> '+
+      fmtSize(outBytes.byteLength)+
+    '</div>'+
+    savingEl+
+    '<button class="dl-btn" id="dlbtn-'+entry.id+'">'+
+      '<span class="material-icons-outlined">download</span> Download'+
+    '</button>';
+
+  var blob = new Blob([outBytes], { type: 'application/pdf' });
+  document.getElementById('dlbtn-'+entry.id).onclick = function() {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = entry.file.name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  };
+}
+
+function setCardError(id, msg) {
+  var card = document.getElementById('fc-'+id);
+  if (card) card.classList.add('error');
+  var bar = document.getElementById('fcbar-'+id);
+  if (bar) bar.classList.remove('visible');
+  var err = document.getElementById('fcerr-'+id);
+  if (err) { err.className = 'file-card-error visible'; err.textContent = msg; }
+}
+
+function compressEntry(entry) {
   var settings = QUALITY_SETTINGS[currentQuality];
+  entry.status = 'compressing';
+  setCardProgress(entry.id, 2);
 
-  currentFile.arrayBuffer().then(function(buf) {
+  return entry.file.arrayBuffer().then(function(buf) {
     return pdfjsLib.getDocument({ data: buf }).promise;
   }).then(function(pdfDoc) {
     var numPages = pdfDoc.numPages;
-    setStatus('Rendering ' + numPages + ' page' + (numPages > 1 ? 's' : '') + '…', '');
-
     var pageJpegs = [];
     var chain = Promise.resolve();
     for (var i = 1; i <= numPages; i++) {
       (function(pageNum) {
         chain = chain.then(function() {
-          setProgress(5 + Math.round((pageNum / numPages) * 75));
+          setCardProgress(entry.id, 5 + Math.round((pageNum / numPages) * 78));
           return pdfDoc.getPage(pageNum).then(function(page) {
-            var vp0   = page.getViewport({ scale: 1 });
-            var vp    = page.getViewport({ scale: settings.scale });
+            var vp0 = page.getViewport({ scale: 1 });
+            var vp  = page.getViewport({ scale: settings.scale });
             var canvas = document.createElement('canvas');
             canvas.width  = Math.round(vp.width);
             canvas.height = Math.round(vp.height);
@@ -453,58 +486,49 @@ function doCompress() {
         });
       })(i);
     }
-
-    return chain.then(function() { return pageJpegs; });
+    return chain.then(function(){ return pageJpegs; });
   }).then(function(pageJpegs) {
-    setStatus('Building compressed PDF…', '');
-    setProgress(82);
+    setCardProgress(entry.id, 86);
     return PDFLib.PDFDocument.create().then(function(outDoc) {
       var embedChain = Promise.resolve();
       pageJpegs.forEach(function(pg) {
         embedChain = embedChain.then(function() {
           return outDoc.embedJpg(pg.jpegBuf).then(function(img) {
             var page = outDoc.addPage([pg.w, pg.h]);
-            page.drawImage(img, { x: 0, y: 0, width: pg.w, height: pg.h });
+            page.drawImage(img, { x:0, y:0, width:pg.w, height:pg.h });
           });
         });
       });
-      return embedChain.then(function() {
-        return outDoc.save({ useObjectStreams: true });
-      });
+      return embedChain.then(function(){ return outDoc.save({ useObjectStreams: true }); });
     });
   }).then(function(outBytes) {
-    setProgress(100);
-    var origBytes = currentFile.size;
-    var newBytes  = outBytes.byteLength;
-    var saving    = Math.round((1 - newBytes / origBytes) * 100);
-
-    resultBlob = new Blob([outBytes], { type: 'application/pdf' });
-
-    document.getElementById('origSize').textContent  = fmtSize(origBytes);
-    document.getElementById('newSize').textContent   = fmtSize(newBytes);
-    document.getElementById('savingPct').textContent = saving > 0 ? '-' + saving + '%' : '+' + Math.abs(saving) + '%';
-    document.getElementById('savingPct').style.color = saving > 0 ? '#16a34a' : '#ef4444';
-
-    var dlName = currentFile.name;
-    document.getElementById('downloadLabel').textContent = dlName;
-    document.getElementById('downloadBtn').onclick = function() {
-      var url = URL.createObjectURL(resultBlob);
-      var a = document.createElement('a');
-      a.href = url; a.download = dlName;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
-    };
-
-    document.getElementById('resultCard').classList.add('visible');
-    setStatus('');
-    setTimeout(function() { setProgress(-1); }, 1500);
+    setCardProgress(entry.id, 100);
+    entry.status = 'done';
+    setCardDone(entry, outBytes);
   }).catch(function(err) {
-    console.error(err);
-    setStatus('Error: ' + err.message, 'error');
-    setProgress(-1);
-  }).finally(function() {
+    entry.status = 'error';
+    setCardError(entry.id, 'Error: ' + err.message);
+  });
+}
+
+function compressAll() {
+  if (isCompressing) return;
+  var pending = fileEntries.filter(function(e){ return e.status === 'pending'; });
+  if (pending.length === 0) return;
+
+  isCompressing = true;
+  var btn = document.getElementById('compressAllBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-icons-outlined">hourglass_top</span> Compressing…';
+
+  var chain = Promise.resolve();
+  pending.forEach(function(entry) {
+    chain = chain.then(function(){ return compressEntry(entry); });
+  });
+  chain.then(function() {
+    isCompressing = false;
     btn.disabled = false;
-    btn.innerHTML = '<span class="material-icons-outlined">compress</span> Compress &amp; Download';
+    btn.innerHTML = '<span class="material-icons-outlined">compress</span> Compress All';
   });
 }
 </script>
