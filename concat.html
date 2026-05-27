@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>String Builder — Grasp Agent Japan</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8; --text: #4d2a38; --primary: #9e5c78; --primary-2: #b07090;
+  --primary-hover: #8a4a65; --primary-dark: #6e3450; --light: #faecf2;
+  --mid: #f5dae5; --border: #e8bece; --border-soft: #f2cdd8; --muted: #9e7585;
+  --accent: #a86880; --brand-bg: #b8899e; --brand-sub: #f5dae5; --input-bg: #fdf5f8;
+}
+body.dark {
+  --bg: #111827; --text: #f1f5f9; --primary: #93c5fd; --primary-2: #60a5fa;
+  --primary-hover: #3b82f6; --primary-dark: #dbeafe; --light: #1e293b;
+  --mid: #243453; --border: #334155; --border-soft: #475569; --muted: #94a3b8;
+  --accent: #60a5fa; --brand-bg: #1e293b; --brand-sub: #93c5fd; --input-bg: #263348;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; height: 100dvh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex; align-items: center; gap: 10px; justify-content: center; position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px; display: flex; gap: 2px;
+  overflow-x: auto;
+}
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.mid {
+  flex: 1; min-height: 0; overflow: hidden;
+  padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 10px;
+}
+
+.app-title { text-align: center; flex-shrink: 0; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+/* ── Column grid ── */
+.builder-area {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden;
+}
+
+.col-scroll {
+  flex: 1; min-height: 0; display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden;
+  padding-bottom: 4px; align-items: stretch;
+}
+
+.col-box {
+  flex-shrink: 0; width: 160px; display: flex; flex-direction: column; gap: 5px;
+}
+.col-box.output-col { width: 220px; }
+
+.col-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  flex-shrink: 0;
+}
+.col-label {
+  font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.col-count { font-size: 0.65rem; color: var(--border-soft); margin-left: 4px; }
+.col-del {
+  background: none; border: none; cursor: pointer; color: var(--border-soft);
+  padding: 0 2px; line-height: 1; font-size: 0.85rem; transition: color 0.15s;
+}
+.col-del:hover { color: #ef4444; }
+.col-del .material-icons-outlined { font-size: 0.9rem; }
+
+.col-ta {
+  flex: 1; min-height: 0; resize: none; width: 100%;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 0.83rem; line-height: 1.7;
+  font-family: 'Courier New', monospace;
+  background: var(--input-bg); color: var(--text);
+  outline: none; transition: border-color 0.2s;
+}
+.col-ta:focus { border-color: var(--primary-2); }
+.col-ta.output-ta {
+  background: var(--light); color: var(--primary);
+  font-weight: 600; border-color: var(--border-soft);
+  cursor: default; resize: none;
+}
+
+.add-col-btn {
+  flex-shrink: 0; align-self: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--mid); border: 1.5px solid var(--border); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  font-size: 1.3rem; font-weight: 700;
+}
+.add-col-btn:hover { background: var(--primary-2); border-color: var(--primary-2); color: #fff; }
+
+/* ── Bottom toolbar ── */
+.toolbar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.row-info { font-size: 0.72rem; color: var(--muted); flex: 1; }
+.tool-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 7px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+  border: none; cursor: pointer; transition: background 0.15s, transform 0.1s;
+}
+.tool-btn:active { transform: scale(0.97); }
+.tool-btn .material-icons-outlined { font-size: 1rem; }
+.btn-copy { background: var(--primary-2); color: #fff; }
+.btn-copy:hover { background: var(--primary-hover); }
+.btn-copy.copied { background: #16a34a; }
+.btn-clear { background: var(--mid); color: var(--accent); }
+.btn-clear:hover { background: var(--border); }
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">table_rows</span>
+  <div>
+    <div class="brand-name">Grasp Agent Japan</div>
+    <div class="brand-ja">&#12464;&#12521;&#12473;&#12503;&#12456;&#12540;&#12472;&#12455;&#12531;&#12488;&#12472;&#12515;&#12497;&#12531;</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab active" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+  </div>
+</nav>
+
+<div class="mid">
+  <div class="app-title">
+    <h1>String Builder</h1>
+    <p>Paste Excel columns — add as many as you need — output stitches each row</p>
+  </div>
+
+  <div class="builder-area">
+    <div class="col-scroll" id="colScroll">
+      <!-- columns injected here -->
+      <button class="add-col-btn" id="addColBtn" onclick="addCol()" title="Add column">+</button>
+    </div>
+
+    <div class="toolbar">
+      <span class="row-info" id="rowInfo">0 rows</span>
+      <button class="tool-btn btn-clear" onclick="clearAll()">
+        <span class="material-icons-outlined">delete_sweep</span> Clear
+      </button>
+      <button class="tool-btn btn-copy" id="copyBtn" onclick="copyOutput()">
+        <span class="material-icons-outlined">content_copy</span> Copy output
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+var THEME_KEY    = 'gaj_theme';
+var THEMES       = ['blue','pink','dark'];
+var THEME_ICONS  = {blue:'palette', pink:'dark_mode', dark:'light_mode'};
+var THEME_LABELS = {blue:'Pink', pink:'Dark', dark:'Blue'};
+
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t)+1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+/* ── State ── */
+var colCount = 0;
+var colIds   = [];  // ordered list of column ids
+
+/* ── Init with 3 columns ── */
+addCol('Col 1');
+addCol('_');
+addCol('Col 2');
+
+/* ── Column management ── */
+function addCol(defaultVal) {
+  colCount++;
+  var id = 'c' + colCount;
+  colIds.push(id);
+
+  var box = document.createElement('div');
+  box.className = 'col-box';
+  box.id = 'box-' + id;
+
+  var head = document.createElement('div');
+  head.className = 'col-head';
+
+  var label = document.createElement('span');
+  label.className = 'col-label';
+  label.textContent = 'Col ' + colIds.length;
+
+  var count = document.createElement('span');
+  count.className = 'col-count';
+  count.id = 'cnt-' + id;
+
+  var del = document.createElement('button');
+  del.className = 'col-del';
+  del.title = 'Remove column';
+  del.innerHTML = '<span class="material-icons-outlined">close</span>';
+  del.onclick = (function(cid){ return function(){ removeCol(cid); }; })(id);
+
+  head.appendChild(label);
+  head.appendChild(count);
+  head.appendChild(del);
+
+  var ta = document.createElement('textarea');
+  ta.className = 'col-ta';
+  ta.id = 'ta-' + id;
+  ta.placeholder = 'Paste here\none value\nper line';
+  ta.spellcheck = false;
+  ta.autocomplete = 'off';
+  if (defaultVal !== undefined) ta.value = defaultVal;
+  ta.addEventListener('input', recompute);
+  ta.addEventListener('paste', function() { setTimeout(recompute, 10); });
+
+  box.appendChild(head);
+  box.appendChild(ta);
+
+  var scroll = document.getElementById('colScroll');
+  var addBtn = document.getElementById('addColBtn');
+  scroll.insertBefore(box, addBtn);
+
+  recompute();
+  return id;
+}
+
+function removeCol(id) {
+  var idx = colIds.indexOf(id);
+  if (idx !== -1) colIds.splice(idx, 1);
+  var box = document.getElementById('box-' + id);
+  if (box) box.remove();
+  renumberCols();
+  recompute();
+}
+
+function renumberCols() {
+  colIds.forEach(function(id, i) {
+    var box = document.getElementById('box-' + id);
+    if (!box) return;
+    var label = box.querySelector('.col-label');
+    if (label) label.textContent = 'Col ' + (i + 1);
+  });
+}
+
+function clearAll() {
+  colIds.forEach(function(id) {
+    var ta = document.getElementById('ta-' + id);
+    if (ta) ta.value = '';
+  });
+  recompute();
+}
+
+/* ── Output column ── */
+var outputBox = null;
+var outputTa  = null;
+
+function ensureOutputCol() {
+  if (outputBox) return;
+  outputBox = document.createElement('div');
+  outputBox.className = 'col-box output-col';
+  outputBox.id = 'output-box';
+
+  var head = document.createElement('div');
+  head.className = 'col-head';
+  var label = document.createElement('span');
+  label.className = 'col-label';
+  label.style.color = 'var(--accent)';
+  label.textContent = 'Output';
+  var count = document.createElement('span');
+  count.className = 'col-count';
+  count.id = 'output-cnt';
+  head.appendChild(label);
+  head.appendChild(count);
+
+  outputTa = document.createElement('textarea');
+  outputTa.className = 'col-ta output-ta';
+  outputTa.id = 'output-ta';
+  outputTa.readOnly = true;
+  outputTa.placeholder = '…';
+  outputTa.spellcheck = false;
+
+  outputBox.appendChild(head);
+  outputBox.appendChild(outputTa);
+
+  var scroll = document.getElementById('colScroll');
+  var addBtn = document.getElementById('addColBtn');
+  scroll.insertBefore(outputBox, addBtn);
+}
+
+/* ── Compute ── */
+function getLines(id) {
+  var ta = document.getElementById('ta-' + id);
+  if (!ta) return [];
+  return ta.value.split(/\r?\n/);
+}
+
+function recompute() {
+  if (colIds.length === 0) {
+    if (outputTa) outputTa.value = '';
+    document.getElementById('rowInfo').textContent = '0 rows';
+    return;
+  }
+
+  var cols = colIds.map(getLines);
+  var maxLen = Math.max.apply(null, cols.map(function(c){ return c.length; }));
+
+  // Update per-column row counts
+  colIds.forEach(function(id, i) {
+    var cnt = document.getElementById('cnt-' + id);
+    var nonEmpty = cols[i].filter(function(l){ return l !== ''; }).length;
+    if (cnt) cnt.textContent = nonEmpty ? nonEmpty + ' rows' : '';
+  });
+
+  // Build output — skip trailing empty rows
+  var rows = [];
+  for (var r = 0; r < maxLen; r++) {
+    var line = cols.map(function(c){ return c[r] !== undefined ? c[r] : ''; }).join('');
+    rows.push(line);
+  }
+  // Trim trailing blank lines
+  while (rows.length && rows[rows.length-1] === '') rows.pop();
+
+  ensureOutputCol();
+  outputTa.value = rows.join('\n');
+
+  var nonEmptyRows = rows.filter(function(r){ return r !== ''; }).length;
+  document.getElementById('rowInfo').textContent = nonEmptyRows + ' row' + (nonEmptyRows !== 1 ? 's' : '');
+  var outCnt = document.getElementById('output-cnt');
+  if (outCnt) outCnt.textContent = nonEmptyRows ? nonEmptyRows + ' rows' : '';
+}
+
+/* ── Copy output ── */
+function copyOutput() {
+  var ta = document.getElementById('output-ta');
+  if (!ta || !ta.value.trim()) return;
+  navigator.clipboard.writeText(ta.value).then(function() {
+    var btn = document.getElementById('copyBtn');
+    btn.classList.add('copied');
+    btn.innerHTML = '<span class="material-icons-outlined">check</span> Copied!';
+    setTimeout(function() {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<span class="material-icons-outlined">content_copy</span> Copy output';
+    }, 1600);
+  });
+}
+</script>
+</body>
+</html>
