@@ -405,16 +405,23 @@ function setCardProgress(id, pct) {
 
 function setCardDone(entry, outBytes) {
   var card = document.getElementById('fc-'+entry.id);
-  if (card) card.classList.add('done');
-  var bar = document.getElementById('fcbar-'+entry.id);
+  var bar  = document.getElementById('fcbar-'+entry.id);
   if (bar) bar.classList.remove('visible');
 
   var origBytes = entry.file.size;
   var saving = Math.round((1 - outBytes.byteLength / origBytes) * 100);
-  var savingEl = saving > 0
-    ? '<span class="result-saving">-'+saving+'%</span>'
-    : '<span class="result-saving worse">+'+Math.abs(saving)+'%</span>';
 
+  if (saving <= 0) {
+    if (card) card.classList.add('error');
+    var err = document.getElementById('fcerr-'+entry.id);
+    if (err) {
+      err.className = 'file-card-error visible';
+      err.textContent = 'Already fully compressed — can\'t shrink further. Original kept.';
+    }
+    return;
+  }
+
+  if (card) card.classList.add('done');
   var res = document.getElementById('fcres-'+entry.id);
   if (!res) return;
   res.className = 'file-card-result visible';
@@ -424,7 +431,7 @@ function setCardDone(entry, outBytes) {
       ' <span class="material-icons-outlined" style="font-size:0.85rem;color:var(--border-soft)">arrow_forward</span> '+
       fmtSize(outBytes.byteLength)+
     '</div>'+
-    savingEl+
+    '<span class="result-saving">-'+saving+'%</span>'+
     '<button class="dl-btn" id="dlbtn-'+entry.id+'">'+
       '<span class="material-icons-outlined">download</span> Download'+
     '</button>';

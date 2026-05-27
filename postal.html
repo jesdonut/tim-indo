@@ -113,19 +113,6 @@ body {
 .app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
 .app-title p { color: var(--muted); font-size: 0.76rem; }
 
-.mode-switcher {
-  display: flex; gap: 3px;
-  background: var(--mid); border-radius: 9px; padding: 3px;
-}
-.mode-btn {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
-  padding: 7px 8px; border-radius: 7px; font-size: 0.78rem; font-weight: 600;
-  color: var(--muted); background: none; border: none; cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.mode-btn .material-icons-outlined { font-size: 0.95rem; }
-.mode-btn.active { background: var(--input-bg); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-.mode-btn:hover:not(.active) { background: rgba(255,255,255,0.5); color: var(--text); }
 
 .input-section { display: flex; flex-direction: column; gap: 8px; }
 .input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
@@ -254,36 +241,14 @@ body {
 <div class="mid">
   <div class="app-title">
     <h1>Japan Postal Code</h1>
-    <p id="subtitle">Enter a 〒 code to get the address, kana &amp; romaji</p>
+    <p>Enter a 〒 code or Japanese address</p>
   </div>
 
   <div class="input-section">
-    <div class="mode-switcher">
-      <button class="mode-btn active" id="modeBtnCode" onclick="setMode('code')">
-        <span class="material-icons-outlined">pin</span> Code → Address
-      </button>
-      <button class="mode-btn" id="modeBtnAddr" onclick="setMode('address')">
-        <span class="material-icons-outlined">location_on</span> Address → Code
-      </button>
-    </div>
-
-    <div id="codeSection">
-      <div class="input-label">〒 Postal code</div>
-      <div class="postal-wrap" id="postalWrap">
-        <span class="postal-mark">〒</span>
-        <input class="postal-input" id="postalInput" type="text" inputmode="numeric"
-          placeholder="123-4567" maxlength="8">
-      </div>
-    </div>
-
-    <div id="addrSection" style="display:none">
-      <div class="input-label">Address (Japanese)</div>
-      <div class="addr-wrap" id="addrWrap">
-        <span class="material-icons-outlined addr-icon">location_on</span>
-        <input class="addr-input" id="addrInput" type="text"
-          placeholder="e.g. 渋谷区 or 大阪市北区">
-      </div>
-      <div class="addr-hint">Building numbers are stripped automatically if needed</div>
+    <div class="postal-wrap" id="smartWrap">
+      <span class="postal-mark">〒</span>
+      <input class="postal-input" id="smartInput" type="text"
+        placeholder="123-4567 or 渋谷区…" maxlength="80">
     </div>
 
     <div class="btn-row">
@@ -337,7 +302,6 @@ var THEME_KEY = 'gaj_theme';
 var THEMES      = ['blue','pink','dark'];
 var THEME_ICONS = {blue:'palette',pink:'dark_mode',dark:'light_mode'};
 var THEME_LABELS= {blue:'Pink',pink:'Dark',dark:'Blue'};
-var mode = 'code';
 
 function applyTheme(t) {
   document.body.classList.remove('pink','dark');
@@ -353,31 +317,16 @@ function toggleTheme() {
 }
 (function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
 
-function setMode(m) {
-  mode = m;
-  document.getElementById('codeResults').className = 'results';
-  document.getElementById('addrResults').className = 'results';
-  document.getElementById('modeBtnCode').className = 'mode-btn' + (m === 'code' ? ' active' : '');
-  document.getElementById('modeBtnAddr').className = 'mode-btn' + (m === 'address' ? ' active' : '');
-  document.getElementById('codeSection').style.display = m === 'code' ? '' : 'none';
-  document.getElementById('addrSection').style.display = m === 'address' ? '' : 'none';
-  document.getElementById('subtitle').textContent = m === 'code'
-    ? 'Enter a 〒 code to get the address, kana & romaji'
-    : 'Type a Japanese address to find matching 〒 codes';
-  (m === 'code' ? postalInput : addrInput).focus();
-}
+var smartInput = document.getElementById('smartInput');
 
-var postalInput = document.getElementById('postalInput');
-var addrInput   = document.getElementById('addrInput');
-
-postalInput.addEventListener('input', function() {
-  var digits = postalInput.value.replace(/\D/g, '').slice(0, 7);
-  postalInput.value = digits.length > 3 ? digits.slice(0,3) + '-' + digits.slice(3) : digits;
+smartInput.addEventListener('input', function() {
+  var val = this.value;
+  if (/^[\d\-ー－]+$/.test(val)) {
+    var digits = val.replace(/\D/g, '').slice(0, 7);
+    this.value = digits.length > 3 ? digits.slice(0,3) + '-' + digits.slice(3) : digits;
+  }
 });
-postalInput.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
-});
-addrInput.addEventListener('keydown', function(e) {
+smartInput.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
 });
 
@@ -470,17 +419,20 @@ function searchByAddress(query) {
 }
 
 function doSearch() {
-  if (mode === 'code') doCodeSearch(); else doAddrSearch();
-}
-
-function doCodeSearch() {
-  var digits = postalInput.value.replace(/\D/g, '');
-  if (digits.length !== 7) {
-    var wrap = document.getElementById('postalWrap');
+  var raw = smartInput.value.trim();
+  var digits = raw.replace(/\D/g, '');
+  if (digits.length === 7 && /^[\d\-ー－\s]+$/.test(raw)) {
+    doCodeSearch(digits);
+  } else if (raw) {
+    doAddrSearch(raw);
+  } else {
+    var wrap = document.getElementById('smartWrap');
     wrap.classList.add('error');
     setTimeout(function() { wrap.classList.remove('error'); }, 800);
-    return;
   }
+}
+
+function doCodeSearch(digits) {
   var btn = document.getElementById('searchBtn');
   btn.disabled = true;
   document.getElementById('addrResults').className = 'results';
@@ -517,14 +469,7 @@ function doCodeSearch() {
     .finally(function() { btn.disabled = false; });
 }
 
-function doAddrSearch() {
-  var query = addrInput.value.trim();
-  if (!query) {
-    var wrap = document.getElementById('addrWrap');
-    wrap.classList.add('error');
-    setTimeout(function() { wrap.classList.remove('error'); }, 800);
-    return;
-  }
+function doAddrSearch(query) {
   var btn = document.getElementById('searchBtn');
   btn.disabled = true;
   document.getElementById('codeResults').className = 'results';
