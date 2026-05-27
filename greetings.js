@@ -1,3 +1,7 @@
+// ── Version ───────────────────────────────────────────────────────────────────
+var APP_VERSION = 'v1.52';
+var APP_STAGE   = 'beta';
+
 // ── Static jokes ─────────────────────────────────────────────────────────────
 var GREETINGS = [
   'udah bulan {month} ges, cepet bet hidup ini 😵‍💫',
@@ -103,8 +107,19 @@ var GREETINGS_TIMED = [
       '.greeting-text{flex:1}' +
       '.greeting-close{background:none;border:none;color:var(--muted);cursor:pointer;' +
       'font-size:1.1rem;line-height:1;padding:0 0 0 10px;flex-shrink:0}' +
-      '.greeting-close:hover{color:var(--text)}';
+      '.greeting-close:hover{color:var(--text)}' +
+      '.version-badge{display:inline-block;margin-left:6px;font-size:0.55rem;' +
+      'padding:1px 5px;border-radius:3px;background:rgba(255,255,255,0.18);' +
+      'color:rgba(255,255,255,0.8);letter-spacing:0.04em;vertical-align:middle}';
     document.head.appendChild(style);
+
+    var brandJa = document.querySelector('.brand-ja');
+    if (brandJa) {
+      var badge = document.createElement('span');
+      badge.className = 'version-badge';
+      badge.textContent = APP_VERSION + ' · ' + APP_STAGE;
+      brandJa.appendChild(badge);
+    }
 
     var bar = document.createElement('div');
     bar.className = 'greeting-bar';
