@@ -243,9 +243,9 @@ body {
     </div>
     <div class="crosscheck-row" id="crosscheckRow">
       <span class="crosscheck-label">Cross-check reading:</span>
-      <a class="crosscheck-link" id="linkWeblio" href="#" target="_blank" rel="noopener">Weblio</a>
       <a class="crosscheck-link" id="linkJisho" href="#" target="_blank" rel="noopener">Jisho</a>
-      <a class="crosscheck-link" id="linkGoo" href="#" target="_blank" rel="noopener">goo辞書</a>
+      <a class="crosscheck-link" id="linkDeepl" href="#" target="_blank" rel="noopener">DeepL</a>
+      <a class="crosscheck-link" id="linkGoogleTL" href="#" target="_blank" rel="noopener">Google TL</a>
     </div>
   </div>
 </div>
@@ -361,9 +361,9 @@ function doTranslate() {
 
 function updateCrosscheckLinks(text) {
   var enc = encodeURIComponent(text);
-  document.getElementById('linkWeblio').href = 'https://translate.weblio.jp/?lp=JA_EN&q=' + enc;
-  document.getElementById('linkJisho').href  = 'https://jisho.org/search/' + enc;
-  document.getElementById('linkGoo').href    = 'https://dictionary.goo.ne.jp/word/' + enc + '/';
+  document.getElementById('linkJisho').href    = 'https://jisho.org/search/' + enc;
+  document.getElementById('linkDeepl').href    = 'https://www.deepl.com/translator#ja/en/' + enc;
+  document.getElementById('linkGoogleTL').href = 'https://translate.google.com/?sl=ja&tl=en&text=' + enc + '&op=translate';
   document.getElementById('crosscheckRow').className = 'crosscheck-row visible';
 }
 
