@@ -108,18 +108,25 @@ body {
 
 .col-head {
   display: flex; align-items: center; justify-content: space-between; gap: 4px;
-  flex-shrink: 0;
+  flex-shrink: 0; min-height: 22px;
 }
+.col-head-info { display: flex; align-items: baseline; gap: 0; }
 .col-label {
   font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.col-count { font-size: 0.65rem; color: var(--border-soft); margin-left: 4px; }
+.col-count { font-size: 0.65rem; color: var(--border-soft); margin-left: 5px; }
+.col-actions {
+  display: flex; align-items: center; gap: 0;
+  opacity: 0; pointer-events: none; transition: opacity 0.15s;
+}
+.col-box:hover .col-actions { opacity: 1; pointer-events: auto; }
 .col-del {
   background: none; border: none; cursor: pointer; color: var(--border-soft);
-  padding: 0 2px; line-height: 1; font-size: 0.85rem; transition: color 0.15s;
+  padding: 0 1px; line-height: 1; transition: color 0.15s;
 }
-.col-del:hover { color: #ef4444; }
+.col-del:hover { color: var(--primary); }
+.col-del.is-del:hover { color: #ef4444; }
 .col-del .material-icons-outlined { font-size: 0.9rem; }
 
 .col-ta {
@@ -324,6 +331,9 @@ function addCol(defaultVal) {
   var head = document.createElement('div');
   head.className = 'col-head';
 
+  var info = document.createElement('div');
+  info.className = 'col-head-info';
+
   var label = document.createElement('span');
   label.className = 'col-label';
 
@@ -331,14 +341,18 @@ function addCol(defaultVal) {
   count.className = 'col-count';
   count.id = 'cnt-' + id;
 
-  // Fill all rows with first value
+  info.appendChild(label);
+  info.appendChild(count);
+
+  var actions = document.createElement('div');
+  actions.className = 'col-actions';
+
   var fill = document.createElement('button');
   fill.className = 'col-del';
   fill.title = 'Fill all rows with this value';
   fill.innerHTML = '<span class="material-icons-outlined">repeat</span>';
   fill.onclick = (function(cid){ return function(){ fillCol(cid); }; })(id);
 
-  // Move left/right buttons
   var moveLeft = document.createElement('button');
   moveLeft.className = 'col-del';
   moveLeft.title = 'Move left';
@@ -352,17 +366,18 @@ function addCol(defaultVal) {
   moveRight.onclick = (function(cid){ return function(){ moveCol(cid, 1); }; })(id);
 
   var del = document.createElement('button');
-  del.className = 'col-del';
+  del.className = 'col-del is-del';
   del.title = 'Remove column';
   del.innerHTML = '<span class="material-icons-outlined">close</span>';
   del.onclick = (function(cid){ return function(){ removeCol(cid); }; })(id);
 
-  head.appendChild(label);
-  head.appendChild(count);
-  head.appendChild(fill);
-  head.appendChild(moveLeft);
-  head.appendChild(moveRight);
-  head.appendChild(del);
+  actions.appendChild(fill);
+  actions.appendChild(moveLeft);
+  actions.appendChild(moveRight);
+  actions.appendChild(del);
+
+  head.appendChild(info);
+  head.appendChild(actions);
 
   var ta = document.createElement('textarea');
   ta.className = 'col-ta';
