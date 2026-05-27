@@ -177,7 +177,11 @@ var GREETINGS_TIMED = [
     ratePromise.then(function(rateJoke) {
       var pool = timedPool.concat(staticPool);
       if (rateJoke) pool.push(rateJoke);
-      var joke = (timedPool.length && Math.random() < 0.6) ? pick(timedPool) : pick(pool);
+      var last = sessionStorage.getItem('gaj_last_joke');
+      var filtered = pool.filter(function(j) { return j !== last; });
+      var candidates = filtered.length ? filtered : pool;
+      var joke = (timedPool.length && Math.random() < 0.6) ? pick(timedPool) : pick(candidates);
+      sessionStorage.setItem('gaj_last_joke', joke);
       showText(joke);
     });
   }
