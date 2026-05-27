@@ -1,7 +1,7 @@
 // ── Static jokes ─────────────────────────────────────────────────────────────
 var GREETINGS = [
   'udah bulan {month} ges, cepet bet hidup ini 😵‍💫',
-  'yen lagi lemah, kita yang harus kuat 💪',
+  'idr lagi lemah, kita yang harus kuat 💪',
   'pak gunung tolong naikin gaji kita pak 🙏',
   'dollar naik lagi... yaudahlah rezeki ada aja 😮‍💨',
   'tim indo serba bisa, literally 💅',
@@ -9,6 +9,28 @@ var GREETINGS = [
   'udah makan belum? jangan sampe lupa makan gegara kerja 🍱',
   'gaskeun dulu kerjaannya biar bisa ngopi tenang ☕',
   'hari ini fix produktif ya, no excuse 😤',
+  'konbini deket kantor masih jadi penyelamat hidup 🙌',
+  'indomie di tokyo harganya berapa ya... nanya buat temen 🍜',
+  'jajan di jepang murah asal jangan liat kursnya dulu 💀',
+  'otsukaresama deshita! eh salah channel 😂',
+  'itterasshai~ eh ini bukan group jepang 😅',
+  'yoroshiku onegaishimasu 🙇 — eh maksudnya tolong ya ges',
+  'sumimasen sumimasen... eh salah chat lagi 🙏',
+  'itadakimasu! 🍱 — sorry kirim ke group yang salah',
+  'nasi padang di tokyo kapan buka cabang ya 😭',
+  'yang penting WF — work finished 🫡',
+  'JPY sama IDR kompak sama-sama struggle, kita yang harus kuat 🤝',
+  'fun fact: kalau kereta jepang telat 20 detik aja mereka minta maaf resmi. 20. detik. kita kalau telat meeting... 😭',
+  'fun fact: jepang punya lebih banyak vending machine per orang daripada negara mana pun. termasuk vending machine beras 🍚',
+  'fun fact: 7-eleven di jepang lebih banyak dari di amrik — negara yang nyiptainnya 🏪',
+  'fun fact: indonesia punya 17.000+ pulau dan kita milih kerja di jepang 🫡',
+  'fun fact: komodo dragon cuma ada di indonesia. kita asalnya dari negara yang punya dragon beneran 🐉',
+  'fun fact: bahasa indonesia diciptain tahun 1928 supaya semua suku bisa ngobrol. sekarang dipake buat ngomongin deadline 😂',
+  'fun fact: otak manusia bisa fokus maksimal sekitar 90 menit. artinya istirahat itu ilmiah, bukan males 🧠',
+  'fun fact: rata-rata orang buka Line kerja 15x sehari. dan tetep ngerasa belum bales semua 📱',
+  'fun fact: kopi adalah komoditi paling banyak diperdagangkan setelah minyak. jadi minum kopi itu literally investasi ☕',
+  '"xin chào!" 🇻🇳 gitu cara bilang halo dalam bahasa vietnam (baca: sin chao). ilmu gratis hari ini!',
+  '"mingalabar!" 🇲🇲 cara bilang halo dalam bahasa myanmar. kedengarannya cool kan',
 ];
 
 // ── Timed greetings (Japan Standard Time, UTC+9) ──────────────────────────────
@@ -33,6 +55,11 @@ var GREETINGS_TIMED = [
     // After 9pm JST — actually late
     condition: function(jst) { return jst.hours >= 21; },
     text: 'lembur lagi cuy? yaudah gue temenin deh 😭'
+  },
+  {
+    // Friday all day — language trivia
+    condition: function(jst) { return jst.day === 5 && jst.hours < 15; },
+    text: 'ini friday bukan? "thứ Sáu" (tu-sau) itu artinya jumat dalam bahasa vietnam btw 🇻🇳🎉'
   },
   {
     // Friday afternoon — weekend vibes
