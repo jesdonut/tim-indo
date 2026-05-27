@@ -3,11 +3,15 @@
 // One is picked at random each session (blended with timed ones below).
 
 var GREETINGS = [
-  'Udah bulan {month} cepet juga ya 😅',
-  'Dollar ga di pake di desa, ga di pake di Tokyo juga si 🤷',
-  'Diskon di jalan toll… emang bisa? 😂',
-  'Pak gunung naikin gaji kita pak 🙏',
-  'Itu output jangan lupa ya, bisa di ganti / di tulis pak dan ibu ✍️',
+  'udah bulan {month} ges, cepet bet hidup ini 😵‍💫',
+  'yen lagi lemah, kita yang harus kuat 💪',
+  'pak gunung tolong naikin gaji kita pak 🙏',
+  'dollar naik lagi... yaudahlah rezeki ada aja 😮‍💨',
+  'tim indo serba bisa, literally 💅',
+  'kalau bosen, refresh aja. tapi tolong kerjaannya kelar dulu ya 🫡',
+  'udah makan belum? jangan sampe lupa makan gegara kerja 🍱',
+  'gaskeun dulu kerjaannya biar bisa ngopi tenang ☕',
+  'hari ini fix produktif ya, no excuse 😤',
 ];
 
 // ── Timed greetings (Japan Standard Time, UTC+9) ──────────────────────────────
@@ -25,21 +29,26 @@ var GREETINGS_TIMED = [
     // Tuesday 11:30–12:30 JST — weekly meeting, always overrides random pick
     priority: true,
     condition: function(jst) { return jst.day === 2 && jst.totalMins >= 690 && jst.totalMins < 750; },
-    text: 'meeting bentar lagi pak bu! 📅'
+    text: 'ges meeting bentar lagi! jangan telat ya 📅'
   },
   {
     // Before noon JST
     condition: function(jst) { return jst.hours < 12; },
-    text: 'pagi-pagi sudah dipakai juga app nya 🌅'
+    text: 'pagi-pagi udah gaskeun? sabi sih 🌅'
   },
   {
     // 6 PM or later JST
     condition: function(jst) { return jst.hours >= 18; },
-    text: 'lembur lagi dah — ini tim lembur bukan tim indonesia 😭'
+    text: 'lembur lagi cuy? yaudah gue temenin deh 😭'
   },
   {
-    // Always — shows current Japan time as a nudge to take a break
+    // Friday afternoon — weekend vibes
+    condition: function(jst) { return jst.day === 5 && jst.hours >= 15; },
+    text: 'weekend sebentar lagi ges, tahan dulu 🎉'
+  },
+  {
+    // Always — shows current Japan time
     condition: function(jst) { return true; },
-    text: 'jangan lupa istirahat ya, udah jam {time} 🕐'
+    text: 'udah jam {time} di jepang, jangan lupa napas ya 🕐'
   },
 ];
