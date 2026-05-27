@@ -164,6 +164,24 @@ body {
 .btn-copy.copied { background: #16a34a; }
 .btn-clear { background: var(--mid); color: var(--accent); }
 .btn-clear:hover { background: var(--border); }
+
+/* ── Output cell list ── */
+.output-ta {
+  flex: 1; min-height: 0; overflow-y: auto;
+  border: 1.5px solid var(--border-soft); border-radius: 8px;
+  background: var(--light);
+}
+.out-cell {
+  padding: 5px 10px; font-size: 0.83rem; font-family: 'Courier New', monospace;
+  line-height: 1.5; color: var(--primary); border-bottom: 1px solid var(--border);
+  cursor: pointer; user-select: none; white-space: pre-wrap; word-break: break-all;
+  transition: background 0.08s;
+}
+.out-cell:last-child { border-bottom: none; }
+.out-cell:hover { background: var(--mid); }
+.out-cell.selected { background: var(--primary-2); color: #fff; }
+.out-empty { padding: 12px 10px; font-size: 0.78rem; color: var(--border-soft);
+  font-style: italic; font-family: inherit; }
 </style>
 </head>
 <body>
@@ -208,7 +226,7 @@ body {
         <span class="material-icons-outlined">delete_sweep</span> Clear
       </button>
       <button class="tool-btn btn-copy" id="copyBtn" onclick="copyOutput()">
-        <span class="material-icons-outlined">content_copy</span> Copy output
+        <span class="material-icons-outlined">content_copy</span> <span id="copyLabel">Copy all</span>
       </button>
     </div>
   </div>
@@ -239,7 +257,7 @@ var colCount = 0;
 var colIds   = [];
 
 /* ── Output column (created once, always pinned last before + button) ── */
-var outputTa = (function() {
+var outputList = (function() {
   var box = document.createElement('div');
   box.className = 'col-box output-col';
   box.id = 'output-box';
@@ -256,21 +274,71 @@ var outputTa = (function() {
   head.appendChild(label);
   head.appendChild(cnt);
 
-  var ta = document.createElement('textarea');
-  ta.className = 'col-ta output-ta';
-  ta.id = 'output-ta';
-  ta.readOnly = true;
-  ta.placeholder = '…';
-  ta.spellcheck = false;
+  var list = document.createElement('div');
+  list.className = 'output-ta';
+  list.id = 'output-list';
 
   box.appendChild(head);
-  box.appendChild(ta);
+  box.appendChild(list);
 
   var scroll = document.getElementById('colScroll');
   var addBtn = document.getElementById('addColBtn');
   scroll.insertBefore(box, addBtn);
-  return ta;
+  return list;
 })();
+
+/* ── Selection state ── */
+var outputRows   = [];   // current row strings
+var selectedIdxs = new Set();
+var lastClickIdx = null;
+
+function cellClick(idx, e) {
+  if (e.shiftKey && lastClickIdx !== null) {
+    // Range select
+    var lo = Math.min(lastClickIdx, idx), hi = Math.max(lastClickIdx, idx);
+    if (!e.ctrlKey && !e.metaKey) selectedIdxs.clear();
+    for (var i = lo; i <= hi; i++) selectedIdxs.add(i);
+  } else if (e.ctrlKey || e.metaKey) {
+    // Toggle
+    if (selectedIdxs.has(idx)) selectedIdxs.delete(idx);
+    else selectedIdxs.add(idx);
+  } else {
+    // Single select
+    selectedIdxs.clear();
+    selectedIdxs.add(idx);
+  }
+  lastClickIdx = idx;
+  renderSelection();
+  updateCopyLabel();
+}
+
+function renderSelection() {
+  var cells = outputList.querySelectorAll('.out-cell');
+  cells.forEach(function(cell, i) {
+    cell.classList.toggle('selected', selectedIdxs.has(i));
+  });
+}
+
+function updateCopyLabel() {
+  var lbl = document.getElementById('copyLabel');
+  if (!lbl) return;
+  lbl.textContent = selectedIdxs.size > 0
+    ? 'Copy ' + selectedIdxs.size + ' row' + (selectedIdxs.size > 1 ? 's' : '')
+    : 'Copy all';
+}
+
+// Ctrl+A selects all rows
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a' && outputRows.length) {
+    // Only hijack if not focused on a textarea
+    if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+    e.preventDefault();
+    outputRows.forEach(function(_, i) { selectedIdxs.add(i); });
+    lastClickIdx = outputRows.length - 1;
+    renderSelection();
+    updateCopyLabel();
+  }
+});
 
 /* ── Init with 3 columns ── */
 addCol('Col 1');
@@ -401,7 +469,8 @@ function getLines(id) {
 
 function recompute() {
   if (colIds.length === 0) {
-    outputTa.value = '';
+    outputRows = [];
+    outputList.innerHTML = '<div class="out-empty">Output appears here</div>';
     document.getElementById('rowInfo').textContent = '0 rows';
     return;
   }
@@ -422,24 +491,52 @@ function recompute() {
   }
   while (rows.length && rows[rows.length-1] === '') rows.pop();
 
-  outputTa.value = rows.join('\n');
+  outputRows = rows;
+  // Remove any selected indexes that are now out of range
+  selectedIdxs.forEach(function(i) { if (i >= rows.length) selectedIdxs.delete(i); });
+  if (lastClickIdx !== null && lastClickIdx >= rows.length) lastClickIdx = null;
+
+  // Render cells
+  outputList.innerHTML = '';
+  if (!rows.length) {
+    outputList.innerHTML = '<div class="out-empty">Output appears here</div>';
+  } else {
+    rows.forEach(function(row, idx) {
+      var cell = document.createElement('div');
+      cell.className = 'out-cell' + (selectedIdxs.has(idx) ? ' selected' : '');
+      cell.textContent = row;
+      cell.onclick = (function(i){ return function(e){ cellClick(i, e); }; })(idx);
+      outputList.appendChild(cell);
+    });
+  }
 
   var nonEmptyRows = rows.filter(function(r){ return r !== ''; }).length;
   document.getElementById('rowInfo').textContent = nonEmptyRows + ' row' + (nonEmptyRows !== 1 ? 's' : '');
   var outCnt = document.getElementById('output-cnt');
   if (outCnt) outCnt.textContent = nonEmptyRows ? nonEmptyRows + ' rows' : '';
+  updateCopyLabel();
 }
 
 /* ── Copy output ── */
 function copyOutput() {
-  if (!outputTa.value.trim()) return;
-  navigator.clipboard.writeText(outputTa.value).then(function() {
+  var toCopy;
+  if (selectedIdxs.size > 0) {
+    var sel = [];
+    outputRows.forEach(function(r, i) { if (selectedIdxs.has(i)) sel.push(r); });
+    toCopy = sel.join('\n');
+  } else {
+    toCopy = outputRows.join('\n');
+  }
+  if (!toCopy.trim()) return;
+  navigator.clipboard.writeText(toCopy).then(function() {
     var btn = document.getElementById('copyBtn');
     btn.classList.add('copied');
     btn.innerHTML = '<span class="material-icons-outlined">check</span> Copied!';
     setTimeout(function() {
       btn.classList.remove('copied');
-      btn.innerHTML = '<span class="material-icons-outlined">content_copy</span> Copy output';
+      btn.innerHTML = '<span class="material-icons-outlined">content_copy</span> <span id="copyLabel">' +
+        (selectedIdxs.size > 0 ? 'Copy ' + selectedIdxs.size + ' row' + (selectedIdxs.size > 1 ? 's' : '') : 'Copy all') +
+        '</span>';
     }, 1600);
   });
 }
