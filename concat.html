@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>String Builder — Grasp Agent Japan</title>
+<title>String Builder - Tim Indo Serba Bisa</title>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
 <style>
 :root {
@@ -175,11 +175,15 @@ body {
   padding: 5px 10px; font-size: 0.83rem; font-family: 'Courier New', monospace;
   line-height: 1.5; color: var(--primary); border-bottom: 1px solid var(--border);
   cursor: pointer; user-select: none; white-space: pre-wrap; word-break: break-all;
-  transition: background 0.08s;
+  transition: background 0.12s, color 0.12s;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
 }
 .out-cell:last-child { border-bottom: none; }
 .out-cell:hover { background: var(--mid); }
-.out-cell.selected { background: var(--primary-2); color: #fff; }
+.out-cell.flash { background: #16a34a; color: #fff; }
+.out-cell-text { flex: 1; min-width: 0; }
+.out-cell-hint { font-size: 0.6rem; color: var(--border-soft); flex-shrink: 0; opacity: 0; transition: opacity 0.15s; font-family: inherit; }
+.out-cell:hover .out-cell-hint { opacity: 1; }
 .out-empty { padding: 12px 10px; font-size: 0.78rem; color: var(--border-soft);
   font-style: italic; font-family: inherit; }
 </style>
@@ -189,8 +193,8 @@ body {
 <div class="brand-bar">
   <span class="material-icons-outlined brand-icon">table_rows</span>
   <div>
-    <div class="brand-name">Grasp Agent Japan</div>
-    <div class="brand-ja">&#12464;&#12521;&#12473;&#12503;&#12456;&#12540;&#12472;&#12455;&#12531;&#12488;&#12472;&#12515;&#12497;&#12531;</div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
   </div>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
     <span class="material-icons-outlined">palette</span> Pink
@@ -211,7 +215,7 @@ body {
 <div class="mid">
   <div class="app-title">
     <h1>String Builder</h1>
-    <p>Paste Excel columns — add as many as you need — output stitches each row</p>
+    <p>Paste Excel columns, add as many as you need, output stitches each row</p>
   </div>
 
   <div class="builder-area">
@@ -287,58 +291,20 @@ var outputList = (function() {
   return list;
 })();
 
-/* ── Selection state ── */
-var outputRows   = [];   // current row strings
-var selectedIdxs = new Set();
-var lastClickIdx = null;
+/* ── Click-to-copy state ── */
+var outputRows = [];
 
-function cellClick(idx, e) {
-  if (e.shiftKey && lastClickIdx !== null) {
-    // Range select
-    var lo = Math.min(lastClickIdx, idx), hi = Math.max(lastClickIdx, idx);
-    if (!e.ctrlKey && !e.metaKey) selectedIdxs.clear();
-    for (var i = lo; i <= hi; i++) selectedIdxs.add(i);
-  } else if (e.ctrlKey || e.metaKey) {
-    // Toggle
-    if (selectedIdxs.has(idx)) selectedIdxs.delete(idx);
-    else selectedIdxs.add(idx);
-  } else {
-    // Single select
-    selectedIdxs.clear();
-    selectedIdxs.add(idx);
-  }
-  lastClickIdx = idx;
-  renderSelection();
-  updateCopyLabel();
-}
-
-function renderSelection() {
-  var cells = outputList.querySelectorAll('.out-cell');
-  cells.forEach(function(cell, i) {
-    cell.classList.toggle('selected', selectedIdxs.has(i));
+function cellClick(cell, text) {
+  navigator.clipboard.writeText(text).then(function() {
+    cell.classList.add('flash');
+    var hint = cell.querySelector('.out-cell-hint');
+    if (hint) hint.textContent = 'Copied!';
+    setTimeout(function() {
+      cell.classList.remove('flash');
+      if (hint) hint.textContent = 'click to copy';
+    }, 900);
   });
 }
-
-function updateCopyLabel() {
-  var lbl = document.getElementById('copyLabel');
-  if (!lbl) return;
-  lbl.textContent = selectedIdxs.size > 0
-    ? 'Copy ' + selectedIdxs.size + ' row' + (selectedIdxs.size > 1 ? 's' : '')
-    : 'Copy all';
-}
-
-// Ctrl+A selects all rows
-document.addEventListener('keydown', function(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'a' && outputRows.length) {
-    // Only hijack if not focused on a textarea
-    if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
-    e.preventDefault();
-    outputRows.forEach(function(_, i) { selectedIdxs.add(i); });
-    lastClickIdx = outputRows.length - 1;
-    renderSelection();
-    updateCopyLabel();
-  }
-});
 
 /* ── Init with 3 columns ── */
 addCol('Col 1');
@@ -365,6 +331,13 @@ function addCol(defaultVal) {
   count.className = 'col-count';
   count.id = 'cnt-' + id;
 
+  // Fill all rows with first value
+  var fill = document.createElement('button');
+  fill.className = 'col-del';
+  fill.title = 'Fill all rows with this value';
+  fill.innerHTML = '<span class="material-icons-outlined">repeat</span>';
+  fill.onclick = (function(cid){ return function(){ fillCol(cid); }; })(id);
+
   // Move left/right buttons
   var moveLeft = document.createElement('button');
   moveLeft.className = 'col-del';
@@ -386,6 +359,7 @@ function addCol(defaultVal) {
 
   head.appendChild(label);
   head.appendChild(count);
+  head.appendChild(fill);
   head.appendChild(moveLeft);
   head.appendChild(moveRight);
   head.appendChild(del);
@@ -492,20 +466,24 @@ function recompute() {
   while (rows.length && rows[rows.length-1] === '') rows.pop();
 
   outputRows = rows;
-  // Remove any selected indexes that are now out of range
-  selectedIdxs.forEach(function(i) { if (i >= rows.length) selectedIdxs.delete(i); });
-  if (lastClickIdx !== null && lastClickIdx >= rows.length) lastClickIdx = null;
 
   // Render cells
   outputList.innerHTML = '';
   if (!rows.length) {
     outputList.innerHTML = '<div class="out-empty">Output appears here</div>';
   } else {
-    rows.forEach(function(row, idx) {
+    rows.forEach(function(row) {
       var cell = document.createElement('div');
-      cell.className = 'out-cell' + (selectedIdxs.has(idx) ? ' selected' : '');
-      cell.textContent = row;
-      cell.onclick = (function(i){ return function(e){ cellClick(i, e); }; })(idx);
+      cell.className = 'out-cell';
+      var text = document.createElement('span');
+      text.className = 'out-cell-text';
+      text.textContent = row;
+      var hint = document.createElement('span');
+      hint.className = 'out-cell-hint';
+      hint.textContent = 'click to copy';
+      cell.appendChild(text);
+      cell.appendChild(hint);
+      cell.onclick = (function(c, r){ return function(){ cellClick(c, r); }; })(cell, row);
       outputList.appendChild(cell);
     });
   }
@@ -514,19 +492,11 @@ function recompute() {
   document.getElementById('rowInfo').textContent = nonEmptyRows + ' row' + (nonEmptyRows !== 1 ? 's' : '');
   var outCnt = document.getElementById('output-cnt');
   if (outCnt) outCnt.textContent = nonEmptyRows ? nonEmptyRows + ' rows' : '';
-  updateCopyLabel();
 }
 
 /* ── Copy output ── */
 function copyOutput() {
-  var toCopy;
-  if (selectedIdxs.size > 0) {
-    var sel = [];
-    outputRows.forEach(function(r, i) { if (selectedIdxs.has(i)) sel.push(r); });
-    toCopy = sel.join('\n');
-  } else {
-    toCopy = outputRows.join('\n');
-  }
+  var toCopy = outputRows.join('\n');
   if (!toCopy.trim()) return;
   navigator.clipboard.writeText(toCopy).then(function() {
     var btn = document.getElementById('copyBtn');
@@ -534,11 +504,30 @@ function copyOutput() {
     btn.innerHTML = '<span class="material-icons-outlined">check</span> Copied!';
     setTimeout(function() {
       btn.classList.remove('copied');
-      btn.innerHTML = '<span class="material-icons-outlined">content_copy</span> <span id="copyLabel">' +
-        (selectedIdxs.size > 0 ? 'Copy ' + selectedIdxs.size + ' row' + (selectedIdxs.size > 1 ? 's' : '') : 'Copy all') +
-        '</span>';
+      btn.innerHTML = '<span class="material-icons-outlined">content_copy</span> Copy all';
     }, 1600);
   });
+}
+
+/* ── Fill column with repeated value ── */
+function fillCol(id) {
+  var ta = document.getElementById('ta-' + id);
+  if (!ta) return;
+  var val = ta.value.split(/\r?\n/)[0];
+
+  var maxRows = 1;
+  colIds.forEach(function(cid) {
+    if (cid === id) return;
+    var other = document.getElementById('ta-' + cid);
+    if (!other) return;
+    var nonEmpty = other.value.split(/\r?\n/).filter(function(l){ return l !== ''; }).length;
+    if (nonEmpty > maxRows) maxRows = nonEmpty;
+  });
+
+  var filled = [];
+  for (var i = 0; i < maxRows; i++) filled.push(val);
+  ta.value = filled.join('\n');
+  recompute();
 }
 </script>
 </body>
