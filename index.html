@@ -84,11 +84,13 @@ body {
 }
 .nav-tabs {
   background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px; display: flex; gap: 2px;
+  overflow-x: auto;
 }
 .nav-tab {
   display: flex; align-items: center; gap: 5px;
-  padding: 5px 16px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  padding: 5px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
   color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 .nav-tab .material-icons-outlined { font-size: 0.95rem; }
 .nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
@@ -329,15 +331,10 @@ body {
 </div>
 <nav class="nav-bar">
   <div class="nav-tabs">
-    <a class="nav-tab active" href="/">
-      <span class="material-icons-outlined">description</span> PDF
-    </a>
-    <a class="nav-tab" href="/translate">
-      <span class="material-icons-outlined">translate</span> Translate
-    </a>
-    <a class="nav-tab" href="/postal">
-      <span class="material-icons-outlined">local_post_office</span> Postal
-    </a>
+    <a class="nav-tab active" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
   </div>
 </nav>
 
@@ -761,7 +758,6 @@ renderSavedNames();
   var MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus',
                 'September','Oktober','November','Desember'];
 
-  // JST (UTC+9) — works regardless of user's local timezone
   function getJST() {
     var d = new Date(Date.now() + 9 * 3600000);
     var h = d.getUTCHours(), m = d.getUTCMinutes();
@@ -785,19 +781,16 @@ renderSavedNames();
 
   var jst = getJST();
 
-  // Priority greetings override everything (e.g. meeting reminder)
   for (var i = 0; i < GREETINGS_TIMED.length; i++) {
     var g = GREETINGS_TIMED[i];
     if (g.priority && g.condition(jst)) { show(applyVars(g.text, jst)); return; }
   }
 
-  // Build applicable pools
   var timedPool  = GREETINGS_TIMED
     .filter(function(g) { return !g.priority && g.condition(jst); })
     .map(function(g)   { return applyVars(g.text, jst); });
   var staticPool = GREETINGS.map(function(t) { return applyVars(t, jst); });
 
-  // USD → IDR rate joke — cached in localStorage (1 h TTL) so only fetched once per hour
   function getCached() {
     try {
       var d = JSON.parse(localStorage.getItem('gaj_rate') || 'null');
@@ -830,7 +823,6 @@ renderSavedNames();
   ratePromise.then(function(rateJoke) {
     var pool = timedPool.concat(staticPool);
     if (rateJoke) pool.push(rateJoke);
-    // Timed greetings are more contextual — favour them 60% when available
     var joke = (timedPool.length && Math.random() < 0.6) ? pick(timedPool) : pick(pool);
     show(joke);
   });
