@@ -566,19 +566,27 @@ function doSearch() {
       return;
     }
 
-    // Too many and too diverse → show city-level breakdown
+    // Group by prefecture+city to detect ambiguity
     var uniqueCities = {};
+    var uniquePrefs  = {};
     matches.forEach(function(r) {
       var k = r[1] + r[2];
       if (!uniqueCities[k]) uniqueCities[k] = 0;
       uniqueCities[k]++;
+      uniquePrefs[r[1]] = true;
     });
     var cityCount = Object.keys(uniqueCities).length;
-    if (matches.length >= 100 || cityCount > 8) {
+    var prefCount = Object.keys(uniquePrefs).length;
+
+    // Show disambiguation when: too many results, OR spans multiple prefectures
+    if (matches.length >= 100 || cityCount > 6 || prefCount > 1) {
       var cities = Object.keys(uniqueCities).sort(function(a,b){ return uniqueCities[b]-uniqueCities[a]; });
       var html = '<div class="result-card"><div class="result-body">' +
-        '<div style="font-size:0.8rem;margin-bottom:8px;color:var(--text)">Too many matches for「<strong>' + esc(query) +
-        '</strong>」— add a ward or town name:</div>';
+        '<div style="font-size:0.8rem;margin-bottom:8px;color:var(--text)">' +
+        (prefCount > 1
+          ? '「<strong>' + esc(query) + '</strong>」 exists in multiple areas — which one?'
+          : 'Too many matches for「<strong>' + esc(query) + '</strong>」— narrow it down:') +
+        '</div>';
       cities.slice(0, 12).forEach(function(k) {
         html += '<span style="display:inline-block;margin:3px;padding:4px 10px;background:var(--mid);' +
           'border-radius:8px;font-size:0.8rem;cursor:pointer;color:var(--accent);border:1px solid var(--border)" ' +
