@@ -1,3 +1,5 @@
+document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
 // ── Version ───────────────────────────────────────────────────────────────────
 var APP_VERSION = 'v1.52';
 var APP_STAGE   = 'beta';
