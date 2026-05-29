@@ -199,6 +199,26 @@ body {
 .doc-action-btn .material-icons-outlined { font-size: 1rem; }
 .doc-action-btn:hover { background: var(--mid); border-color: var(--border-soft); }
 .doc-action-btn.del:hover { color: #ef4444; background: #fef2f2; border-color: #fca5a5; }
+.doc-remove-type {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 0.85rem; padding: 0 3px; opacity: 0; transition: opacity 0.15s, color 0.15s;
+  line-height: 1; margin-left: auto;
+}
+.doc-card:hover .doc-remove-type { opacity: 1; }
+.doc-remove-type:hover { color: #ef4444; }
+.doc-add-row {
+  display: flex; gap: 6px; align-items: center; padding: 4px 0;
+}
+.doc-add-row input {
+  flex: 1; background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 10px; font-size: 0.82rem; color: var(--text); outline: none;
+}
+.doc-add-row input:focus { border-color: var(--accent); }
+.doc-add-btn {
+  padding: 7px 14px; background: var(--primary-2); color: #fff; border: none;
+  border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.doc-add-btn:hover { background: var(--primary-hover); }
 
 .doc-dl-btn {
   background: var(--primary-2); color: #fff; border: none;
@@ -326,6 +346,10 @@ body {
 </div>
 
 <div class="bottom-bar">
+  <div class="doc-add-row">
+    <input type="text" id="newDocName" placeholder="Add document type e.g. マイナンバーカード" maxlength="40">
+    <button class="doc-add-btn" onclick="addDocType()">+ Add</button>
+  </div>
   <button class="dl-all-btn" id="dlAllBtn" onclick="downloadAll()">
     <span class="material-icons-outlined">download</span> Download All
   </button>
@@ -366,17 +390,48 @@ body {
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-var DOCS = [
+var DOCS_KEY = 'gaj_docs_types';
+var DOCS_DEFAULT = [
   { suffix: '在留カード（表）', icon: 'badge' },
   { suffix: '在留カード（裏）', icon: 'flip_to_back' },
   { suffix: '指定書',           icon: 'description' },
   { suffix: 'パスポート',        icon: 'travel_explore' },
+  { suffix: 'マイナンバーカード', icon: 'credit_card' },
   { suffix: '営業許可証',        icon: 'store' },
   { suffix: '住民票',            icon: 'home' },
 ];
+var DOCS = (function() {
+  try { var s = localStorage.getItem(DOCS_KEY); if (s) return JSON.parse(s); } catch(_) {}
+  return DOCS_DEFAULT.slice();
+})();
 
-var docFiles      = new Array(DOCS.length).fill(null);
+var docFiles       = new Array(DOCS.length).fill(null);
 var docEditedBlobs = new Array(DOCS.length).fill(null);
+
+function saveDocsConfig() {
+  localStorage.setItem(DOCS_KEY, JSON.stringify(DOCS));
+}
+
+function addDocType() {
+  var name = document.getElementById('newDocName').value.trim();
+  if (!name) return;
+  DOCS.push({ suffix: name, icon: 'description' });
+  docFiles.push(null);
+  docEditedBlobs.push(null);
+  saveDocsConfig();
+  document.getElementById('newDocName').value = '';
+  renderAll();
+}
+
+function removeDocType(idx) {
+  if (DOCS.length <= 1) { alert('最低1つは必要です。'); return; }
+  if (docFiles[idx] && !confirm('このドキュメントタイプを削除しますか？\nRemove "' + DOCS[idx].suffix + '"?')) return;
+  DOCS.splice(idx, 1);
+  docFiles.splice(idx, 1);
+  docEditedBlobs.splice(idx, 1);
+  saveDocsConfig();
+  renderAll();
+}
 var activePasteIdx = -1;
 var cropper        = null;
 var editingDocIdx  = -1;
@@ -541,7 +596,8 @@ function renderAll() {
     header.innerHTML =
       '<span class="material-icons-outlined doc-icon">' + doc.icon + '</span>' +
       '<span class="doc-title">' + doc.suffix + '</span>' +
-      '<span class="doc-fname" id="fname-' + i + '">' + getFilename(i) + '</span>';
+      '<span class="doc-fname" id="fname-' + i + '">' + getFilename(i) + '</span>' +
+      '<button class="doc-remove-type" onclick="removeDocType(' + i + ')" title="Remove this doc type">×</button>';
     card.appendChild(header);
     card.appendChild(buildDrop(i));
 
@@ -787,6 +843,9 @@ function triggerDownload(pdfBytes, fname) {
 }
 
 renderAll();
+document.getElementById('newDocName').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') addDocType();
+});
 </script>
 </body>
 </html>
