@@ -424,7 +424,13 @@ function loadState() {
     }
     delete state.extraStaff;
   }
-  state.prefectures = {...deepClone(DEFAULT_STATE.prefectures), ...(state.prefectures||{})};
+  // Merge: always use DEFAULT_STATE counts (0); only preserve saved assignedTo
+  const mergedPrefs = deepClone(DEFAULT_STATE.prefectures);
+  for (const [pref, saved] of Object.entries(state.prefectures||{})) {
+    if (mergedPrefs[pref]) mergedPrefs[pref].assignedTo = saved.assignedTo || 'Unassigned';
+    else if (saved.assignedTo) mergedPrefs[pref] = {assignedTo: saved.assignedTo, count: 0};
+  }
+  state.prefectures = mergedPrefs;
   state.wards   = state.wards   || {};
   state.rosters = state.rosters || {};
 }
