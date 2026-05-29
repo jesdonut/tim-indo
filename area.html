@@ -217,6 +217,21 @@ body.pink .tbtn.nuke:hover { background: #fbd0e8; border-color: #ec4899; }
 .row-bday { background: rgba(253,224,71,0.08); }
 .row-warn td:first-child { border-left: 3px solid var(--warn); }
 
+/* Search */
+.worker-search-wrap {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 7px; padding: 4px 9px; transition: border-color 0.15s;
+}
+.worker-search-wrap:focus-within { border-color: var(--accent); }
+.worker-search-wrap .material-icons-outlined { font-size: 0.9rem; color: var(--muted); }
+.worker-search-wrap input {
+  background: none; border: none; outline: none;
+  font-size: 0.75rem; color: var(--text); width: 150px;
+}
+.worker-search-wrap input::placeholder { color: var(--border-soft); }
+.prefecture.found { stroke: #fbbf24 !important; stroke-width: 2.5 !important; filter: brightness(1.35) saturate(1.1); }
+
 .map-tooltip { position: fixed; pointer-events: none; background: var(--light); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 0.72rem; color: var(--text); display: none; z-index: 200; white-space: nowrap; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
 
 /* Worker hover card */
@@ -275,6 +290,11 @@ body.pink .tbtn.nuke:hover { background: #fbd0e8; border-color: #ec4899; }
   <button id="clearStorageBtn" class="tbtn nuke">
     <span class="material-icons-outlined">delete_forever</span> Clear All Local Data
   </button>
+  <div class="toolbar-sep"></div>
+  <div class="worker-search-wrap">
+    <span class="material-icons-outlined">search</span>
+    <input id="workerSearch" type="text" placeholder="ID or name e.g. I40">
+  </div>
   <span id="importStatus"></span>
   <span id="bdayBanner"></span>
 </div>
@@ -1048,6 +1068,44 @@ document.addEventListener('drop',e=>{
   e.preventDefault(); toolbar.classList.remove('drag-over');
   const file=e.dataTransfer.files[0];
   if(file&&file.name.toLowerCase().endsWith('.json')) handleJson(file); else handleCsv(file);
+});
+
+/* ── Worker search ── */
+function searchWorkers(query) {
+  if(!mapGroup) return;
+  const q = query.trim().toLowerCase();
+  // Clear highlights
+  mapGroup.selectAll('path.prefecture').classed('found', false);
+  if(!q) return;
+
+  const matchedKeys = new Set();
+  const matchedNames = [];
+  for(const [key, roster] of Object.entries(state.rosters)) {
+    for(const w of roster) {
+      if(
+        (w.id   && w.id.toLowerCase().includes(q)) ||
+        w.name.toLowerCase().includes(q) ||
+        (w.furigana && w.furigana.toLowerCase().includes(q))
+      ) {
+        matchedKeys.add(key);
+        matchedNames.push(w.name);
+      }
+    }
+  }
+
+  if(!matchedKeys.size) { setStatus('見つかりません / Not found: '+query, true); return; }
+
+  mapGroup.selectAll('path.prefecture').classed('found', f =>
+    matchedKeys.has(normalizePref(f.properties.nam_ja))
+  );
+  setStatus(matchedNames.length+'名 → '+[...matchedKeys].join(', '));
+}
+
+document.getElementById('workerSearch').addEventListener('input', function() {
+  searchWorkers(this.value);
+});
+document.getElementById('workerSearch').addEventListener('keydown', function(e) {
+  if(e.key === 'Escape') { this.value = ''; searchWorkers(''); }
 });
 
 /* ── Reset / close ── */
