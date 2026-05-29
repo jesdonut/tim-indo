@@ -2,8 +2,9 @@ document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
 (function() {
   var bar = document.createElement('div');
-  bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:3px 12px;font-size:10px;text-align:center;pointer-events:none;opacity:0.2;letter-spacing:0.03em;';
-  bar.textContent = 'Personal project · Not affiliated with any employer · All rights reserved · Not open source';
+  bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:3px 12px;font-size:10px;text-align:center;opacity:0.2;letter-spacing:0.03em;';
+  bar.innerHTML = 'Personal project · Not affiliated with any employer · All rights reserved · Not open source'
+    + ' &nbsp;·&nbsp; <button onclick="if(confirm(\'Clear ALL saved data from this browser?\')){var t=localStorage.getItem(\'gaj_theme\');localStorage.clear();if(t)localStorage.setItem(\'gaj_theme\',t);location.reload();}" style="background:none;border:none;color:inherit;font:inherit;cursor:pointer;text-decoration:underline;padding:0;">clear data</button>';
   document.addEventListener('DOMContentLoaded', function() { document.body.appendChild(bar); });
 })();
 
