@@ -122,7 +122,7 @@ body {
 .id-inputs {
   position: sticky; top: 0; z-index: 10;
   background: var(--bg);
-  padding: 10px 0 10px;
+  padding: 7px 0 7px;
   display: flex; gap: 8px;
   border-bottom: 1px solid var(--border);
 }
@@ -136,33 +136,33 @@ body {
 .id-input:focus { border-color: var(--primary-2); }
 .id-input::placeholder { color: var(--border-soft); }
 
-.doc-list { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; padding-bottom: 4px; }
+.doc-list { display: flex; flex-direction: column; gap: 5px; padding-top: 4px; padding-bottom: 4px; }
 
 .doc-card {
   background: var(--input-bg); border: 1px solid var(--border);
-  border-radius: 12px; overflow: hidden;
+  border-radius: 9px; overflow: hidden;
 }
 .doc-card-header {
   display: flex; align-items: center; gap: 7px;
-  padding: 7px 12px; border-bottom: 1px solid var(--border);
+  padding: 5px 10px; border-bottom: 1px solid var(--border);
   background: var(--light);
 }
-.doc-icon { font-size: 1.05rem; color: var(--primary-2); flex-shrink: 0; }
-.doc-title { font-size: 0.82rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+.doc-icon { font-size: 0.95rem; color: var(--primary-2); flex-shrink: 0; }
+.doc-title { font-size: 0.78rem; font-weight: 700; color: var(--text); white-space: nowrap; }
 .doc-fname {
-  flex: 1; text-align: right; font-size: 0.64rem; color: var(--muted);
+  flex: 1; text-align: right; font-size: 0.62rem; color: var(--muted);
   font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 
 .doc-drop {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; outline: none;
+  padding: 7px 10px; outline: none;
   transition: background 0.15s;
-  min-height: 56px;
+  min-height: 44px;
 }
 .doc-drop.empty {
-  justify-content: center; flex-direction: column; gap: 5px;
-  padding: 14px 12px; cursor: pointer;
+  justify-content: center; flex-direction: row; gap: 8px;
+  padding: 8px 10px; cursor: pointer;
 }
 .doc-drop.empty:hover, .doc-drop.empty:focus { background: var(--light); }
 .doc-drop.dragover { background: var(--mid); }
@@ -171,8 +171,8 @@ body {
   border-radius: 0 0 11px 11px;
 }
 
-.doc-empty-icon { font-size: 1.5rem; color: var(--border-soft); line-height: 1; }
-.doc-empty-text { font-size: 0.74rem; color: var(--muted); text-align: center; line-height: 1.5; }
+.doc-empty-icon { font-size: 1.1rem; color: var(--border-soft); line-height: 1; }
+.doc-empty-text { font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
 .doc-browse-link { color: var(--primary-2); cursor: pointer; text-decoration: underline; }
 
 .doc-thumb {
@@ -458,12 +458,12 @@ function buildDrop(idx) {
     drop.className = 'doc-drop empty';
     drop.innerHTML =
       '<span class="material-icons-outlined doc-empty-icon">upload_file</span>' +
-      '<span class="doc-empty-text">Drop, <span class="doc-browse-link">browse</span>' +
-      ', or focus &amp; <kbd style="font-size:0.62rem;background:var(--mid);border:1px solid var(--border);border-radius:3px;padding:0 3px">Ctrl+V</kbd></span>';
+      '<span class="doc-empty-text">Drop · <span class="doc-browse-link">browse</span>' +
+      ' · <kbd style="font-size:0.62rem;background:var(--mid);border:1px solid var(--border);border-radius:3px;padding:0 3px">Ctrl+V</kbd></span>';
     drop.querySelector('.doc-browse-link').onclick = function(e) {
       e.stopPropagation(); browseDoc(idx);
     };
-    drop.onclick = function() { drop.focus(); browseDoc(idx); };
+    drop.onclick = function() { drop.focus(); };
   } else {
     drop.className = 'doc-drop';
     var isImg   = file.type !== 'application/pdf';
@@ -558,7 +558,6 @@ function renderAll() {
 }
 
 document.addEventListener('paste', function(e) {
-  if (activePasteIdx < 0) return;
   var pasted = Array.from(e.clipboardData.items)
     .filter(function(item) { return item.kind === 'file'; })
     .map(function(item) { return item.getAsFile(); })
@@ -566,8 +565,12 @@ document.addEventListener('paste', function(e) {
       return f && ['application/pdf','image/jpeg','image/png'].indexOf(f.type) >= 0;
     });
   if (!pasted[0]) return;
-  setDocFile(activePasteIdx, pasted[0]);
-  var drop = document.getElementById('drop-' + activePasteIdx);
+  // Use focused slot, or fall back to first empty slot
+  var targetIdx = activePasteIdx >= 0 ? activePasteIdx
+    : docFiles.findIndex(function(f) { return !f; });
+  if (targetIdx < 0) return;
+  setDocFile(targetIdx, pasted[0]);
+  var drop = document.getElementById('drop-' + targetIdx);
   if (drop) { drop.classList.add('dragover'); setTimeout(function(){ drop.classList.remove('dragover'); }, 400); }
 });
 
