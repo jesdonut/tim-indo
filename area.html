@@ -129,6 +129,12 @@ body.dark .bday-chip { background: #1c1400; border-color: #854d0e; color: #fde04
 }
 .staff-card:hover .staff-del { opacity: 1; }
 .staff-del:hover { color: var(--danger); }
+.tbtn.nuke { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; font-weight: 700; }
+.tbtn.nuke:hover { background: #fecaca; border-color: #f87171; }
+body.dark .tbtn.nuke { background: #2d1a1a; border-color: #7f1d1d; color: #fca5a5; }
+body.dark .tbtn.nuke:hover { background: #450a0a; border-color: #ef4444; }
+body.pink .tbtn.nuke { background: #fce7f3; border-color: #f9a8d4; color: #9d174d; }
+body.pink .tbtn.nuke:hover { background: #fbd0e8; border-color: #ec4899; }
 .staff-count { font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-bottom: 5px; }
 .staff-count.over { color: var(--danger); }
 .cap-bar { background: var(--mid); border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 3px; }
@@ -266,7 +272,7 @@ body.dark .bday-chip { background: #1c1400; border-color: #854d0e; color: #fde04
   <div class="toolbar-sep"></div>
   <button id="allWorkersBtn" class="tbtn"><span class="material-icons-outlined">groups</span> All Workers</button>
   <button id="resetBtn" class="tbtn danger"><span class="material-icons-outlined">restart_alt</span> Reset</button>
-  <button id="clearStorageBtn" class="tbtn" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c;font-weight:700">
+  <button id="clearStorageBtn" class="tbtn nuke">
     <span class="material-icons-outlined">delete_forever</span> Clear All Local Data
   </button>
   <span id="importStatus"></span>
@@ -1045,11 +1051,13 @@ document.addEventListener('drop',e=>{
 /* ── Reset / close ── */
 document.getElementById('resetBtn').addEventListener('click',resetState);
 document.getElementById('clearStorageBtn').addEventListener('click',()=>{
-  if(!confirm('Delete ALL saved data from this browser?\nThis cannot be undone.')) return;
-  localStorage.removeItem(STORAGE_KEY);
+  if(!confirm('Delete ALL saved data from this browser (all tools)?\nThis cannot be undone.')) return;
+  const theme = localStorage.getItem('gaj_theme');
+  localStorage.clear();
+  if(theme) localStorage.setItem('gaj_theme', theme);
   state = deepClone(DEFAULT_STATE);
   saveState(); renderAll(); redrawMap();
-  setStatus('Local data cleared.');
+  setStatus('All local data cleared.');
 });
 document.addEventListener('click',e=>{
   const pop=document.getElementById('prefPopover');
