@@ -492,16 +492,20 @@ function deleteStaff(id) {
 
 /* ── Totals ── */
 function totalsFor(personId) {
-  const hasWards = Object.keys(state.wards||{}).length > 0;
   let total=0; const prefMap={};
+  const seen=new Set(); // deduplicate workers that appear in multiple rosters
 
-  // Count by each worker's individual assignedTo (accurate for mixed-prefecture imports)
+  // Count by each worker's individual assignedTo
   for(const [key, roster] of Object.entries(state.rosters)) {
     if(!roster.length) continue;
     const hasIndividual = roster.some(w => w.assignedTo);
     for(const w of roster) {
       const wa = w.assignedTo || (!hasIndividual && (state.prefectures[key]||state.wards[key]||{}).assignedTo);
-      if(wa === personId) { prefMap[key]=(prefMap[key]||0)+1; total++; }
+      if(wa !== personId) continue;
+      const uid = w.id || (w.name+'|'+(w.birthdate||''));
+      if(seen.has(uid)) continue;
+      seen.add(uid);
+      prefMap[key]=(prefMap[key]||0)+1; total++;
     }
   }
 
@@ -959,20 +963,17 @@ function importNewFormat(rows, headers, fileName) {
       status:       col('Status'),
     };
 
-    if(!nextRosters[area]) nextRosters[area]=[];
-    nextRosters[area].push(worker);
+    // Ward detection — worker goes to ward roster OR prefecture roster, never both
+    const ward = area==='東京' ? (detectWard(worker.homeAddress)||detectWard(worker.storeAddress)) : null;
+    const rKey = ward || area;
+    if(!nextRosters[rKey]) nextRosters[rKey]=[];
+    nextRosters[rKey].push(worker);
+    // Always track for prefecture-level map coloring
     if(!staffCounts[area]) staffCounts[area]={};
     staffCounts[area][assignedTo]=(staffCounts[area][assignedTo]||0)+1;
-
-    // Auto-detect Tokyo ward from home or store address
-    if(area==='東京') {
-      const ward=detectWard(worker.homeAddress)||detectWard(worker.storeAddress);
-      if(ward) {
-        if(!nextRosters[ward]) nextRosters[ward]=[];
-        nextRosters[ward].push(worker);
-        if(!wardStaffCounts[ward]) wardStaffCounts[ward]={};
-        wardStaffCounts[ward][assignedTo]=(wardStaffCounts[ward][assignedTo]||0)+1;
-      }
+    if(ward) {
+      if(!wardStaffCounts[ward]) wardStaffCounts[ward]={};
+      wardStaffCounts[ward][assignedTo]=(wardStaffCounts[ward][assignedTo]||0)+1;
     }
     n++;
   }
