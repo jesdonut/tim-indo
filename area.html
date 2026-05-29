@@ -344,7 +344,7 @@ body.pink .tbtn.nuke:hover { background: #fbd0e8; border-color: #ec4899; }
     <div class="all-workers-scroll">
       <table id="allWorkersTable">
         <thead><tr>
-          <th>名前</th><th>年齢</th><th>性別</th><th>Store ID</th>
+          <th>名前</th><th>年齢</th><th>誕生日</th><th>性別</th><th>Store ID</th>
           <th>勤務</th><th>入居</th><th>エリア</th><th>担当者</th>
         </tr></thead>
         <tbody id="allWorkersBody"></tbody>
@@ -827,9 +827,11 @@ document.getElementById('allWorkersBtn').addEventListener('click',()=>{
       const tr=document.createElement('tr');
       if(bdNear) tr.classList.add('row-bday');
       if(hasWarn) tr.classList.add('row-warn');
+      const bdFmt = w.birthdate ? new Date(w.birthdate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
       tr.innerHTML=`
         <td>${esc(w.name)}${bdNear?' 🎂':''}</td>
         <td>${age!==null?age+'歳':'—'}</td>
+        <td>${bdFmt}${bdNear?' 🎂':''}</td>
         <td>${esc(w.gender||'—')}</td>
         <td class="td-flag">${w.storeId?esc(w.storeId)+(sameStore?' 🏪':''):'—'}</td>
         <td class="td-flag">${wMonths!==null?wMonths+'ヶ月'+(wFlg?' '+wFlg:''):'—'}</td>
