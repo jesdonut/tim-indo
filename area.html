@@ -510,6 +510,7 @@ function totalsFor(personId) {
   }
 
   // Add prefectures/wards with no roster (stored count only)
+  const hasWards = Object.keys(state.wards||{}).length > 0;
   for(const [pref,data] of Object.entries(state.prefectures)) {
     if(hasWards && pref==='東京') continue;
     if(data.assignedTo!==personId) continue;
