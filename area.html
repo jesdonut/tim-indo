@@ -995,7 +995,17 @@ function importNewFormat(rows, headers, fileName) {
   state.rosters=nextRosters;
   state.wards={...state.wards,...nextWards};
   saveState(); closePopover(); renderAll(); redrawMap(); checkBirthdays();
-  setStatus(`${fileName}: ${n}名 読み込みました${wardKeys.length?' ('+wardKeys.length+'区 自動検出)':''}`);
+
+  // Per-staff summary for debugging
+  const staffTotals={};
+  for(const [,roster] of Object.entries(nextRosters)) {
+    for(const w of roster) {
+      const k=w.assignedTo||'Unassigned';
+      staffTotals[k]=(staffTotals[k]||0)+1;
+    }
+  }
+  const summary=Object.entries(staffTotals).map(([id,cnt])=>nameFor(id)+': '+cnt).join(' · ');
+  setStatus(`${fileName}: ${n}名 — ${summary}${wardKeys.length?' ('+wardKeys.length+'区 自動検出)':''}`);
 }
 
 function importOldFormat(rows, headers, fileName) {
@@ -1029,7 +1039,7 @@ function setStatus(msg,err) {
   const el=document.getElementById('importStatus');
   el.textContent=msg; el.style.color=err?'var(--danger)':'var(--accent)'; el.style.display='block';
   clearTimeout(setStatus._t);
-  setStatus._t=setTimeout(()=>{ el.style.display='none'; },6000);
+  setStatus._t=setTimeout(()=>{ el.style.display='none'; },15000);
 }
 function handleCsv(file) {
   if(!file) return;
