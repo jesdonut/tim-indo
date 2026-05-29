@@ -1,5 +1,12 @@
 document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
+(function() {
+  var bar = document.createElement('div');
+  bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:3px 12px;font-size:10px;text-align:center;pointer-events:none;opacity:0.2;letter-spacing:0.03em;';
+  bar.textContent = 'Personal project · Not affiliated with any employer · All rights reserved · Not open source';
+  document.addEventListener('DOMContentLoaded', function() { document.body.appendChild(bar); });
+})();
+
 // ── Version ───────────────────────────────────────────────────────────────────
 var APP_VERSION = 'v1.52';
 var APP_STAGE   = 'beta';
