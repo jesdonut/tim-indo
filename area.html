@@ -493,21 +493,34 @@ function deleteStaff(id) {
 /* ── Totals ── */
 function totalsFor(personId) {
   const hasWards = Object.keys(state.wards||{}).length > 0;
-  let total=0; const prefs=[];
+  let total=0; const prefMap={};
+
+  // Count by each worker's individual assignedTo (accurate for mixed-prefecture imports)
+  for(const [key, roster] of Object.entries(state.rosters)) {
+    if(!roster.length) continue;
+    const hasIndividual = roster.some(w => w.assignedTo);
+    for(const w of roster) {
+      const wa = w.assignedTo || (!hasIndividual && (state.prefectures[key]||state.wards[key]||{}).assignedTo);
+      if(wa === personId) { prefMap[key]=(prefMap[key]||0)+1; total++; }
+    }
+  }
+
+  // Add prefectures/wards with no roster (stored count only)
   for(const [pref,data] of Object.entries(state.prefectures)) {
     if(hasWards && pref==='東京') continue;
     if(data.assignedTo!==personId) continue;
-    const roster=state.rosters[pref];
-    const cnt = roster&&roster.length>0 ? roster.length : data.count;
-    total+=cnt; prefs.push({pref,count:cnt});
+    if(!(state.rosters[pref]||[]).length && data.count>0) {
+      prefMap[pref]=(prefMap[pref]||0)+data.count; total+=data.count;
+    }
   }
   for(const [ward,data] of Object.entries(state.wards||{})) {
     if(data.assignedTo!==personId) continue;
-    const roster=state.rosters[ward];
-    const cnt = roster&&roster.length>0 ? roster.length : data.count;
-    total+=cnt; prefs.push({pref:ward+'区',count:cnt});
+    if(!(state.rosters[ward]||[]).length && data.count>0) {
+      prefMap[ward+'区']=(prefMap[ward+'区']||0)+data.count; total+=data.count;
+    }
   }
-  return {total,prefs};
+
+  return {total, prefs: Object.entries(prefMap).map(([pref,count])=>({pref,count}))};
 }
 function grandTotal() {
   return getAllStaff().filter(s=>s.id!=='Unassigned').reduce((sum,s)=>sum+totalsFor(s.id).total,0);
@@ -835,7 +848,6 @@ document.getElementById('allWorkersBtn').addEventListener('click',()=>{
 
   for(const [pref,roster] of Object.entries(state.rosters)) {
     const prefData=state.prefectures[pref]||state.wards[pref];
-    const assignee=prefData?nameFor(prefData.assignedTo):'未割当';
     for(const w of roster) {
       const age=w.birthdate?calcAge(w.birthdate):(w.age||'—');
       const bdNear=w.birthdate&&isBirthdayNear(w.birthdate);
@@ -848,6 +860,7 @@ document.getElementById('allWorkersBtn').addEventListener('click',()=>{
       if(bdNear) tr.classList.add('row-bday');
       if(hasWarn) tr.classList.add('row-warn');
       const bdFmt = w.birthdate ? new Date(w.birthdate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      const workerAssignee = w.assignedTo ? nameFor(w.assignedTo) : (prefData ? nameFor(prefData.assignedTo) : '未割当');
       tr.innerHTML=`
         <td>${esc(w.name)}${bdNear?' 🎂':''}</td>
         <td>${age!==null?age+'歳':'—'}</td>
@@ -857,7 +870,7 @@ document.getElementById('allWorkersBtn').addEventListener('click',()=>{
         <td class="td-flag">${wMonths!==null?wMonths+'ヶ月'+(wFlg?' '+wFlg:''):'—'}</td>
         <td class="td-flag">${mMonths!==null?mMonths+'ヶ月'+(mFlg?' '+mFlg:''):'—'}</td>
         <td>${esc(pref)}</td>
-        <td>${esc(assignee)}</td>
+        <td>${esc(workerAssignee)}</td>
       `;
       tbody.appendChild(tr);
     }
@@ -920,9 +933,9 @@ function importNewFormat(rows, headers, fileName) {
   for(let ri=1;ri<rows.length;ri++) {
     const row=rows[ri];
     if(!row.some(c=>c)) continue;
-    const col=(name)=>(row[headers.indexOf(name)]||'').trim();
+    const col=(name)=>{ const v=(row[headers.indexOf(name)]||'').trim(); return v==='#N/A'||v==='#REF!'?'':v; };
 
-    const area=normalizePref(col('Area')||col('エリア')); if(!area) continue;
+    const area=normalizePref(col('Area')||col('エリア')); if(!area||area.startsWith('#')) continue;
     const assignedTo=resolveStaffId(col('Person in Charge')||col('担当者'));
     const name=col('Full Name')||col('名前')||col('Furigana')||col('ふりがな')||'Worker '+(ri);
     const worker={
@@ -933,6 +946,7 @@ function importNewFormat(rows, headers, fileName) {
       birthdate:    parseDate(col('Birthdate')||col('生年月日')),
       moveInDate:   parseDate(col('Move-in Date')),
       firstWorkDate:parseDate(col('First Day of Work')),
+      assignedTo,
       storeId:      col('Store ID')||col('店舗ID'),
       storeName:    col('Name of assigned store')||col('店舗名'),
       storePostal:  postalIdx[0]!==undefined?(row[postalIdx[0]]||'').trim():'',
