@@ -266,6 +266,9 @@ body.dark .bday-chip { background: #1c1400; border-color: #854d0e; color: #fde04
   <div class="toolbar-sep"></div>
   <button id="allWorkersBtn" class="tbtn"><span class="material-icons-outlined">groups</span> All Workers</button>
   <button id="resetBtn" class="tbtn danger"><span class="material-icons-outlined">restart_alt</span> Reset</button>
+  <button id="clearStorageBtn" class="tbtn" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c;font-weight:700">
+    <span class="material-icons-outlined">delete_forever</span> Clear All Local Data
+  </button>
   <span id="importStatus"></span>
   <span id="bdayBanner"></span>
 </div>
@@ -1059,6 +1062,13 @@ document.addEventListener('drop',e=>{
 
 /* ── Reset / close ── */
 document.getElementById('resetBtn').addEventListener('click',resetState);
+document.getElementById('clearStorageBtn').addEventListener('click',()=>{
+  if(!confirm('Delete ALL saved data from this browser?\nThis cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = deepClone(DEFAULT_STATE);
+  saveState(); renderAll(); redrawMap();
+  setStatus('Local data cleared.');
+});
 document.addEventListener('click',e=>{
   const pop=document.getElementById('prefPopover');
   if(pop.style.display==='block'&&!pop.contains(e.target)) closePopover();
