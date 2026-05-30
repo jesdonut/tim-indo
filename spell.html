@@ -391,7 +391,7 @@ function copyAll() {
   if (!text) return;
   var chars = parseKatakana(text);
   var lines = chars.map(function(c) {
-    if (c === 'ー') return 'ヨコボウ';
+    if (c === 'ー') return 'ヨコ��ウ';
     if (KANA_WORDS[c]) return KANA_WORDS[c] + ' の ' + c;
     return c;
   });
@@ -408,5 +408,6 @@ document.getElementById('spellInput').addEventListener('keydown', function(e) {
 });
 </script>
 <script src="/greetings.js"></script>
+<script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
 </body>
 </html>
