@@ -766,6 +766,16 @@ function renderPopoverPersonBtns() {
     btn.addEventListener('click',()=>{
       if(!state.prefectures[activePref]) state.prefectures[activePref]={assignedTo:person.id,count:0};
       else state.prefectures[activePref].assignedTo=person.id;
+      // Sync worker-level assignments so totalsFor reflects the change
+      if(state.rosters[activePref]) {
+        for(const w of state.rosters[activePref]) w.assignedTo=person.id;
+      }
+      if(activePref==='東京') {
+        for(const [ward,d] of Object.entries(state.wards||{})) {
+          d.assignedTo=person.id;
+          if(state.rosters[ward]) for(const w of state.rosters[ward]) w.assignedTo=person.id;
+        }
+      }
       saveState(); renderAll(); redrawMap(); renderPopoverPersonBtns();
     });
     container.appendChild(btn);
