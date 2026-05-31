@@ -261,11 +261,15 @@ body.dark .badge-stop  { background: #450a0a; color: #fca5a5; }
       <button class="copy-btn" id="openerCopyBtn" onclick="copyOpener()">Salin</button>
     </div>
     <div class="opener-name-row">
+      <span class="opener-name-label">会社：</span>
+      <input class="opener-name-input" id="companyInput" type="text" placeholder="Company name" oninput="updateOpener()">
+    </div>
+    <div class="opener-name-row">
       <span class="opener-name-label">名前：</span>
       <input class="opener-name-input" id="nameInput" type="text" placeholder="Your name" oninput="updateOpener()">
     </div>
     <div class="opener-text" id="openerText">
-      いつもお世話になっております。<span class="opener-name-placeholder">[company name]</span>の<span class="opener-name-placeholder" id="nameSpan">[name]</span>と申します。
+      いつもお世話になっております。<span class="opener-name-placeholder" id="companySpan">[company name]</span>の<span class="opener-name-placeholder" id="nameSpan">[name]</span>と申します。
     </div>
   </div>
 
@@ -375,19 +379,29 @@ function switchTab(tab) {
 
 function updateOpener() {
   var name = document.getElementById('nameInput').value.trim();
-  var span = document.getElementById('nameSpan');
+  var nameSpan = document.getElementById('nameSpan');
   if (name) {
-    span.textContent = name;
-    span.className = 'opener-name-highlight';
+    nameSpan.textContent = name;
+    nameSpan.className = 'opener-name-highlight';
   } else {
-    span.textContent = '[name]';
-    span.className = 'opener-name-placeholder';
+    nameSpan.textContent = '[name]';
+    nameSpan.className = 'opener-name-placeholder';
+  }
+  var company = document.getElementById('companyInput').value.trim();
+  var companySpan = document.getElementById('companySpan');
+  if (company) {
+    companySpan.textContent = company;
+    companySpan.className = 'opener-name-highlight';
+  } else {
+    companySpan.textContent = '[company name]';
+    companySpan.className = 'opener-name-placeholder';
   }
 }
 
 function getOpenerText() {
+  var company = document.getElementById('companyInput').value.trim() || '[company name]';
   var name = document.getElementById('nameInput').value.trim() || '[name]';
-  return 'いつもお世話になっております。[company name]の' + name + 'と申します。';
+  return 'いつもお世話になっております。' + company + 'の' + name + 'と申します。';
 }
 
 function copyOpener() {
