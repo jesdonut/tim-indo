@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>電話スクリプト - Tim Indo Serba Bisa</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+}
+body.dark {
+  --bg: #111827;
+  --text: #f1f5f9;
+  --primary: #93c5fd;
+  --primary-2: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-dark: #dbeafe;
+  --light: #1e293b;
+  --mid: #243453;
+  --border: #334155;
+  --border-soft: #475569;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --brand-bg: #1e293b;
+  --brand-sub: #93c5fd;
+  --input-bg: #263348;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; height: 100dvh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex; align-items: center; gap: 10px; justify-content: center; position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px; display: flex; gap: 2px;
+  overflow-x: auto;
+}
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.mid {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 14px 16px 20px; display: flex; flex-direction: column; gap: 12px;
+}
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+/* Opener card */
+.opener-card {
+  background: var(--input-bg); border: 1.5px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.opener-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 13px; background: var(--mid); border-bottom: 1px solid var(--border);
+}
+.opener-label {
+  font-size: 0.7rem; font-weight: 700; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 5px;
+}
+.opener-label .material-icons-outlined { font-size: 0.95rem; }
+.copy-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.copy-btn:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
+.copy-btn.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
+.opener-name-row {
+  padding: 10px 13px 0; display: flex; align-items: center; gap: 8px;
+}
+.opener-name-label { font-size: 0.72rem; color: var(--muted); flex-shrink: 0; }
+.opener-name-input {
+  flex: 1; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); border-radius: 7px; padding: 6px 10px;
+  font-size: 0.85rem; outline: none; transition: border-color 0.2s;
+  font-family: inherit;
+}
+.opener-name-input:focus { border-color: var(--primary-2); }
+.opener-name-input::placeholder { color: var(--border-soft); }
+.opener-text {
+  padding: 10px 13px 13px;
+  font-size: 0.95rem; line-height: 1.75; color: var(--text);
+}
+.opener-name-highlight {
+  color: var(--primary-2); font-weight: 700; border-bottom: 1.5px dashed var(--border-soft);
+}
+.opener-name-placeholder {
+  color: var(--border-soft); font-style: italic;
+}
+
+/* Utility tabs */
+.util-tabs {
+  display: flex; background: var(--mid); border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px; gap: 2px;
+}
+.util-tab {
+  flex: 1; text-align: center; padding: 7px 8px;
+  border-radius: 7px; font-size: 0.88rem; font-weight: 600;
+  color: var(--muted); cursor: pointer; transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+.util-tab:hover { background: rgba(0,0,0,0.06); color: var(--text); }
+.util-tab.active { background: var(--input-bg); color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+/* Script cards */
+.script-panel { display: none; flex-direction: column; gap: 8px; }
+.script-panel.active { display: flex; }
+
+.script-card {
+  background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+}
+.script-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--light);
+}
+.script-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 9px; border-radius: 4px;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; line-height: 1.6;
+}
+.badge-start { background: #dcfce7; color: #15803d; }
+body.dark .badge-start { background: #14532d; color: #86efac; }
+.badge-stop  { background: #fee2e2; color: #b91c1c; }
+body.dark .badge-stop  { background: #450a0a; color: #fca5a5; }
+.script-text {
+  padding: 11px 14px;
+  font-size: 0.95rem; line-height: 1.75; color: var(--text);
+}
+
+/* Relation card */
+.relation-card {
+  background: var(--mid); border: 1px solid var(--border-soft);
+  border-radius: 10px; overflow: hidden;
+}
+.relation-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; border-bottom: 1px solid var(--border);
+}
+.relation-label {
+  font-size: 0.7rem; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 5px;
+}
+.relation-label .material-icons-outlined { font-size: 0.9rem; }
+.relation-text {
+  padding: 11px 14px;
+  font-size: 0.93rem; line-height: 1.75; color: var(--text);
+}
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">call</span>
+  <div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
+    <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
+    <a class="nav-tab active" href="/phone"><span class="material-icons-outlined">call</span> 電話</a>
+  </div>
+</nav>
+
+<div class="mid">
+  <div class="app-title">
+    <h1>電話スクリプト</h1>
+    <p>Japan utility call scripts — ガス・水道・電気</p>
+  </div>
+
+  <!-- Opener -->
+  <div class="opener-card">
+    <div class="opener-header">
+      <span class="opener-label">
+        <span class="material-icons-outlined">record_voice_over</span> OPENER
+      </span>
+      <button class="copy-btn" id="openerCopyBtn" onclick="copyOpener()">Salin</button>
+    </div>
+    <div class="opener-name-row">
+      <span class="opener-name-label">名前：</span>
+      <input class="opener-name-input" id="nameInput" type="text" placeholder="Your name" oninput="updateOpener()">
+    </div>
+    <div class="opener-text" id="openerText">
+      いつもお世話になっております。<span class="opener-name-placeholder">[company name]</span>の<span class="opener-name-placeholder" id="nameSpan">[name]</span>と申します。
+    </div>
+  </div>
+
+  <!-- Utility tab switcher -->
+  <div class="util-tabs" role="tablist">
+    <div class="util-tab active" id="tab-gas"   onclick="switchTab('gas')"  >ガス</div>
+    <div class="util-tab"        id="tab-water" onclick="switchTab('water')">水道</div>
+    <div class="util-tab"        id="tab-elec"  onclick="switchTab('elec')" >電気</div>
+  </div>
+
+  <!-- ガス panel -->
+  <div class="script-panel active" id="panel-gas">
+    <div class="script-card">
+      <div class="script-card-header">
+        <span class="script-badge badge-start">開始</span>
+        <button class="copy-btn" onclick="copyText(this, '本人の代理で、ガスの開始をお願いしたいのですが。')">Salin</button>
+      </div>
+      <div class="script-text">本人の代理で、ガスの開始をお願いしたいのですが。</div>
+    </div>
+    <div class="script-card">
+      <div class="script-card-header">
+        <span class="script-badge badge-stop">停止</span>
+        <button class="copy-btn" onclick="copyText(this, '本人の代理で、ガスの停止をお願いしたいのですが。')">Salin</button>
+      </div>
+      <div class="script-text">本人の代理で、ガスの停止をお願いしたいのですが。</div>
+    </div>
+  </div>
+
+  <!-- 水道 panel -->
+  <div class="script-panel" id="panel-water">
+    <div class="script-card">
+      <div class="script-card-header">
+        <span class="script-badge badge-start">開始</span>
+        <button class="copy-btn" onclick="copyText(this, '本人の代理で、水道の開始をお願いしたいのですが。')">Salin</button>
+      </div>
+      <div class="script-text">本人の代理で、水道の開始をお願いしたいのですが。</div>
+    </div>
+    <div class="script-card">
+      <div class="script-card-header">
+        <span class="script-badge badge-stop">停止</span>
+        <button class="copy-btn" onclick="copyText(this, '本人の代理で、水道の停止をお願いしたいのですが。')">Salin</button>
+      </div>
+      <div class="script-text">本人の代理で、水道の停止をお願いしたいのですが。</div>
+    </div>
+  </div>
+
+  <!-- 電気 panel -->
+  <div class="script-panel" id="panel-elec">
+    <div class="script-card">
+      <div class="script-card-header">
+        <span class="script-badge badge-start">開始</span>
+        <button class="copy-btn" onclick="copyText(this, '本人の代理で、電気の開始をお願いしたいのですが。')">Salin</button>
+      </div>
+      <div class="script-text">本人の代理で、電気の開始をお願いしたいのですが。</div>
+    </div>
+    <div class="script-card">
+      <div class="script-card-header">
+        <span class="script-badge badge-stop">停止</span>
+        <button class="copy-btn" onclick="copyText(this, '本人の代理で、電気の停止をお願いしたいのですが。')">Salin</button>
+      </div>
+      <div class="script-text">本人の代理で、電気の停止をお願いしたいのですが。</div>
+    </div>
+  </div>
+
+  <!-- Relation card — always visible -->
+  <div class="relation-card">
+    <div class="relation-header">
+      <span class="relation-label">
+        <span class="material-icons-outlined">business</span> RELATION
+      </span>
+      <button class="copy-btn" onclick="copyText(this, 'わたしどもは登録支援機関でございまして、生活支援のお手伝いをしております。本人様より委任を受け、代理でご連絡しております。')">Salin</button>
+    </div>
+    <div class="relation-text">わたしどもは登録支援機関でございまして、生活支援のお手伝いをしております。本人様より委任を受け、代理でご連絡しております。</div>
+  </div>
+</div>
+
+<script>
+var THEME_KEY   = 'gaj_theme';
+var THEMES      = ['blue','pink','dark'];
+var THEME_ICONS = {blue:'palette',pink:'dark_mode',dark:'light_mode'};
+var THEME_LABELS= {blue:'Pink',pink:'Dark',dark:'Blue'};
+
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t)+1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+var TABS = ['gas','water','elec'];
+var activeTab = 'gas';
+
+function switchTab(tab) {
+  activeTab = tab;
+  TABS.forEach(function(t) {
+    document.getElementById('tab-'+t).className = 'util-tab' + (t === tab ? ' active' : '');
+    document.getElementById('panel-'+t).className = 'script-panel' + (t === tab ? ' active' : '');
+  });
+}
+
+function updateOpener() {
+  var name = document.getElementById('nameInput').value.trim();
+  var span = document.getElementById('nameSpan');
+  if (name) {
+    span.textContent = name;
+    span.className = 'opener-name-highlight';
+  } else {
+    span.textContent = '[name]';
+    span.className = 'opener-name-placeholder';
+  }
+}
+
+function getOpenerText() {
+  var name = document.getElementById('nameInput').value.trim() || '[name]';
+  return 'いつもお世話になっております。[company name]の' + name + 'と申します。';
+}
+
+function copyOpener() {
+  var btn = document.getElementById('openerCopyBtn');
+  navigator.clipboard.writeText(getOpenerText()).then(function() {
+    flashCopy(btn);
+  });
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(function() {
+    flashCopy(btn);
+  });
+}
+
+function flashCopy(btn) {
+  var orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  btn.className = 'copy-btn copied';
+  setTimeout(function() { btn.textContent = orig; btn.className = 'copy-btn'; }, 1500);
+}
+</script>
+<script src="/greetings.js"></script>
+</body>
+</html>
