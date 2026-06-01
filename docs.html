@@ -607,7 +607,7 @@ function openEditDoc(idx) {
     cropper = new Cropper(img, {
       viewMode: 1, autoCropArea: 0.95,
       movable: true, zoomable: true, rotatable: true, scalable: true,
-      background: true, checkOrientation: true,
+      background: true, checkOrientation: false,
     });
   };
   img.src = url;
@@ -646,12 +646,18 @@ function applyEdit() {
     btn.disabled = false; btn.textContent = 'Apply';
     return;
   }
-  canvas.toBlob(function(blob) {
-    docEditedBlobs[editingDocIdx] = blob;
-    renderCard(editingDocIdx);
-    cancelEdit();
+  try {
+    canvas.toBlob(function(blob) {
+      if (!blob) { btn.disabled = false; btn.textContent = 'Apply'; return; }
+      docEditedBlobs[editingDocIdx] = blob;
+      renderCard(editingDocIdx);
+      cancelEdit();
+      btn.disabled = false; btn.textContent = 'Apply';
+    }, 'image/jpeg', 0.92);
+  } catch(e) {
+    console.error('toBlob failed:', e);
     btn.disabled = false; btn.textContent = 'Apply';
-  }, 'image/jpeg', 0.92);
+  }
 }
 
 /* === Compression === */
