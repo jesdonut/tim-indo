@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Message Formatter - Tim Indo Serba Bisa</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+}
+body.dark {
+  --bg: #111827;
+  --text: #f1f5f9;
+  --primary: #93c5fd;
+  --primary-2: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-dark: #dbeafe;
+  --light: #1e293b;
+  --mid: #243453;
+  --border: #334155;
+  --border-soft: #475569;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --brand-bg: #1e293b;
+  --brand-sub: #93c5fd;
+  --input-bg: #263348;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; height: 100dvh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex; align-items: center; gap: 10px; justify-content: center; position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px; display: flex; gap: 2px;
+  overflow-x: auto;
+}
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.mid {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 10px;
+}
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+.section-label {
+  font-size: 0.72rem; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 4px;
+}
+
+.input-row {
+  display: flex; gap: 8px; align-items: flex-end;
+}
+
+input[type="text"], textarea {
+  width: 100%; padding: 9px 11px;
+  background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-size: 0.85rem;
+  font-family: inherit; resize: vertical;
+  transition: border-color 0.15s;
+  outline: none;
+}
+input[type="text"]:focus, textarea:focus {
+  border-color: var(--primary-2);
+}
+textarea { resize: vertical; min-height: 80px; }
+textarea.tall { min-height: 180px; }
+
+.btn-primary {
+  padding: 10px 16px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+.btn-primary .material-icons-outlined { font-size: 1.05rem; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-secondary {
+  padding: 8px 14px; background: var(--light); color: var(--primary-2);
+  border: 1px solid var(--border); border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.btn-secondary .material-icons-outlined { font-size: 0.95rem; }
+.btn-secondary:hover { background: var(--mid); }
+
+.result-box {
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden;
+}
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  background: var(--light);
+}
+.result-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+.result-textarea {
+  width: 100%; padding: 12px; background: transparent;
+  border: none; color: var(--text); font-size: 0.82rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  resize: none; outline: none; min-height: 200px; line-height: 1.6;
+}
+
+.copy-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #1e293b; color: #fff; padding: 8px 18px; border-radius: 20px;
+  font-size: 0.82rem; font-weight: 600; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.tip-box {
+  background: var(--light); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 13px; font-size: 0.74rem; color: var(--muted); line-height: 1.6;
+}
+.tip-box strong { color: var(--text); }
+
+.divider {
+  display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.7rem;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">chat</span>
+  <div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
+    <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
+    <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
+    <a class="nav-tab active" href="/msg"><span class="material-icons-outlined">chat</span> Msg</a>
+  </div>
+</nav>
+
+<div class="mid">
+  <div class="app-title">
+    <h1>Message Formatter</h1>
+    <p>Paste フォーム text → get the formatted send message</p>
+  </div>
+
+  <div class="tip-box">
+    <strong>How to use:</strong> Copy the フォーム cell from the spreadsheet and paste below.
+    Then type the code (e.g. <strong>OSS 43</strong>) and click Format.
+  </div>
+
+  <div>
+    <div class="section-label">Code (e.g. OSS 43)</div>
+    <input type="text" id="codeInput" placeholder="OSS 43" autocomplete="off" spellcheck="false">
+  </div>
+
+  <div>
+    <div class="section-label">フォーム Text — paste from spreadsheet</div>
+    <textarea class="tall" id="formPaste" placeholder="I133&#9;&#9;&#9;エム ホイディル ラムダニ&#9;&#9;&#9;M KHOIDIR RAMDANI&#10;送り込み：アウン&#10;&#10;従業員番号：009054805&#10;..." spellcheck="false"></textarea>
+  </div>
+
+  <div class="input-row">
+    <button class="btn-primary" onclick="formatMsg()">
+      <span class="material-icons-outlined">auto_fix_high</span> Format
+    </button>
+    <button class="btn-secondary" onclick="clearAll()">
+      <span class="material-icons-outlined">clear</span> Clear
+    </button>
+  </div>
+
+  <div id="outputSection" style="display:none">
+    <div class="divider">Output</div>
+    <div class="result-box">
+      <div class="result-header">
+        <span class="result-label">Ready to copy</span>
+        <button class="btn-secondary" onclick="copyOutput()">
+          <span class="material-icons-outlined">content_copy</span> Copy
+        </button>
+      </div>
+      <textarea class="result-textarea" id="outputArea" readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<div class="copy-toast" id="copyToast">Copied!</div>
+
+<script>
+var THEME_KEY   = 'gaj_theme';
+var THEMES      = ['blue','pink','dark'];
+var THEME_ICONS = {blue:'palette',pink:'dark_mode',dark:'light_mode'};
+var THEME_LABELS= {blue:'Pink',pink:'Dark',dark:'Blue'};
+
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t)+1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+function formatMsg() {
+  var code = document.getElementById('codeInput').value.trim();
+  var raw  = document.getElementById('formPaste').value;
+
+  if (!raw.trim()) return;
+
+  var lines = raw.split('\n');
+  var firstLine = lines[0];
+
+  // Split first line on 2+ consecutive spaces or tabs (spreadsheet column separators)
+  var parts = firstLine.trim().split(/[ \t]{2,}/).map(function(s){ return s.trim(); }).filter(Boolean);
+
+  var id     = parts[0] || '';
+  var jaName = parts[1] || '';
+  var enName = parts[2] || '';
+
+  // Swap if first word of parts[1] looks like uppercase Latin (means jaName/enName order was flipped)
+  if (jaName && /^[A-Z]/.test(jaName) && enName && /^[゠-ヿ]/.test(enName)) {
+    var tmp = jaName; jaName = enName; enName = tmp;
+  }
+
+  // Last katakana word of Japanese name = last name
+  var jaWords  = jaName.trim().split(/\s+/);
+  var lastName = jaWords[jaWords.length - 1] || '';
+
+  var headerParts = [id];
+  if (code) headerParts.push(code);
+  headerParts.push(enName);
+  headerParts.push(jaName);
+  if (lastName) headerParts.push('(' + lastName + ')');
+  var header = headerParts.join(' ');
+
+  // Body from line 2 onwards (skip the name header line)
+  var body = lines.slice(1).join('\n');
+  // Trim leading blank lines from body but keep internal structure
+  body = body.replace(/^\n+/, '');
+
+  var output = header + '\n\n' + body;
+
+  var area = document.getElementById('outputArea');
+  area.value = output;
+  // Auto-resize textarea to content
+  area.style.height = 'auto';
+  area.style.height = Math.min(area.scrollHeight, 500) + 'px';
+
+  document.getElementById('outputSection').style.display = '';
+  document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyOutput() {
+  var area = document.getElementById('outputArea');
+  if (!area.value) return;
+  navigator.clipboard.writeText(area.value).then(function() {
+    showToast();
+  }).catch(function() {
+    area.select();
+    document.execCommand('copy');
+    showToast();
+  });
+}
+
+function showToast() {
+  var t = document.getElementById('copyToast');
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+
+function clearAll() {
+  document.getElementById('codeInput').value = '';
+  document.getElementById('formPaste').value = '';
+  document.getElementById('outputSection').style.display = 'none';
+  document.getElementById('outputArea').value = '';
+}
+</script>
+<script src="/greetings.js"></script>
+</body>
+</html>
