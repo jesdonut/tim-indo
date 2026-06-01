@@ -477,12 +477,11 @@ function buildDrop(idx) {
     drop.className = 'doc-drop empty';
     drop.innerHTML =
       '<span class="material-icons-outlined doc-empty-icon">upload_file</span>' +
-      '<span class="doc-empty-text">Drop, <span class="doc-browse-link">browse</span>' +
-      ', or focus &amp; <kbd style="font-size:0.62rem;background:var(--mid);border:1px solid var(--border);border-radius:3px;padding:0 3px">Ctrl+V</kbd></span>';
+      '<span class="doc-empty-text">Tap to focus, then <kbd style="font-size:0.62rem;background:var(--mid);border:1px solid var(--border);border-radius:3px;padding:0 3px">Ctrl+V</kbd> to paste · drop here · or <span class="doc-browse-link">browse</span></span>';
     drop.querySelector('.doc-browse-link').onclick = function(e) {
       e.stopPropagation(); browseDoc(idx);
     };
-    drop.onclick = function() { drop.focus(); browseDoc(idx); };
+    drop.onclick = function() { drop.focus(); };
   } else {
     drop.className = 'doc-drop';
     var isImg   = file.type !== 'application/pdf';
