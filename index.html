@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Indonesian Team PDF Merger</title>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 <style>
 :root {
   --bg: #f0f6ff;
@@ -320,6 +321,49 @@ body {
 .status.error { color: #ef4444; }
 .status.success { color: #16a34a; }
 
+.edit-btn { background: var(--light); border: 1px solid var(--border); color: var(--primary-2); }
+.edit-btn:hover { background: var(--mid); border-color: var(--border-soft); }
+
+.edit-modal {
+  position: fixed; inset: 0; z-index: 10000;
+  display: none; flex-direction: column; background: #000;
+}
+.edit-modal.open { display: flex; }
+.edit-modal-header {
+  flex-shrink: 0; background: var(--brand-bg); color: #fff;
+  padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+}
+.edit-modal-title { font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.edit-modal-close {
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 50%; width: 28px; height: 28px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.edit-modal-close .material-icons-outlined { font-size: 1rem; }
+.edit-modal-body { flex: 1; min-height: 0; overflow: hidden; background: #1a1a2e; }
+.edit-modal-body img { display: block; max-width: 100%; }
+.edit-modal-footer {
+  flex-shrink: 0; background: var(--bg); padding: 10px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.angle-row { display: flex; align-items: center; gap: 10px; }
+.angle-label { font-size: 0.75rem; color: var(--muted); flex-shrink: 0; }
+.angle-slider { flex: 1; accent-color: var(--primary-2); }
+.angle-val { font-size: 0.78rem; font-weight: 700; color: var(--primary); min-width: 38px; text-align: right; flex-shrink: 0; }
+.edit-action-row { display: flex; gap: 8px; }
+.edit-cancel-btn {
+  flex: 1; padding: 10px; border-radius: 8px;
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.88rem; font-weight: 600; cursor: pointer;
+}
+.edit-apply-btn {
+  flex: 2; padding: 10px; border-radius: 8px;
+  background: var(--primary-2); color: #fff; border: none;
+  font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
+}
+.edit-apply-btn:hover { background: var(--primary-hover); }
+.edit-apply-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .greeting-bar {
   background: var(--mid); border: 1px solid var(--border-soft);
   border-radius: 9px; padding: 8px 13px;
@@ -339,8 +383,8 @@ body {
 <div class="brand-bar">
   <span class="material-icons-outlined brand-icon">description</span>
   <div>
-    <div class="brand-name">Grasp Agent Japan</div>
-    <div class="brand-ja">&#12464;&#12521;&#12473;&#12503;&#12456;&#12540;&#12472;&#12455;&#12531;&#12488;&#12472;&#12515;&#12497;&#12531;</div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
   </div>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
     <span class="material-icons-outlined">palette</span> Pink
@@ -352,18 +396,17 @@ body {
     <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
     <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
     <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
   </div>
 </nav>
 
 <div class="mid">
   <div class="app-title">
-    <h1>Indonesian Team PDF Merger</h1>
-    <p>Combine PDFs &amp; images &mdash; rotate, reorder, download</p>
-  </div>
-
-  <div class="greeting-bar" id="greetingBar" style="display:none">
-    <span class="greeting-text" id="greetingText"></span>
-    <button class="greeting-close" onclick="dismissGreeting()" title="Close">&#215;</button>
+    <h1>PDF Merger</h1>
+    <p>Gabungin PDF &amp; gambar, bisa rotate, urutkan, terus download</p>
   </div>
 
   <div>
@@ -459,10 +502,37 @@ body {
 
 <div id="imgPreview"><img id="imgPreviewImg" src="" alt=""></div>
 
+<div class="edit-modal" id="editModal">
+  <div class="edit-modal-header">
+    <span class="edit-modal-title">
+      <span class="material-icons-outlined">crop</span> Crop &amp; Straighten
+    </span>
+    <button class="edit-modal-close" onclick="cancelEdit()">
+      <span class="material-icons-outlined">close</span>
+    </button>
+  </div>
+  <div class="edit-modal-body">
+    <img id="editImg" src="" alt="">
+  </div>
+  <div class="edit-modal-footer">
+    <div class="angle-row">
+      <span class="angle-label">Straighten</span>
+      <input type="range" class="angle-slider" id="angleSlider" min="-45" max="45" step="0.5" value="0">
+      <span class="angle-val" id="angleVal">0°</span>
+    </div>
+    <div class="edit-action-row">
+      <button class="edit-cancel-btn" onclick="cancelEdit()">Cancel</button>
+      <button class="edit-apply-btn" id="editApplyBtn" onclick="applyEdit()">Apply</button>
+    </div>
+  </div>
+</div>
+
 <script src="greetings.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>
 var files = [];
+var editedBlobs = [];
 var rotations = [];
 var dragSrcIdx = null;
 var langOpen = false;
@@ -580,15 +650,15 @@ document.addEventListener('paste', function(e) {
 function addFiles(newFiles) {
   var allowed = ['application/pdf', 'image/jpeg', 'image/png'], added = 0;
   newFiles.forEach(function(f) {
-    if (allowed.indexOf(f.type) >= 0) { files.push(f); rotations.push(0); added++; }
+    if (allowed.indexOf(f.type) >= 0) { files.push(f); rotations.push(0); editedBlobs.push(null); added++; }
   });
   if (added === 0 && newFiles.length > 0) setStatus('Only PDF, JPG, and PNG files are supported.', 'error');
   else setStatus('', '');
   renderList();
 }
 
-function clearAll()    { files = []; rotations = []; renderList(); setStatus('', ''); }
-function removeFile(i) { files.splice(i,1); rotations.splice(i,1); renderList(); }
+function clearAll()    { files = []; rotations = []; editedBlobs = []; renderList(); setStatus('', ''); }
+function removeFile(i) { files.splice(i,1); rotations.splice(i,1); editedBlobs.splice(i,1); renderList(); }
 function rotate(i,dir) { rotations[i]=(rotations[i]+dir*90+360)%360; renderList(); }
 
 function fmt(b) {
@@ -622,23 +692,32 @@ function renderList() {
       thumb.innerHTML = '<span class="material-icons-outlined pdf-thumb-icon">picture_as_pdf</span>';
     } else {
       var imgEl = document.createElement('img');
-      imgEl.src = URL.createObjectURL(file);
+      var thumbSrc = URL.createObjectURL(editedBlobs[i] || file);
+      imgEl.src = thumbSrc;
       if (rotClass) imgEl.className = rotClass;
       thumb.appendChild(imgEl);
       (function(src, rc) {
         thumb.addEventListener('mouseenter', function(e) { showPreview(src, rc, e); });
         thumb.addEventListener('mousemove',  function(e) { movePreview(e); });
         thumb.addEventListener('mouseleave', function()  { hidePreview(); });
-      })(imgEl.src, rotClass);
+      })(thumbSrc, rotClass);
     }
 
     var info = document.createElement('div');
     info.className = 'file-info';
     var ext = file.type==='application/pdf'?'PDF':file.type==='image/png'?'PNG':'JPG';
     var rotTxt = rot>0?' · '+rot+'°':'';
-    info.innerHTML='<div class="file-name">'+esc(file.name)+'</div><div class="file-meta">'+ext+' · '+fmt(file.size)+rotTxt+'</div>';
+    var editTxt = editedBlobs[i] ? ' · ✂ edited' : '';
+    info.innerHTML='<div class="file-name">'+esc(file.name)+'</div><div class="file-meta">'+ext+' · '+fmt(file.size)+rotTxt+editTxt+'</div>';
 
     var rotBtns = document.createElement('div'); rotBtns.className = 'rotate-btns';
+    if (file.type !== 'application/pdf') {
+      var editBtn = document.createElement('button');
+      editBtn.className='rot-btn edit-btn'; editBtn.title='Crop & straighten';
+      editBtn.innerHTML='<span class="material-icons-outlined">crop</span>';
+      editBtn.onclick=(function(idx){ return function(e){ e.stopPropagation(); openEdit(idx); }; })(i);
+      rotBtns.appendChild(editBtn);
+    }
     var rotL = document.createElement('button');
     rotL.className='rot-btn'; rotL.title='Rotate left';
     rotL.innerHTML='<span class="material-icons-outlined">rotate_left</span>';
@@ -672,17 +751,77 @@ function renderList() {
       e.preventDefault(); e.stopPropagation();
       item.classList.remove('drag-over');
       if (dragSrcIdx!==null && dragSrcIdx!==i) {
-        var mf=files.splice(dragSrcIdx,1)[0], mr=rotations.splice(dragSrcIdx,1)[0];
-        files.splice(i,0,mf); rotations.splice(i,0,mr);
+        var mf=files.splice(dragSrcIdx,1)[0], mr=rotations.splice(dragSrcIdx,1)[0], me=editedBlobs.splice(dragSrcIdx,1)[0];
+        files.splice(i,0,mf); rotations.splice(i,0,mr); editedBlobs.splice(i,0,me);
         dragSrcIdx=null; renderList();
       }
     });
   });
 }
 
+var cropper = null;
+var editingIdx = -1;
+
+function openEdit(idx) {
+  editingIdx = idx;
+  var src = editedBlobs[idx] || files[idx];
+  var rot = rotations[idx];
+  document.getElementById('editModal').classList.add('open');
+  document.getElementById('angleSlider').value = 0;
+  document.getElementById('angleVal').textContent = '0°';
+  if (rot === 0) {
+    initCropperUrl(URL.createObjectURL(src));
+  } else {
+    rotateImageBytes(src, rot).then(function(bytes) {
+      initCropperUrl(URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' })));
+    });
+  }
+}
+
+function initCropperUrl(url) {
+  if (cropper) { cropper.destroy(); cropper = null; }
+  var img = document.getElementById('editImg');
+  img.onload = function() {
+    URL.revokeObjectURL(url);
+    cropper = new Cropper(img, {
+      viewMode: 1,
+      autoCropArea: 0.95,
+      movable: true,
+      zoomable: true,
+      rotatable: true,
+      background: true,
+    });
+  };
+  img.src = url;
+}
+
+function cancelEdit() {
+  document.getElementById('editModal').classList.remove('open');
+  if (cropper) { cropper.destroy(); cropper = null; }
+}
+
+document.getElementById('angleSlider').addEventListener('input', function() {
+  var a = parseFloat(this.value);
+  document.getElementById('angleVal').textContent = (a > 0 ? '+' : '') + a.toFixed(1) + '°';
+  if (cropper) cropper.rotateTo(a);
+});
+
+function applyEdit() {
+  if (!cropper) return;
+  var btn = document.getElementById('editApplyBtn');
+  btn.disabled = true; btn.textContent = 'Applying…';
+  var canvas = cropper.getCroppedCanvas({ fillColor: '#ffffff', imageSmoothingQuality: 'high' });
+  canvas.toBlob(function(blob) {
+    editedBlobs[editingIdx] = blob;
+    rotations[editingIdx] = 0;
+    renderList();
+    cancelEdit();
+    btn.disabled = false; btn.textContent = 'Apply';
+  }, 'image/jpeg', 0.92);
+}
+
 function rotateImageBytes(file, rotation) {
   return new Promise(function(resolve) {
-    if (rotation===0) { file.arrayBuffer().then(resolve); return; }
     var url = URL.createObjectURL(file);
     var img = new Image();
     img.onload = function() {
@@ -691,12 +830,13 @@ function rotateImageBytes(file, rotation) {
       canvas.width =swap?img.naturalHeight:img.naturalWidth;
       canvas.height=swap?img.naturalWidth :img.naturalHeight;
       var ctx=canvas.getContext('2d');
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.translate(canvas.width/2,canvas.height/2);
       ctx.rotate(rotation*Math.PI/180);
       ctx.drawImage(img,-img.naturalWidth/2,-img.naturalHeight/2);
       URL.revokeObjectURL(url);
-      var mime=file.type==='image/png'?'image/png':'image/jpeg';
-      canvas.toBlob(function(blob){ blob.arrayBuffer().then(resolve); },mime,0.95);
+      canvas.toBlob(function(blob){ blob.arrayBuffer().then(resolve); },'image/jpeg',0.90);
     };
     img.src=url;
   });
@@ -724,6 +864,7 @@ function handleDownload() {
       chain=chain.then(function() {
         setProgress(10+Math.round((idx/files.length)*80));
         var rot=rotations[idx];
+        var src=editedBlobs[idx]||file;
         if (file.type==='application/pdf') {
           return file.arrayBuffer().then(function(bytes) {
             return PDFLib.PDFDocument.load(bytes).then(function(srcDoc) {
@@ -736,9 +877,8 @@ function handleDownload() {
             });
           });
         } else {
-          return rotateImageBytes(file,rot).then(function(bytes) {
-            var fn=file.type==='image/png'?pdfDoc.embedPng.bind(pdfDoc):pdfDoc.embedJpg.bind(pdfDoc);
-            return fn(bytes).then(function(img) {
+          return rotateImageBytes(src,rot).then(function(bytes) {
+            return pdfDoc.embedJpg(bytes).then(function(img) {
               var maxW=595,maxH=842,w=img.width,h=img.height;
               var scale=Math.min(1,maxW/w,maxH/h);
               w=Math.round(w*scale); h=Math.round(h*scale);
@@ -749,7 +889,7 @@ function handleDownload() {
         }
       });
     });
-    return chain.then(function(){ return pdfDoc.save(); });
+    return chain.then(function(){ return pdfDoc.save({ useObjectStreams: true }); });
   }).then(function(pdfBytes) {
     setProgress(95);
     var blob=new Blob([pdfBytes],{type:'application/pdf'});
@@ -761,7 +901,8 @@ function handleDownload() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function(){ URL.revokeObjectURL(url); },5000);
     setProgress(100);
-    setStatus('Downloaded "'+name+'"','success');
+    var sizeMB=(pdfBytes.byteLength/1048576).toFixed(1);
+    setStatus('Downloaded "'+name+'" ('+sizeMB+' MB)','success');
     setTimeout(function(){ setProgress(-1); },1800);
   }).catch(function(err) {
     console.error(err); setStatus('Error: '+err.message,'error'); setProgress(-1);
@@ -773,86 +914,6 @@ function handleDownload() {
 
 renderSavedNames();
 
-(function() {
-  if (sessionStorage.getItem('greet_gone')) return;
-
-  var MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus',
-                'September','Oktober','November','Desember'];
-
-  function getJST() {
-    var d = new Date(Date.now() + 9 * 3600000);
-    var h = d.getUTCHours(), m = d.getUTCMinutes();
-    return {
-      hours: h, day: d.getUTCDay(), totalMins: h * 60 + m,
-      timeStr: ('0' + h).slice(-2) + ':' + ('0' + m).slice(-2)
-    };
-  }
-
-  function applyVars(text, jst) {
-    return text.replace('{month}', MONTHS[new Date().getMonth()]).replace('{time}', jst.timeStr);
-  }
-
-  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
-  function show(joke) {
-    document.getElementById('greetingText').textContent =
-      'Hi, welcome back Dimas, Jessica & Ben — ' + joke;
-    document.getElementById('greetingBar').style.display = '';
-  }
-
-  var jst = getJST();
-
-  for (var i = 0; i < GREETINGS_TIMED.length; i++) {
-    var g = GREETINGS_TIMED[i];
-    if (g.priority && g.condition(jst)) { show(applyVars(g.text, jst)); return; }
-  }
-
-  var timedPool  = GREETINGS_TIMED
-    .filter(function(g) { return !g.priority && g.condition(jst); })
-    .map(function(g)   { return applyVars(g.text, jst); });
-  var staticPool = GREETINGS.map(function(t) { return applyVars(t, jst); });
-
-  function getCached() {
-    try {
-      var d = JSON.parse(localStorage.getItem('gaj_rate') || 'null');
-      return (d && Date.now() - d.ts < 3600000) ? d.val : null;
-    } catch(e) { return null; }
-  }
-  function fetchRate() {
-    return fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json')
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var idr = d && d.usd && d.usd.idr;
-        if (!idr) return null;
-        var k = Math.round(idr / 100) / 10;
-        var fmt = (k % 1 === 0 ? k.toString() : k.toFixed(1)) + 'ribu';
-        var joke = 'sekarang rate-nya ' + fmt + ' jir 💸 (USD→IDR)';
-        try { localStorage.setItem('gaj_rate', JSON.stringify({ val: joke, ts: Date.now() })); } catch(e) {}
-        return joke;
-      })
-      .catch(function() { return null; });
-  }
-
-  var cached = getCached();
-  var ratePromise = cached
-    ? Promise.resolve(cached)
-    : Promise.race([
-        fetchRate(),
-        new Promise(function(res) { setTimeout(function() { res(null); }, 900); })
-      ]);
-
-  ratePromise.then(function(rateJoke) {
-    var pool = timedPool.concat(staticPool);
-    if (rateJoke) pool.push(rateJoke);
-    var joke = (timedPool.length && Math.random() < 0.6) ? pick(timedPool) : pick(pool);
-    show(joke);
-  });
-})();
-
-function dismissGreeting() {
-  sessionStorage.setItem('greet_gone', '1');
-  document.getElementById('greetingBar').style.display = 'none';
-}
 </script>
 </body>
 </html>

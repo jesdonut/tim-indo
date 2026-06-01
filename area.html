@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Area Assignment - Tim Indo Serba Bisa</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+  --map-unassigned: #dbeafe;
+  --danger: #ef4444;
+  --danger-bg: #fef2f2;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+  --map-unassigned: #f5dae5;
+}
+body.dark {
+  --bg: #111827;
+  --text: #f1f5f9;
+  --primary: #93c5fd;
+  --primary-2: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-dark: #dbeafe;
+  --light: #1e293b;
+  --mid: #243453;
+  --border: #334155;
+  --border-soft: #475569;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --brand-bg: #1e293b;
+  --brand-sub: #93c5fd;
+  --input-bg: #263348;
+  --map-unassigned: #334155;
+  --danger-bg: #2d1a1a;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; height: 100dvh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex; align-items: center; gap: 10px; justify-content: center; position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px; display: flex; gap: 2px;
+  overflow-x: auto;
+}
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.area-toolbar {
+  flex-shrink: 0;
+  background: var(--light); border-bottom: 1px solid var(--border);
+  padding: 7px 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.area-toolbar.drag-over { background: var(--mid); }
+.tbtn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 11px; border-radius: 7px; font-size: 0.76rem; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--border); background: var(--input-bg); color: var(--primary);
+  transition: background 0.15s, border-color 0.15s;
+}
+.tbtn .material-icons-outlined { font-size: 0.9rem; }
+.tbtn:hover { background: var(--mid); border-color: var(--border-soft); }
+.tbtn.danger { color: var(--danger); border-color: #fca5a5; }
+.tbtn.danger:hover { background: var(--danger-bg); }
+.import-file { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+.tbtn-label { display: inline-flex; align-items: center; gap: 4px; padding: 5px 11px; border-radius: 7px; font-size: 0.76rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--input-bg); color: var(--primary); transition: background 0.15s, border-color 0.15s; }
+.tbtn-label:hover { background: var(--mid); border-color: var(--border-soft); }
+.tbtn-label .material-icons-outlined { font-size: 0.9rem; }
+.toolbar-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+#importStatus { font-size: 0.72rem; margin-left: auto; display: none; }
+
+.area-main { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+
+.map-panel { flex: 1; position: relative; overflow: hidden; background: var(--bg); }
+#japanMap { width: 100%; height: 100%; }
+.map-loading {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+  color: var(--muted); font-size: 0.78rem; text-align: center;
+}
+.prefecture { stroke: #fff; stroke-width: 0.5; cursor: pointer; transition: filter 0.1s; }
+.prefecture:hover { filter: brightness(1.15) saturate(1.15); }
+.zoom-reset-btn {
+  position: absolute; bottom: 12px; left: 12px; z-index: 10;
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 10px; background: var(--input-bg); border: 1px solid var(--border-soft);
+  border-radius: 6px; color: var(--muted); font-size: 0.72rem; cursor: pointer;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+}
+.zoom-reset-btn:hover { background: var(--mid); color: var(--primary); border-color: var(--primary); }
+.zoom-reset-btn .material-icons-outlined { font-size: 0.88rem; }
+
+.side-panel {
+  width: 278px; flex-shrink: 0;
+  background: var(--input-bg); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow-y: auto; padding: 10px; gap: 7px;
+}
+.staff-card {
+  background: var(--light); border: 1px solid var(--border); border-radius: 9px; padding: 11px 12px;
+}
+.staff-card-header { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.staff-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.staff-name { font-weight: 600; font-size: 0.78rem; flex: 1; }
+.staff-name-en { font-size: 0.67rem; color: var(--muted); }
+.staff-count { font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-bottom: 5px; }
+.staff-count.over { color: var(--danger); }
+.cap-bar { background: var(--mid); border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 3px; }
+.cap-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.cap-fill.over { background: var(--danger) !important; }
+.cap-label { font-size: 0.64rem; color: var(--muted); }
+.staff-prefs { margin-top: 6px; font-size: 0.64rem; color: var(--muted); max-height: 56px; overflow-y: auto; line-height: 1.9; }
+
+.add-person-section { padding: 2px 0; }
+.add-person-form { display: flex; gap: 5px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.add-person-form input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; color: var(--text); font-size: 0.76rem; }
+.add-person-form input:focus { outline: none; border-color: var(--accent); }
+.btn-add {
+  width: 100%; background: transparent; border: 1px dashed var(--border);
+  border-radius: 7px; padding: 7px; color: var(--muted); font-size: 0.75rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.btn-add:hover { border-color: var(--accent); color: var(--accent); }
+.btn-add:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-add .material-icons-outlined { font-size: 0.9rem; }
+
+.panel-total {
+  margin-top: auto; padding: 8px 0 2px; border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.panel-total span { font-size: 0.7rem; color: var(--muted); }
+.panel-total strong { font-size: 1.3rem; font-weight: 700; color: var(--primary); }
+
+.btn-sm { background: var(--primary); border: none; border-radius: 5px; padding: 4px 8px; color: #fff; font-size: 0.72rem; cursor: pointer; }
+.btn-sm:hover { background: var(--primary-hover); }
+.btn-sm.confirm { background: #16a34a; }
+.btn-sm.confirm:hover { background: #15803d; }
+.btn-ghost { background: transparent; border: none; color: var(--muted); font-size: 0.75rem; cursor: pointer; padding: 4px 6px; }
+.btn-ghost:hover { color: var(--text); }
+
+.pref-popover {
+  position: fixed; z-index: 300;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 11px; width: 300px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.14); overflow: hidden;
+}
+.popover-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: var(--light); border-bottom: 1px solid var(--border);
+}
+.popover-header strong { font-size: 0.9rem; font-weight: 600; }
+.popover-close { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; align-items: center; }
+.popover-close:hover { color: var(--text); }
+.popover-close .material-icons-outlined { font-size: 1rem; }
+.popover-assign { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.popover-assign label { font-size: 0.67rem; color: var(--muted); display: block; margin-bottom: 7px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.popover-person-btns { display: flex; flex-wrap: wrap; gap: 5px; }
+.person-btn { border: 2px solid transparent; border-radius: 20px; padding: 3px 11px; font-size: 0.74rem; cursor: pointer; background: var(--mid); color: var(--text); transition: filter 0.1s; }
+.person-btn:hover { filter: brightness(1.08); }
+.person-btn.active { color: #fff; }
+
+.popover-roster { padding: 10px 14px; }
+.roster-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.roster-header span { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+.add-worker-form { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-bottom: 7px; }
+.add-worker-form input, .add-worker-form select { background: var(--light); border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px; color: var(--text); font-size: 0.72rem; }
+.add-worker-form input[type=text] { flex: 1; min-width: 80px; }
+.add-worker-form input:focus, .add-worker-form select:focus { outline: none; border-color: var(--accent); }
+.roster-list { list-style: none; display: flex; flex-direction: column; gap: 3px; max-height: 180px; overflow-y: auto; }
+.roster-item { display: flex; align-items: center; gap: 7px; background: var(--light); border-radius: 6px; padding: 5px 8px; font-size: 0.74rem; }
+.roster-item .worker-name { flex: 1; font-weight: 500; }
+.roster-item .worker-meta { color: var(--muted); font-size: 0.66rem; }
+.roster-item .remove-worker { background: none; border: none; color: var(--border-soft); cursor: pointer; font-size: 0.85rem; line-height: 1; padding: 0 2px; }
+.roster-item .remove-worker:hover { color: var(--danger); }
+.roster-placeholder { color: var(--muted); font-size: 0.68rem; font-style: italic; padding: 4px 0; }
+
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 400; display: flex; align-items: center; justify-content: center; }
+.overlay-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; width: 700px; max-width: 95vw; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.18); }
+.overlay-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--light); }
+.overlay-header h2 { font-size: 0.95rem; font-weight: 700; }
+.overlay-header button { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; align-items: center; }
+.overlay-header button:hover { color: var(--text); }
+.all-workers-scroll { overflow-y: auto; flex: 1; }
+#allWorkersTable { border-collapse: collapse; width: 100%; }
+#allWorkersTable thead { position: sticky; top: 0; background: var(--light); }
+#allWorkersTable th { padding: 9px 14px; text-align: left; font-size: 0.71rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+#allWorkersTable td { padding: 7px 14px; font-size: 0.8rem; border-top: 1px solid var(--border); }
+
+.map-tooltip { position: fixed; pointer-events: none; background: var(--light); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 0.72rem; color: var(--text); display: none; z-index: 200; white-space: nowrap; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">map</span>
+  <div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">area assignment tool</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab active" href="/area"><span class="material-icons-outlined">map</span> Area</a>
+  </div>
+</nav>
+
+<div class="area-toolbar" id="toolbar">
+  <label class="tbtn-label" for="csvInput">
+    <span class="material-icons-outlined">upload_file</span> CSV Import
+  </label>
+  <input id="csvInput" class="import-file" type="file" accept=".csv,text/csv">
+  <label class="tbtn-label" for="jsonInput">
+    <span class="material-icons-outlined">data_object</span> JSON Import
+  </label>
+  <input id="jsonInput" class="import-file" type="file" accept=".json,application/json">
+  <button id="exportJsonBtn" class="tbtn">
+    <span class="material-icons-outlined">download</span> JSON Export
+  </button>
+  <div class="toolbar-sep"></div>
+  <button id="allWorkersBtn" class="tbtn">
+    <span class="material-icons-outlined">groups</span> All Workers
+  </button>
+  <button id="resetBtn" class="tbtn danger">
+    <span class="material-icons-outlined">restart_alt</span> Reset
+  </button>
+  <span id="importStatus"></span>
+</div>
+
+<div class="area-main">
+  <div class="map-panel">
+    <svg id="japanMap" role="img" aria-label="Japan prefecture map"></svg>
+    <div class="map-loading" id="mapLoading">
+      <span class="material-icons-outlined" style="font-size:2rem;opacity:0.35">map</span>
+      <span>地図を読み込み中 / Loading map…</span>
+    </div>
+    <button id="resetZoom" class="zoom-reset-btn">
+      <span class="material-icons-outlined">center_focus_strong</span> リセット
+    </button>
+  </div>
+
+  <aside class="side-panel">
+    <div id="staffCards"></div>
+    <div class="add-person-section">
+      <button id="addPersonBtn" class="btn-add">
+        <span class="material-icons-outlined">person_add</span> Add Person
+      </button>
+      <div id="addPersonForm" class="add-person-form" style="display:none">
+        <input type="text" id="newPersonName" placeholder="Name" maxlength="20">
+        <button id="confirmAddPerson" class="btn-sm">確定</button>
+        <button id="cancelAddPerson" class="btn-ghost">キャンセル</button>
+      </div>
+    </div>
+    <div class="panel-total">
+      <span>合計 / Total</span>
+      <strong id="grandTotal">0名</strong>
+    </div>
+  </aside>
+</div>
+
+<div id="prefPopover" class="pref-popover" style="display:none">
+  <div class="popover-header">
+    <strong id="popoverPrefName"></strong>
+    <button id="popoverClose" class="popover-close"><span class="material-icons-outlined">close</span></button>
+  </div>
+  <div class="popover-assign">
+    <label>担当者 / Assign to:</label>
+    <div id="popoverPersonBtns" class="popover-person-btns"></div>
+  </div>
+  <div class="popover-roster">
+    <div class="roster-header">
+      <span id="rosterCount"></span>
+      <button id="addWorkerBtn" class="btn-sm">＋ Add Worker</button>
+    </div>
+    <div id="addWorkerForm" class="add-worker-form" style="display:none">
+      <input type="text" id="workerName" placeholder="Name">
+      <select id="workerGender">
+        <option value="M">M</option>
+        <option value="F">F</option>
+        <option value="Other">Other</option>
+      </select>
+      <input type="number" id="workerAge" placeholder="Age" min="18" max="60" style="width:58px">
+      <button id="confirmWorker" class="btn-sm confirm">追加</button>
+      <button id="cancelWorker" class="btn-ghost">×</button>
+    </div>
+    <ul id="rosterList" class="roster-list"></ul>
+  </div>
+</div>
+
+<div id="allWorkersOverlay" class="overlay" style="display:none">
+  <div class="overlay-panel">
+    <div class="overlay-header">
+      <h2>全員リスト / All Workers</h2>
+      <button id="closeAllWorkers"><span class="material-icons-outlined">close</span></button>
+    </div>
+    <div class="all-workers-scroll">
+      <table id="allWorkersTable">
+        <thead><tr><th>名前</th><th>性別</th><th>年齢</th><th>エリア</th><th>担当者</th></tr></thead>
+        <tbody id="allWorkersBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="mapTooltip" class="map-tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+/* ── Theme ── */
+var THEME_KEY    = 'gaj_theme';
+var THEMES       = ['blue','pink','dark'];
+var THEME_ICONS  = {blue:'palette',  pink:'dark_mode',  dark:'light_mode'};
+var THEME_LABELS = {blue:'Pink',     pink:'Dark',        dark:'Blue'};
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t)+1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+/* ── Constants ── */
+const STORAGE_KEY     = 'gaj_area_state';
+const MAX_CAPACITY    = 70;
+const MAX_EXTRA_STAFF = 1;
+
+const STAFF_NAME_TO_ID = {
+  ベン:'Ben', Ben:'Ben', BEN:'Ben',
+  ディマス:'Dimas', Dimas:'Dimas', DIMAS:'Dimas',
+  ジェシカ:'Jessica', ジェッシカ:'Jessica', Jessica:'Jessica', JESSICA:'Jessica',
+};
+
+const STAFF_DEFS = {
+  Ben:        { ja:'ベン',       en:'Ben',       color:'#2563eb' },
+  Dimas:      { ja:'ディマス',   en:'Dimas',     color:'#16a34a' },
+  Jessica:    { ja:'ジェッシカ', en:'Jessica',   color:'#be185d' },
+  Unassigned: { ja:'未割当',     en:'Unassigned',color:null },
+};
+
+const DEFAULT_STATE = {
+  prefectures: {
+    東京:   {assignedTo:'Ben',   count:38},
+    千葉:   {assignedTo:'Ben',   count:9 },
+    埼玉:   {assignedTo:'Ben',   count:7 },
+    北海道: {assignedTo:'Ben',   count:5 },
+    群馬:   {assignedTo:'Ben',   count:1 },
+    栃木:   {assignedTo:'Ben',   count:1 },
+    神奈川: {assignedTo:'Dimas', count:20},
+    福岡:   {assignedTo:'Dimas', count:9 },
+    山口:   {assignedTo:'Dimas', count:6 },
+    愛知:   {assignedTo:'Dimas', count:4 },
+    兵庫:   {assignedTo:'Dimas', count:3 },
+    大分:   {assignedTo:'Dimas', count:3 },
+    三重:   {assignedTo:'Dimas', count:3 },
+    静岡:   {assignedTo:'Dimas', count:2 },
+    佐賀:   {assignedTo:'Dimas', count:2 },
+    京都:   {assignedTo:'Dimas', count:1 },
+    山梨:   {assignedTo:'Dimas', count:1 },
+    大阪:   {assignedTo:'Dimas', count:1 },
+    滋賀:   {assignedTo:'Dimas', count:1 },
+    愛媛:   {assignedTo:'Dimas', count:1 },
+    和歌山: {assignedTo:'Dimas', count:1 },
+    香川:   {assignedTo:'Dimas', count:1 },
+    広島:   {assignedTo:'Dimas', count:1 },
+    宮崎:   {assignedTo:'Dimas', count:1 },
+  },
+  rosters: {},
+  extraStaff: [],
+};
+
+/* ── State ── */
+let state = null;
+
+function loadState() {
+  try { const s = localStorage.getItem(STORAGE_KEY); if (s) state = JSON.parse(s); } catch(_){}
+  if (!state) state = deepClone(DEFAULT_STATE);
+  state.prefectures = {...deepClone(DEFAULT_STATE.prefectures), ...(state.prefectures||{})};
+  state.rosters     = state.rosters    || {};
+  state.extraStaff  = Array.isArray(state.extraStaff) ? state.extraStaff : [];
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+
+function resetState() {
+  if (!confirm('担当割り振りをリセットしますか？\nReset all assignments to default?')) return;
+  state = deepClone(DEFAULT_STATE);
+  saveState(); renderAll(); redrawMap();
+}
+
+/* ── Staff helpers ── */
+function getAllStaff() {
+  const base = Object.entries(STAFF_DEFS)
+    .filter(([k]) => k !== 'Unassigned')
+    .map(([id, def]) => ({id, ...def}));
+  return [...base, ...state.extraStaff.map(s=>({...s})), {id:'Unassigned', ...STAFF_DEFS.Unassigned}];
+}
+function colorFor(id) {
+  if (STAFF_DEFS[id]?.color) return STAFF_DEFS[id].color;
+  const e = state.extraStaff.find(s=>s.id===id);
+  return e ? e.color : null;
+}
+function nameFor(id) {
+  if (STAFF_DEFS[id]) return STAFF_DEFS[id].ja;
+  const e = state.extraStaff.find(s=>s.id===id);
+  return e ? e.name : '未割当';
+}
+function unassignedColor() {
+  return getComputedStyle(document.documentElement).getPropertyValue('--map-unassigned').trim() || '#dbeafe';
+}
+
+/* ── Totals ── */
+function totalsFor(id) {
+  let total = 0;
+  const prefs = [];
+  for (const [pref, data] of Object.entries(state.prefectures)) {
+    if (data.assignedTo !== id) continue;
+    const roster = state.rosters[pref];
+    const cnt = roster && roster.length > 0 ? roster.length : data.count;
+    total += cnt;
+    prefs.push({pref, count:cnt});
+  }
+  return {total, prefs};
+}
+function grandTotal() {
+  return getAllStaff().filter(s=>s.id!=='Unassigned').reduce((sum,s)=>sum+totalsFor(s.id).total, 0);
+}
+
+/* ── Sidebar ── */
+function renderAll() { renderStaffCards(); renderGrandTotal(); }
+
+function renderStaffCards() {
+  const container = document.getElementById('staffCards');
+  container.innerHTML = '';
+  for (const person of getAllStaff().filter(s=>s.id!=='Unassigned')) {
+    const {total, prefs} = totalsFor(person.id);
+    const pct  = Math.min((total / MAX_CAPACITY) * 100, 100);
+    const over = total > MAX_CAPACITY;
+    const color = colorFor(person.id) || unassignedColor();
+    const card = document.createElement('div');
+    card.className = 'staff-card';
+    card.innerHTML = `
+      <div class="staff-card-header">
+        <span class="staff-dot" style="background:${color}"></span>
+        <span class="staff-name">${person.ja||person.name}</span>
+        <span class="staff-name-en">${person.en||person.name}</span>
+      </div>
+      <div class="staff-count${over?' over':''}">${total}名</div>
+      <div class="cap-bar"><div class="cap-fill${over?' over':''}" style="width:${pct}%;${over?'':'background:'+color}"></div></div>
+      <div class="cap-label">${total} / ${MAX_CAPACITY}${over?' ⚠️':''}</div>
+      ${prefs.length?`<div class="staff-prefs">${prefs.map(p=>`${p.pref} (${p.count}名)`).join('　')}</div>`:''}
+    `;
+    container.appendChild(card);
+  }
+  const canAdd = state.extraStaff.length < MAX_EXTRA_STAFF &&
+    getAllStaff().filter(s=>s.id!=='Unassigned').length < 4;
+  document.getElementById('addPersonBtn').disabled = !canAdd;
+}
+function renderGrandTotal() {
+  document.getElementById('grandTotal').textContent = grandTotal()+'名';
+}
+
+/* ── Map ── */
+let mapFeatures=null, svgSel=null, mapGroup=null, mapZoom=null;
+
+function normalizePref(n) { return n ? n.replace(/[都道府県]$/,'') : ''; }
+function normalizeStaff(n) { return STAFF_NAME_TO_ID[String(n||'').trim()] || 'Unassigned'; }
+function calculateAge(v) {
+  if (!v) return 0;
+  const d = new Date(String(v).replace(/\//g,'-'));
+  if (isNaN(d.getTime())) return 0;
+  const t = new Date();
+  let age = t.getFullYear() - d.getFullYear();
+  const md = t.getMonth() - d.getMonth();
+  if (md < 0 || (md===0 && t.getDate()<d.getDate())) age--;
+  return age > 0 ? age : 0;
+}
+function prefFill(pref) {
+  const data = state.prefectures[pref];
+  if (!data) return unassignedColor();
+  return colorFor(data.assignedTo) || unassignedColor();
+}
+
+async function drawMap() {
+  const svg = d3.select('#japanMap');
+  svgSel = svg;
+  const node = svg.node();
+  const w = node.clientWidth||600, h = node.clientHeight||600;
+  try {
+    const resp = await fetch('https://raw.githubusercontent.com/dataofjapan/land/master/japan.topojson');
+    const topo = await resp.json();
+    mapFeatures = topojson.feature(topo, topo.objects.japan).features;
+    const proj = d3.geoMercator().fitSize([w,h], {type:'FeatureCollection', features:mapFeatures});
+    const path = d3.geoPath(proj);
+    svg.attr('viewBox',`0 0 ${w} ${h}`);
+    const g = svg.append('g').attr('class','map-group');
+    mapGroup = g;
+    g.selectAll('path')
+      .data(mapFeatures).join('path')
+      .attr('class','prefecture')
+      .attr('d', path)
+      .attr('fill', f => prefFill(normalizePref(f.properties.nam_ja)))
+      .on('click', (event, f) => {
+        if (event.defaultPrevented) return;
+        event.stopPropagation();
+        openPopover(normalizePref(f.properties.nam_ja), event);
+      })
+      .on('mouseenter', (event, f) => {
+        const pref = normalizePref(f.properties.nam_ja);
+        const data = state.prefectures[pref];
+        const roster = state.rosters[pref];
+        const cnt = data ? (roster&&roster.length>0 ? roster.length : data.count) : 0;
+        const tt = document.getElementById('mapTooltip');
+        tt.textContent = `${pref}　${data ? nameFor(data.assignedTo) : '未割当'}　${cnt}名`;
+        tt.style.display = 'block';
+      })
+      .on('mousemove', event => {
+        const tt = document.getElementById('mapTooltip');
+        tt.style.left = (event.clientX+14)+'px';
+        tt.style.top  = (event.clientY+14)+'px';
+      })
+      .on('mouseleave', () => { document.getElementById('mapTooltip').style.display='none'; });
+
+    mapZoom = d3.zoom().scaleExtent([1,10])
+      .on('zoom', event => g.attr('transform', event.transform));
+    svg.call(mapZoom);
+    document.getElementById('resetZoom').addEventListener('click', () =>
+      svg.transition().duration(500).call(mapZoom.transform, d3.zoomIdentity));
+    document.getElementById('mapLoading').style.display = 'none';
+  } catch(err) {
+    document.getElementById('mapLoading').innerHTML =
+      '<span class="material-icons-outlined" style="color:var(--danger)">error_outline</span><span>地図を読み込めませんでした</span>';
+  }
+}
+
+function redrawMap() {
+  if (!svgSel) return;
+  (mapGroup||svgSel).selectAll('path.prefecture')
+    .attr('fill', f => prefFill(normalizePref(f.properties.nam_ja)));
+}
+
+/* ── Popover ── */
+let activePref = null;
+
+function openPopover(pref, event) {
+  activePref = pref;
+  document.getElementById('popoverPrefName').textContent = pref;
+  renderPopoverPersonBtns();
+  renderRoster();
+  document.getElementById('addWorkerForm').style.display = 'none';
+  const pop = document.getElementById('prefPopover');
+  const pw=300, ph=340;
+  let x=event.clientX+12, y=event.clientY+12;
+  if (x+pw > window.innerWidth-10)  x = event.clientX-pw-12;
+  if (y+ph > window.innerHeight-10) y = event.clientY-ph-12;
+  pop.style.left = x+'px'; pop.style.top = y+'px'; pop.style.display = 'block';
+}
+
+function renderPopoverPersonBtns() {
+  const data = state.prefectures[activePref] || {assignedTo:'Unassigned', count:0};
+  const container = document.getElementById('popoverPersonBtns');
+  container.innerHTML = '';
+  for (const person of getAllStaff()) {
+    const color = colorFor(person.id) || unassignedColor();
+    const btn = document.createElement('button');
+    btn.className = 'person-btn' + (data.assignedTo===person.id?' active':'');
+    btn.textContent = person.ja||person.name;
+    btn.style.borderColor = color;
+    if (data.assignedTo===person.id) btn.style.background = color;
+    btn.addEventListener('click', () => {
+      if (!state.prefectures[activePref]) state.prefectures[activePref] = {assignedTo:person.id, count:0};
+      else state.prefectures[activePref].assignedTo = person.id;
+      saveState(); renderAll(); redrawMap(); renderPopoverPersonBtns();
+    });
+    container.appendChild(btn);
+  }
+}
+
+function renderRoster() {
+  const roster   = state.rosters[activePref] || [];
+  const data     = state.prefectures[activePref];
+  const preloaded = data ? data.count : 0;
+  document.getElementById('rosterCount').textContent =
+    roster.length>0 ? roster.length+'名'
+    : preloaded>0   ? preloaded+'名 (未入力)'
+    : '0名';
+  const list = document.getElementById('rosterList');
+  list.innerHTML = '';
+  if (roster.length===0) {
+    const li = document.createElement('li');
+    li.className = 'roster-placeholder';
+    li.textContent = preloaded>0 ? preloaded+'名 — 個別入力未完了' : 'まだ入力なし / No entries yet';
+    list.appendChild(li);
+    return;
+  }
+  for (let i=0; i<roster.length; i++) {
+    const w = roster[i];
+    const li = document.createElement('li');
+    li.className = 'roster-item';
+    li.innerHTML = `<span class="worker-name">${w.name}</span><span class="worker-meta">${w.gender} · ${w.age}歳</span><button class="remove-worker" title="Remove">✕</button>`;
+    li.querySelector('.remove-worker').addEventListener('click', () => {
+      state.rosters[activePref].splice(i,1);
+      saveState(); renderRoster(); renderAll();
+    });
+    list.appendChild(li);
+  }
+}
+
+function closePopover() {
+  document.getElementById('prefPopover').style.display = 'none';
+  activePref = null;
+}
+
+/* ── Add worker ── */
+document.getElementById('addWorkerBtn').addEventListener('click', () => {
+  document.getElementById('addWorkerForm').style.display='flex';
+  document.getElementById('workerName').focus();
+});
+document.getElementById('cancelWorker').addEventListener('click', () =>
+  document.getElementById('addWorkerForm').style.display='none');
+document.getElementById('confirmWorker').addEventListener('click', () => {
+  const name   = document.getElementById('workerName').value.trim();
+  const gender = document.getElementById('workerGender').value;
+  const age    = parseInt(document.getElementById('workerAge').value, 10);
+  if (!name) { document.getElementById('workerName').focus(); return; }
+  if (!state.rosters[activePref]) state.rosters[activePref] = [];
+  state.rosters[activePref].push({name, gender, age:age||0});
+  saveState();
+  document.getElementById('workerName').value='';
+  document.getElementById('workerAge').value='';
+  document.getElementById('addWorkerForm').style.display='none';
+  renderRoster(); renderAll();
+});
+
+/* ── Add person ── */
+document.getElementById('addPersonBtn').addEventListener('click', () => {
+  document.getElementById('addPersonForm').style.display='flex';
+  document.getElementById('newPersonName').focus();
+});
+document.getElementById('cancelAddPerson').addEventListener('click', () => {
+  document.getElementById('addPersonForm').style.display='none';
+  document.getElementById('newPersonName').value='';
+});
+document.getElementById('confirmAddPerson').addEventListener('click', () => {
+  const name = document.getElementById('newPersonName').value.trim();
+  if (!name) return;
+  state.extraStaff.push({id:'extra_'+Date.now(), name, color:'#f97316'});
+  saveState();
+  document.getElementById('addPersonForm').style.display='none';
+  document.getElementById('newPersonName').value='';
+  renderAll();
+  if (activePref) renderPopoverPersonBtns();
+});
+document.getElementById('newPersonName').addEventListener('keydown', e => {
+  if (e.key==='Enter') document.getElementById('confirmAddPerson').click();
+});
+
+/* ── All workers ── */
+document.getElementById('allWorkersBtn').addEventListener('click', () => {
+  const tbody = document.getElementById('allWorkersBody');
+  tbody.innerHTML = '';
+  for (const [pref, roster] of Object.entries(state.rosters)) {
+    const data = state.prefectures[pref];
+    const assignee = data ? nameFor(data.assignedTo) : '未割当';
+    for (const w of roster) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${w.name}</td><td>${w.gender}</td><td>${w.age||'—'}</td><td>${pref}</td><td>${assignee}</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+  if (tbody.children.length===0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="5" style="text-align:center;color:var(--muted);padding:20px">まだ個別入力なし / No individual worker data yet</td>`;
+    tbody.appendChild(tr);
+  }
+  document.getElementById('allWorkersOverlay').style.display='flex';
+});
+document.getElementById('closeAllWorkers').addEventListener('click', () =>
+  document.getElementById('allWorkersOverlay').style.display='none');
+
+/* ── CSV / JSON ── */
+function parseCsv(text) {
+  const rows=[]; let row=[], cell='', inQ=false;
+  for (let i=0; i<text.length; i++) {
+    const ch=text[i], nx=text[i+1];
+    if (ch==='"'&&inQ&&nx==='"') { cell+='"'; i++; }
+    else if (ch==='"') inQ=!inQ;
+    else if (ch===','&&!inQ) { row.push(cell); cell=''; }
+    else if ((ch==='\n'||ch==='\r')&&!inQ) {
+      if (ch==='\r'&&nx==='\n') i++;
+      row.push(cell);
+      if (row.some(v=>v.trim()!=='')) rows.push(row);
+      row=[]; cell='';
+    } else cell+=ch;
+  }
+  row.push(cell);
+  if (row.some(v=>v.trim()!=='')) rows.push(row);
+  return rows;
+}
+function rowsToObjects(rows) {
+  const headers = rows[0].map(h=>h.trim().replace(/^﻿/,''));
+  return rows.slice(1).map(row => {
+    const obj={};
+    headers.forEach((h,i) => { obj[h]=(row[i]||'').trim(); });
+    return obj;
+  });
+}
+function importFromCsv(text, fileName) {
+  const rows = parseCsv(text);
+  if (rows.length<2) throw new Error('CSVにデータがありません');
+  const records = rowsToObjects(rows);
+  const nextPref={}, nextRosters={}, staffCounts={};
+  let n=0;
+  records.forEach((rec,idx) => {
+    const pref = normalizePref(rec['エリア']); if (!pref) return;
+    const assignedTo = normalizeStaff(rec['担当者']);
+    const name   = rec['名前']||rec['ふりがな']||'Worker '+(idx+1);
+    const gender = rec['性別']||'';
+    const age    = parseInt(rec['年齢'],10)||calculateAge(rec['生年月日']);
+    if (!nextRosters[pref]) nextRosters[pref]=[];
+    nextRosters[pref].push({name,gender,age});
+    if (!staffCounts[pref]) staffCounts[pref]={};
+    staffCounts[pref][assignedTo]=(staffCounts[pref][assignedTo]||0)+1;
+    n++;
+  });
+  Object.entries(nextRosters).forEach(([pref,roster]) => {
+    const best = Object.entries(staffCounts[pref]).sort((a,b)=>b[1]-a[1])[0][0];
+    nextPref[pref] = {assignedTo:best, count:roster.length};
+  });
+  state.prefectures = {...deepClone(DEFAULT_STATE.prefectures), ...nextPref};
+  state.rosters     = nextRosters;
+  saveState(); closePopover(); renderAll(); redrawMap();
+  setStatus(`${fileName}: ${n}名を読み込みました`);
+}
+function setStatus(msg, err) {
+  const el = document.getElementById('importStatus');
+  el.textContent = msg;
+  el.style.color = err ? 'var(--danger)' : 'var(--accent)';
+  el.style.display = 'block';
+  clearTimeout(setStatus._t);
+  setStatus._t = setTimeout(()=>{ el.style.display='none'; }, 5000);
+}
+function handleCsv(file) {
+  if (!file) return;
+  const r=new FileReader();
+  r.addEventListener('load', ()=>{ try { importFromCsv(String(r.result||''), file.name); } catch(e){ setStatus(e.message||'読み込みエラー', true); } });
+  r.readAsText(file,'utf-8');
+}
+function exportJson() {
+  saveState();
+  const blob = new Blob([JSON.stringify({exportedAt:new Date().toISOString(),source:'area',state},null,2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'area-state-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  setStatus('JSONを書き出しました');
+}
+function importFromJson(text, fileName) {
+  const parsed = JSON.parse(text);
+  const ns = parsed.state||parsed;
+  if (!ns||typeof ns!=='object') throw new Error('Invalid JSON format');
+  state = {
+    prefectures: {...deepClone(DEFAULT_STATE.prefectures), ...(ns.prefectures||{})},
+    rosters:     ns.rosters    || {},
+    extraStaff:  Array.isArray(ns.extraStaff) ? ns.extraStaff : [],
+  };
+  saveState(); closePopover(); renderAll(); redrawMap();
+  setStatus(fileName+': 読み込みました');
+}
+function handleJson(file) {
+  if (!file) return;
+  const r=new FileReader();
+  r.addEventListener('load', ()=>{ try { importFromJson(String(r.result||''), file.name); } catch(e){ setStatus(e.message||'読み込みエラー', true); } });
+  r.readAsText(file,'utf-8');
+}
+
+document.getElementById('csvInput').addEventListener('change', e=>{ handleCsv(e.target.files[0]); e.target.value=''; });
+document.getElementById('jsonInput').addEventListener('change', e=>{ handleJson(e.target.files[0]); e.target.value=''; });
+document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+
+const toolbar = document.getElementById('toolbar');
+document.addEventListener('dragover', e=>{ e.preventDefault(); toolbar.classList.add('drag-over'); });
+document.addEventListener('dragleave', e=>{ if (!e.relatedTarget) toolbar.classList.remove('drag-over'); });
+document.addEventListener('drop', e=>{
+  e.preventDefault(); toolbar.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file&&file.name.toLowerCase().endsWith('.json')) handleJson(file);
+  else handleCsv(file);
+});
+
+/* ── Reset / close ── */
+document.getElementById('resetBtn').addEventListener('click', resetState);
+document.addEventListener('click', e=>{
+  const pop = document.getElementById('prefPopover');
+  if (pop.style.display==='block' && !pop.contains(e.target)) closePopover();
+});
+document.getElementById('popoverClose').addEventListener('click', closePopover);
+
+/* ── Init ── */
+loadState();
+renderAll();
+drawMap();
+</script>
+<script src="/greetings.js"></script>
+</body>
+</html>
