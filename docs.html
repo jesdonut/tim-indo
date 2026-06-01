@@ -346,7 +346,7 @@ body {
 <div class="edit-modal" id="editModal">
   <div class="edit-modal-header">
     <span class="edit-modal-title">
-      <span class="material-icons-outlined">crop</span> Crop &amp; Straighten
+      <span class="material-icons-outlined">crop</span> Crop &amp; Rotate
     </span>
     <button class="edit-modal-close" onclick="cancelEdit()">
       <span class="material-icons-outlined">close</span>
@@ -489,7 +489,7 @@ function buildDrop(idx) {
       ? '<div class="doc-thumb"><img src="' + URL.createObjectURL(src) + '" alt=""></div>'
       : '<div class="doc-thumb"><span class="material-icons-outlined doc-thumb-icon">picture_as_pdf</span></div>';
     var cropHtml = isImg
-      ? '<button class="doc-action-btn" title="Crop &amp; straighten"' +
+      ? '<button class="doc-action-btn" title="Crop &amp; rotate"' +
         ' onclick="event.stopPropagation();openEditDoc('+idx+')">' +
         '<span class="material-icons-outlined">crop</span></button>'
       : '';
@@ -635,7 +635,6 @@ function applyEdit() {
   if (!cropper) return;
   var btn = document.getElementById('editApplyBtn');
   btn.disabled = true; btn.textContent = 'Applying…';
-  var data = cropper.getCropBoxData();
   var canvas = cropper.getCroppedCanvas({
     fillColor: '#ffffff',
     imageSmoothingEnabled: true,
