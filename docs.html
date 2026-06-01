@@ -122,7 +122,7 @@ body {
 .id-inputs {
   position: sticky; top: 0; z-index: 10;
   background: var(--bg);
-  padding: 7px 0 7px;
+  padding: 10px 0 10px;
   display: flex; gap: 8px;
   border-bottom: 1px solid var(--border);
 }
@@ -136,33 +136,33 @@ body {
 .id-input:focus { border-color: var(--primary-2); }
 .id-input::placeholder { color: var(--border-soft); }
 
-.doc-list { display: flex; flex-direction: column; gap: 5px; padding-top: 4px; padding-bottom: 4px; }
+.doc-list { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; padding-bottom: 4px; }
 
 .doc-card {
   background: var(--input-bg); border: 1px solid var(--border);
-  border-radius: 9px; overflow: hidden;
+  border-radius: 12px; overflow: hidden;
 }
 .doc-card-header {
   display: flex; align-items: center; gap: 7px;
-  padding: 5px 10px; border-bottom: 1px solid var(--border);
+  padding: 7px 12px; border-bottom: 1px solid var(--border);
   background: var(--light);
 }
-.doc-icon { font-size: 0.95rem; color: var(--primary-2); flex-shrink: 0; }
-.doc-title { font-size: 0.78rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+.doc-icon { font-size: 1.05rem; color: var(--primary-2); flex-shrink: 0; }
+.doc-title { font-size: 0.82rem; font-weight: 700; color: var(--text); white-space: nowrap; }
 .doc-fname {
-  flex: 1; text-align: right; font-size: 0.62rem; color: var(--muted);
+  flex: 1; text-align: right; font-size: 0.64rem; color: var(--muted);
   font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 
 .doc-drop {
   display: flex; align-items: center; gap: 10px;
-  padding: 7px 10px; outline: none;
+  padding: 10px 12px; outline: none;
   transition: background 0.15s;
-  min-height: 44px;
+  min-height: 56px;
 }
 .doc-drop.empty {
-  justify-content: center; flex-direction: row; gap: 8px;
-  padding: 8px 10px; cursor: pointer;
+  justify-content: center; flex-direction: column; gap: 5px;
+  padding: 14px 12px; cursor: pointer;
 }
 .doc-drop.empty:hover, .doc-drop.empty:focus { background: var(--light); }
 .doc-drop.dragover { background: var(--mid); }
@@ -171,8 +171,8 @@ body {
   border-radius: 0 0 11px 11px;
 }
 
-.doc-empty-icon { font-size: 1.1rem; color: var(--border-soft); line-height: 1; }
-.doc-empty-text { font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+.doc-empty-icon { font-size: 1.5rem; color: var(--border-soft); line-height: 1; }
+.doc-empty-text { font-size: 0.74rem; color: var(--muted); text-align: center; line-height: 1.5; }
 .doc-browse-link { color: var(--primary-2); cursor: pointer; text-decoration: underline; }
 
 .doc-thumb {
@@ -199,26 +199,6 @@ body {
 .doc-action-btn .material-icons-outlined { font-size: 1rem; }
 .doc-action-btn:hover { background: var(--mid); border-color: var(--border-soft); }
 .doc-action-btn.del:hover { color: #ef4444; background: #fef2f2; border-color: #fca5a5; }
-.doc-remove-type {
-  background: none; border: none; color: var(--muted); cursor: pointer;
-  font-size: 0.85rem; padding: 0 3px; opacity: 0; transition: opacity 0.15s, color 0.15s;
-  line-height: 1; margin-left: auto;
-}
-.doc-card:hover .doc-remove-type { opacity: 1; }
-.doc-remove-type:hover { color: #ef4444; }
-.doc-add-row {
-  display: flex; gap: 6px; align-items: center; padding: 4px 0;
-}
-.doc-add-row input {
-  flex: 1; background: var(--input-bg); border: 1px solid var(--border);
-  border-radius: 7px; padding: 7px 10px; font-size: 0.82rem; color: var(--text); outline: none;
-}
-.doc-add-row input:focus { border-color: var(--accent); }
-.doc-add-btn {
-  padding: 7px 14px; background: var(--primary-2); color: #fff; border: none;
-  border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;
-}
-.doc-add-btn:hover { background: var(--primary-hover); }
 
 .doc-dl-btn {
   background: var(--primary-2); color: #fff; border: none;
@@ -290,6 +270,16 @@ body {
 .angle-label { font-size: 0.75rem; color: var(--muted); flex-shrink: 0; }
 .angle-slider { flex: 1; accent-color: var(--primary-2); }
 .angle-val { font-size: 0.78rem; font-weight: 700; color: var(--primary); min-width: 38px; text-align: right; flex-shrink: 0; }
+.edit-rotate-row { display: flex; gap: 8px; }
+.edit-rotate-btn {
+  flex: 1; padding: 8px; border-radius: 8px;
+  background: var(--light); border: 1px solid var(--border); color: var(--primary-2);
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  transition: background 0.15s;
+}
+.edit-rotate-btn:hover { background: var(--mid); }
+.edit-rotate-btn .material-icons-outlined { font-size: 1rem; }
 .edit-action-row { display: flex; gap: 8px; }
 .edit-cancel-btn {
   flex: 1; padding: 10px; border-radius: 8px;
@@ -320,15 +310,14 @@ body {
 <nav class="nav-bar">
   <div class="nav-tabs">
     <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab active" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
     <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
     <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
     <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
-    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
     <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
     <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
-    <a class="nav-tab active" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
     <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
-    <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
   </div>
 </nav>
 
@@ -347,10 +336,6 @@ body {
 </div>
 
 <div class="bottom-bar">
-  <div class="doc-add-row">
-    <input type="text" id="newDocName" placeholder="Add document type e.g. マイナンバーカード" maxlength="40">
-    <button class="doc-add-btn" onclick="addDocType()">+ Add</button>
-  </div>
   <button class="dl-all-btn" id="dlAllBtn" onclick="downloadAll()">
     <span class="material-icons-outlined">download</span> Download All
   </button>
@@ -361,7 +346,7 @@ body {
 <div class="edit-modal" id="editModal">
   <div class="edit-modal-header">
     <span class="edit-modal-title">
-      <span class="material-icons-outlined">crop</span> Crop &amp; Straighten
+      <span class="material-icons-outlined">crop</span> Crop &amp; Rotate
     </span>
     <button class="edit-modal-close" onclick="cancelEdit()">
       <span class="material-icons-outlined">close</span>
@@ -371,6 +356,14 @@ body {
     <img id="editImg" src="" alt="">
   </div>
   <div class="edit-modal-footer">
+    <div class="edit-rotate-row">
+      <button class="edit-rotate-btn" onclick="rotateCrop(-90)">
+        <span class="material-icons-outlined">rotate_left</span> Rotate Left
+      </button>
+      <button class="edit-rotate-btn" onclick="rotateCrop(90)">
+        <span class="material-icons-outlined">rotate_right</span> Rotate Right
+      </button>
+    </div>
     <div class="angle-row">
       <span class="angle-label">Straighten</span>
       <input type="range" class="angle-slider" id="angleSlider" min="-45" max="45" step="0.5" value="0">
@@ -391,51 +384,21 @@ body {
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-var DOCS_KEY = 'gaj_docs_types';
-var DOCS_DEFAULT = [
+var DOCS = [
   { suffix: '在留カード（表）', icon: 'badge' },
   { suffix: '在留カード（裏）', icon: 'flip_to_back' },
   { suffix: '指定書',           icon: 'description' },
   { suffix: 'パスポート',        icon: 'travel_explore' },
-  { suffix: 'マイナンバーカード', icon: 'credit_card' },
   { suffix: '営業許可証',        icon: 'store' },
   { suffix: '住民票',            icon: 'home' },
 ];
-var DOCS = (function() {
-  try { var s = localStorage.getItem(DOCS_KEY); if (s) return JSON.parse(s); } catch(_) {}
-  return DOCS_DEFAULT.slice();
-})();
 
-var docFiles       = new Array(DOCS.length).fill(null);
+var docFiles      = new Array(DOCS.length).fill(null);
 var docEditedBlobs = new Array(DOCS.length).fill(null);
-
-function saveDocsConfig() {
-  localStorage.setItem(DOCS_KEY, JSON.stringify(DOCS));
-}
-
-function addDocType() {
-  var name = document.getElementById('newDocName').value.trim();
-  if (!name) return;
-  DOCS.push({ suffix: name, icon: 'description' });
-  docFiles.push(null);
-  docEditedBlobs.push(null);
-  saveDocsConfig();
-  document.getElementById('newDocName').value = '';
-  renderAll();
-}
-
-function removeDocType(idx) {
-  if (DOCS.length <= 1) { alert('最低1つは必要です。'); return; }
-  if (docFiles[idx] && !confirm('このドキュメントタイプを削除しますか？\nRemove "' + DOCS[idx].suffix + '"?')) return;
-  DOCS.splice(idx, 1);
-  docFiles.splice(idx, 1);
-  docEditedBlobs.splice(idx, 1);
-  saveDocsConfig();
-  renderAll();
-}
 var activePasteIdx = -1;
 var cropper        = null;
 var editingDocIdx  = -1;
+var editBaseAngle  = 0;
 
 var THEME_KEY    = 'gaj_theme';
 var THEMES       = ['blue','pink','dark'];
@@ -514,12 +477,12 @@ function buildDrop(idx) {
     drop.className = 'doc-drop empty';
     drop.innerHTML =
       '<span class="material-icons-outlined doc-empty-icon">upload_file</span>' +
-      '<span class="doc-empty-text">Drop · <span class="doc-browse-link">browse</span>' +
-      ' · <kbd style="font-size:0.62rem;background:var(--mid);border:1px solid var(--border);border-radius:3px;padding:0 3px">Ctrl+V</kbd></span>';
+      '<span class="doc-empty-text">Drop, <span class="doc-browse-link">browse</span>' +
+      ', or focus &amp; <kbd style="font-size:0.62rem;background:var(--mid);border:1px solid var(--border);border-radius:3px;padding:0 3px">Ctrl+V</kbd></span>';
     drop.querySelector('.doc-browse-link').onclick = function(e) {
       e.stopPropagation(); browseDoc(idx);
     };
-    drop.onclick = function() { drop.focus(); };
+    drop.onclick = function() { drop.focus(); browseDoc(idx); };
   } else {
     drop.className = 'doc-drop';
     var isImg   = file.type !== 'application/pdf';
@@ -527,7 +490,7 @@ function buildDrop(idx) {
       ? '<div class="doc-thumb"><img src="' + URL.createObjectURL(src) + '" alt=""></div>'
       : '<div class="doc-thumb"><span class="material-icons-outlined doc-thumb-icon">picture_as_pdf</span></div>';
     var cropHtml = isImg
-      ? '<button class="doc-action-btn" title="Crop &amp; straighten"' +
+      ? '<button class="doc-action-btn" title="Crop &amp; rotate"' +
         ' onclick="event.stopPropagation();openEditDoc('+idx+')">' +
         '<span class="material-icons-outlined">crop</span></button>'
       : '';
@@ -597,8 +560,7 @@ function renderAll() {
     header.innerHTML =
       '<span class="material-icons-outlined doc-icon">' + doc.icon + '</span>' +
       '<span class="doc-title">' + doc.suffix + '</span>' +
-      '<span class="doc-fname" id="fname-' + i + '">' + getFilename(i) + '</span>' +
-      '<button class="doc-remove-type" onclick="removeDocType(' + i + ')" title="Remove this doc type">×</button>';
+      '<span class="doc-fname" id="fname-' + i + '">' + getFilename(i) + '</span>';
     card.appendChild(header);
     card.appendChild(buildDrop(i));
 
@@ -615,6 +577,7 @@ function renderAll() {
 }
 
 document.addEventListener('paste', function(e) {
+  if (activePasteIdx < 0) return;
   var pasted = Array.from(e.clipboardData.items)
     .filter(function(item) { return item.kind === 'file'; })
     .map(function(item) { return item.getAsFile(); })
@@ -622,12 +585,8 @@ document.addEventListener('paste', function(e) {
       return f && ['application/pdf','image/jpeg','image/png'].indexOf(f.type) >= 0;
     });
   if (!pasted[0]) return;
-  // Use focused slot, or fall back to first empty slot
-  var targetIdx = activePasteIdx >= 0 ? activePasteIdx
-    : docFiles.findIndex(function(f) { return !f; });
-  if (targetIdx < 0) return;
-  setDocFile(targetIdx, pasted[0]);
-  var drop = document.getElementById('drop-' + targetIdx);
+  setDocFile(activePasteIdx, pasted[0]);
+  var drop = document.getElementById('drop-' + activePasteIdx);
   if (drop) { drop.classList.add('dragover'); setTimeout(function(){ drop.classList.remove('dragover'); }, 400); }
 });
 
@@ -636,6 +595,7 @@ function openEditDoc(idx) {
   var file = docFiles[idx];
   if (!file || file.type === 'application/pdf') return;
   editingDocIdx = idx;
+  editBaseAngle  = 0;
   var src = docEditedBlobs[idx] || file;
   document.getElementById('editModal').classList.add('open');
   document.getElementById('angleSlider').value = 0;
@@ -647,28 +607,45 @@ function openEditDoc(idx) {
     URL.revokeObjectURL(url);
     cropper = new Cropper(img, {
       viewMode: 1, autoCropArea: 0.95,
-      movable: true, zoomable: true, rotatable: true, background: true,
+      movable: true, zoomable: true, rotatable: true, scalable: true,
+      background: true, checkOrientation: true,
     });
   };
   img.src = url;
 }
 
+function rotateCrop(deg) {
+  editBaseAngle += deg;
+  var slider = parseFloat(document.getElementById('angleSlider').value);
+  if (cropper) cropper.rotateTo(editBaseAngle + slider);
+}
+
 function cancelEdit() {
   document.getElementById('editModal').classList.remove('open');
   if (cropper) { cropper.destroy(); cropper = null; }
+  editBaseAngle = 0;
 }
 
 document.getElementById('angleSlider').addEventListener('input', function() {
   var a = parseFloat(this.value);
   document.getElementById('angleVal').textContent = (a > 0 ? '+' : '') + a.toFixed(1) + '°';
-  if (cropper) cropper.rotateTo(a);
+  if (cropper) cropper.rotateTo(editBaseAngle + a);
 });
 
 function applyEdit() {
   if (!cropper) return;
   var btn = document.getElementById('editApplyBtn');
   btn.disabled = true; btn.textContent = 'Applying…';
-  var canvas = cropper.getCroppedCanvas({ fillColor: '#ffffff', imageSmoothingQuality: 'high' });
+  var canvas = cropper.getCroppedCanvas({
+    fillColor: '#ffffff',
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'high',
+    minWidth: 1, minHeight: 1,
+  });
+  if (!canvas || canvas.width < 1 || canvas.height < 1) {
+    btn.disabled = false; btn.textContent = 'Apply';
+    return;
+  }
   canvas.toBlob(function(blob) {
     docEditedBlobs[editingDocIdx] = blob;
     renderCard(editingDocIdx);
@@ -844,9 +821,6 @@ function triggerDownload(pdfBytes, fname) {
 }
 
 renderAll();
-document.getElementById('newDocName').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') addDocType();
-});
 </script>
 </body>
 </html>
