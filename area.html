@@ -54,11 +54,17 @@ body {
 .theme-toggle .material-icons-outlined { font-size: 0.95rem; }
 
 .nav-bar { flex-shrink: 0; background: var(--brand-bg); padding: 8px 16px 10px; display: flex; justify-content: center; }
-.nav-tabs { background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px; display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; scrollbar-width: none; -ms-overflow-style: none; }
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px;
+  display: flex; gap: 2px; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
 .nav-tab {
   display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 7px;
   font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.72); text-decoration: none;
   transition: background 0.15s, color 0.15s; white-space: nowrap;
+  flex-shrink: 0;
 }
 .nav-tab .material-icons-outlined { font-size: 0.95rem; }
 .nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
@@ -278,6 +284,9 @@ body.pink .tbtn.nuke:hover { background: #fbd0e8; border-color: #ec4899; }
     <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
   </div>
 </nav>
+<script>
+(function(){var t=document.querySelector('.nav-tabs'),a=document.querySelector('.nav-tab.active');if(t&&a)t.scrollLeft=a.offsetLeft-(t.offsetWidth-a.offsetWidth)/2;})();
+</script>
 
 
 <div class="area-toolbar" id="toolbar">
