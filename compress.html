@@ -92,11 +92,12 @@ body {
 }
 .nav-tabs {
   background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px; display: flex; gap: 2px;
-  overflow-x: auto;
+  flex-wrap: wrap; justify-content: center;
+  scrollbar-width: none; -ms-overflow-style: none;
 }
 .nav-tab {
   display: flex; align-items: center; gap: 5px;
-  padding: 5px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  padding: 5px 8px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
   color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
@@ -246,9 +247,7 @@ body {
     <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
   </div>
 </nav>
-<script>
-(function(){ var a=document.querySelector('.nav-tab.active'); if(a) a.scrollIntoView({block:'nearest',inline:'nearest'}); })();
-</script>
+
 
 <div class="mid">
   <div class="app-title">
