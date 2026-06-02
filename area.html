@@ -278,6 +278,9 @@ body.pink .tbtn.nuke:hover { background: #fbd0e8; border-color: #ec4899; }
     <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
   </div>
 </nav>
+<script>
+(function(){ var a=document.querySelector('.nav-tab.active'); if(a) a.scrollIntoView({block:'nearest',inline:'nearest'}); })();
+</script>
 
 <div class="area-toolbar" id="toolbar">
   <label class="tbtn-label" for="csvInput"><span class="material-icons-outlined">upload_file</span> CSV Import</label>

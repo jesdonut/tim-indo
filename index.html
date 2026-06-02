@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Indonesian Team PDF Merger</title>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+<link href="/cropper.min.css" rel="stylesheet">
 <style>
 :root {
   --bg: #f0f6ff;
@@ -404,6 +404,9 @@ body {
     <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
   </div>
 </nav>
+<script>
+(function(){ var a=document.querySelector('.nav-tab.active'); if(a) a.scrollIntoView({block:'nearest',inline:'nearest'}); })();
+</script>
 
 <div class="mid">
   <div class="app-title">
@@ -530,7 +533,7 @@ body {
 </div>
 
 <script src="greetings.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="/cropper.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>
 var files = [];
@@ -785,13 +788,17 @@ function initCropperUrl(url) {
   var img = document.getElementById('editImg');
   img.onload = function() {
     URL.revokeObjectURL(url);
-    cropper = new Cropper(img, {
-      viewMode: 1,
-      autoCropArea: 0.95,
-      movable: true,
-      zoomable: true,
-      rotatable: true,
-      background: true,
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        cropper = new Cropper(img, {
+          viewMode: 1,
+          autoCropArea: 0.95,
+          movable: true,
+          zoomable: true,
+          rotatable: true,
+          background: true,
+        });
+      });
     });
   };
   img.src = url;
