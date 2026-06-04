@@ -11,14 +11,8 @@ const AUTH_PATHS = ["/login", "/signup", "/verify"]
 const NAV_ITEMS = [
   { href: "/pdf",      label: "PDF" },
   { href: "/translate",label: "Translate" },
-  { href: "/postal",   label: "Postal" },
-  { href: "/spell",    label: "Spell" },
-  { href: "/compress", label: "Compress" },
-  { href: "/station",  label: "Station" },
   { href: "/builder",  label: "Builder" },
-  { href: "/docs",     label: "Docs" },
   { href: "/area",     label: "Area" },
-  { href: "/phone",    label: "Phone" },
   { href: "/extract",  label: "Extract" },
 ]
 
