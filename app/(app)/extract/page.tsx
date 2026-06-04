@@ -35,18 +35,19 @@ export default function ExtractPage() {
     const text = [
       `${data.apartmentName} ${data.roomNumber}`,
       `住所: ${data.address}`,
+      data.addressRomaji ? `読み: ${data.addressRomaji}` : null,
       `電気: ${data.electricity}`,
       `ガス (${data.gasCompany}): ${data.gasPhone}`,
       `水道: ${data.water}`,
-    ].join("\n")
+    ].filter(Boolean).join("\n")
     copy("all", text)
   }
 
-  const rows: { key: keyof GuidebookData; label: string; value: string; sub?: string }[] = data ? [
-    { key: "address",     label: "住所",     value: data.address },
-    { key: "electricity", label: "電気",     value: data.electricity },
-    { key: "gasPhone",    label: "ガス",     value: data.gasPhone, sub: data.gasCompany },
-    { key: "water",       label: "水道",     value: data.water },
+  const rows: { key: keyof GuidebookData; label: string; value: string; sub?: string; reading?: string }[] = data ? [
+    { key: "address",     label: "住所",  value: data.address, reading: data.addressRomaji },
+    { key: "electricity", label: "電気",  value: data.electricity },
+    { key: "gasPhone",    label: "ガス",  value: data.gasPhone, sub: data.gasCompany },
+    { key: "water",       label: "水道",  value: data.water },
   ] : []
 
   return (
@@ -110,16 +111,17 @@ export default function ExtractPage() {
           </div>
 
           {/* Field rows */}
-          {rows.map(({ key, label, value, sub }) => (
+          {rows.map(({ key, label, value, sub, reading }) => (
             <div
               key={key}
-              className="flex items-center justify-between gap-4 py-2 border-b border-[var(--border-soft)]"
+              className="flex items-start justify-between gap-4 py-2 border-b border-[var(--border-soft)]"
             >
               <div className="flex items-baseline gap-3 min-w-0">
                 <span className="label-xs shrink-0">{label}</span>
-                <div className="min-w-0">
+                <div className="min-w-0 flex flex-col gap-0.5">
                   <span className="text-sm text-[var(--text)] font-mono">{value || "—"}</span>
-                  {sub && <span className="ml-2 text-[0.72rem] text-[var(--text-3)]">{sub}</span>}
+                  {sub && <span className="text-[0.72rem] text-[var(--text-3)]">{sub}</span>}
+                  {reading && <span className="text-[0.75rem] text-[var(--text-2)]">{reading}</span>}
                 </div>
               </div>
               {value && (
