@@ -101,7 +101,7 @@ export default function BuilderPage() {
         {tab === "table" ? (
           <BuilderTable cols={cols} rows={rows} onChange={handleChange} />
         ) : (
-          <div className="p-4 max-w-2xl">
+          <div className="h-full flex flex-col">
             <TemplatePanel
               template={template}
               cols={cols}
