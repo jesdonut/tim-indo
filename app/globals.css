@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light */
+  --bg:          #f5f4f0;
+  --bg-2:        #eeede8;
+  --surface:     #ffffff;
+  --border:      #d8d6cf;
+  --border-soft: #e4e2db;
+  --text:        #0d0d0d;
+  --text-2:      #555550;
+  --text-3:      #999990;
+  --accent:      #1a1a1a;
+  --accent-fg:   #ffffff;
+  --highlight:   #e8ff47;   /* awwwards-style chartreuse pop */
+  --highlight-fg:#0d0d0d;
+}
+
+.dark {
+  --bg:          #0a0a0a;
+  --bg-2:        #111111;
+  --surface:     #161616;
+  --border:      #2a2a2a;
+  --border-soft: #1e1e1e;
+  --text:        #f0efe8;
+  --text-2:      #888880;
+  --text-3:      #444440;
+  --accent:      #f0efe8;
+  --accent-fg:   #0a0a0a;
+  --highlight:   #e8ff47;
+  --highlight-fg:#0d0d0d;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg:          var(--bg);
+  --color-bg2:         var(--bg-2);
+  --color-surface:     var(--surface);
+  --color-border:      var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-text:        var(--text);
+  --color-text2:       var(--text-2);
+  --color-text3:       var(--text-3);
+  --color-accent:      var(--accent);
+  --color-accent-fg:   var(--accent-fg);
+  --color-highlight:   var(--highlight);
+  --color-highlight-fg:var(--highlight-fg);
+  --font-sans:         var(--font-geist-sans);
+  --font-mono:         var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* ── Typography ────────────────────────────────────────────────────────────── */
+.display {
+  font-size: clamp(2.5rem, 8vw, 7rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.headline {
+  font-size: clamp(1.5rem, 4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.label-xs {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Selection ─────────────────────────────────────────────────────────────── */
+::selection { background: var(--highlight); color: var(--highlight-fg); }
+
+/* ── Focus ─────────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 2px;
 }
