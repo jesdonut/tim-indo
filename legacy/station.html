@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nearest Station - Tim Indo Serba Bisa</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+}
+body.dark {
+  --bg: #111827;
+  --text: #f1f5f9;
+  --primary: #93c5fd;
+  --primary-2: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-dark: #dbeafe;
+  --light: #1e293b;
+  --mid: #243453;
+  --border: #334155;
+  --border-soft: #475569;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --brand-bg: #1e293b;
+  --brand-sub: #93c5fd;
+  --input-bg: #263348;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; height: 100dvh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex; align-items: center; gap: 10px; justify-content: center; position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px;
+  display: flex; gap: 2px; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 8px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.mid {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+/* ── Walk limit selector ── */
+.walk-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.walk-label { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.walk-chips { display: flex; gap: 4px; }
+.walk-chip {
+  padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+  border: 1.5px solid var(--border); background: var(--input-bg); color: var(--muted);
+  cursor: pointer; transition: all 0.15s;
+}
+.walk-chip:hover { border-color: var(--border-soft); color: var(--accent); }
+.walk-chip.active {
+  background: var(--primary-2); border-color: var(--primary-2); color: #fff;
+}
+
+/* ── Input ── */
+.search-wrap {
+  display: flex; align-items: center;
+  background: var(--input-bg); border: 1.5px solid var(--border); border-radius: 10px;
+  overflow: hidden; transition: border-color 0.2s;
+}
+.search-wrap:focus-within { border-color: var(--primary-2); }
+.search-wrap.error { border-color: #ef4444; animation: shake 0.35s ease; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+.search-icon {
+  padding: 0 8px 0 13px; color: var(--border-soft); flex-shrink: 0;
+  font-size: 1.2rem; transition: color 0.2s;
+}
+.search-wrap:focus-within .search-icon { color: var(--accent); }
+.search-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  padding: 13px 10px 13px 4px; font-size: 1.05rem;
+  color: var(--text); font-family: inherit;
+}
+.search-input::placeholder { color: var(--border-soft); font-size: 0.9rem; }
+.detect-pill {
+  font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+  margin-right: 10px; white-space: nowrap; flex-shrink: 0;
+  background: var(--mid); color: var(--accent);
+  opacity: 0; transition: opacity 0.2s;
+}
+.detect-pill.visible { opacity: 1; }
+
+.data-status {
+  font-size: 0.68rem; color: var(--border-soft);
+  display: flex; align-items: center; gap: 4px; margin-top: 4px;
+}
+.data-status.error { color: #ef4444; }
+.data-status .material-icons-outlined { font-size: 0.85rem; }
+
+.btn-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+.search-btn {
+  padding: 10px 24px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+  display: flex; align-items: center; gap: 5px;
+}
+.search-btn .material-icons-outlined { font-size: 1.1rem; }
+.search-btn:hover { background: var(--primary-hover); }
+.search-btn:active { transform: scale(0.97); }
+.search-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ── Results ── */
+.from-label {
+  font-size: 0.8rem; color: var(--muted); margin-bottom: 6px;
+  padding: 0 2px;
+}
+.from-label strong { color: var(--text); font-weight: 600; }
+.from-sub { color: var(--muted); font-size: 0.75rem; }
+
+.station-list { display: flex; flex-direction: column; gap: 8px; }
+
+.station-card {
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  transition: border-color 0.15s;
+}
+.station-card:hover { border-color: var(--border-soft); }
+
+.station-rank {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--mid); color: var(--accent); font-size: 0.72rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.station-info { flex: 1; min-width: 0; }
+.station-name {
+  font-size: 1rem; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.station-lines { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.line-chip {
+  font-size: 0.62rem; font-weight: 600; padding: 1px 6px; border-radius: 8px;
+  background: var(--light); color: var(--accent); border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.station-pref { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+
+.station-dist { flex-shrink: 0; text-align: right; }
+.dist-km { font-size: 0.85rem; font-weight: 700; color: var(--primary); }
+.walk-min { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+.result-card {
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.result-body { padding: 12px 14px; font-size: 0.92rem; line-height: 1.75; color: var(--text); }
+.loading-dots { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
+.err-text { color: #ef4444; font-size: 0.82rem; }
+
+.no-coords-note {
+  background: var(--light); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px;
+}
+.no-coords-code { font-size: 0.78rem; color: var(--muted); margin-bottom: 3px; }
+.no-coords-addr { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.no-coords-hint { font-size: 0.73rem; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">train</span>
+  <div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab active" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
+    <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
+    <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
+  </div>
+</nav>
+<script>
+(function(){var t=document.querySelector('.nav-tabs'),a=document.querySelector('.nav-tab.active');if(t&&a)t.scrollLeft=a.offsetLeft-(t.offsetWidth-a.offsetWidth)/2;})();
+</script>
+
+
+<div class="mid">
+  <div class="app-title">
+    <h1>Nearest Station</h1>
+    <p>Masukin alamat, kode pos, atau nama stasiun</p>
+  </div>
+
+  <div class="walk-row">
+    <span class="walk-label">Within</span>
+    <div class="walk-chips">
+      <button class="walk-chip" data-min="10" onclick="setWalkLimit(10)">10 min</button>
+      <button class="walk-chip active" data-min="15" onclick="setWalkLimit(15)">15 min</button>
+      <button class="walk-chip" data-min="20" onclick="setWalkLimit(20)">20 min</button>
+      <button class="walk-chip" data-min="30" onclick="setWalkLimit(30)">30 min</button>
+    </div>
+    <span class="walk-label">walk</span>
+  </div>
+
+  <div>
+    <div class="search-wrap" id="searchWrap">
+      <span class="material-icons-outlined search-icon" id="searchIcon">search</span>
+      <input class="search-input" id="searchInput" type="text"
+        placeholder="渋谷  or  150-0002  or  横浜市港北区…" autocomplete="off" autocorrect="off" spellcheck="false">
+      <span class="detect-pill" id="detectPill"></span>
+    </div>
+    <div class="data-status" id="dataStatus">
+      <span class="material-icons-outlined">cloud_download</span> Loading station data…
+    </div>
+    <div class="btn-row">
+      <button class="search-btn" id="searchBtn" onclick="doSearch()" disabled>
+        <span class="material-icons-outlined">train</span> Find
+      </button>
+    </div>
+  </div>
+
+  <div id="resultsArea"></div>
+</div>
+
+<script>
+var THEME_KEY    = 'gaj_theme';
+var WALK_KEY     = 'gaj_walk_limit';
+var THEMES       = ['blue','pink','dark'];
+var THEME_ICONS  = {blue:'palette', pink:'dark_mode', dark:'light_mode'};
+var THEME_LABELS = {blue:'Pink', pink:'Dark', dark:'Blue'};
+
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t) + 1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+/* ── Walk limit ── */
+var walkLimit = parseInt(localStorage.getItem(WALK_KEY) || '15', 10);
+(function() {
+  document.querySelectorAll('.walk-chip').forEach(function(btn) {
+    var m = parseInt(btn.dataset.min, 10);
+    btn.classList.toggle('active', m === walkLimit);
+  });
+})();
+
+function setWalkLimit(min) {
+  walkLimit = min;
+  localStorage.setItem(WALK_KEY, min);
+  document.querySelectorAll('.walk-chip').forEach(function(btn) {
+    btn.classList.toggle('active', parseInt(btn.dataset.min, 10) === min);
+  });
+}
+
+/* ── Data ── */
+var stations     = null;
+var aliases      = null;
+var postalCoords = null;
+var pcLoading    = null; // Promise while loading
+
+Promise.all([
+  fetch('/data/generated/stations.json').then(function(r) { return r.json(); }),
+  fetch('/data/generated/station-aliases.json').then(function(r) { return r.json(); })
+]).then(function(res) {
+  stations = res[0];
+  aliases  = res[1];
+  document.getElementById('dataStatus').style.display = 'none';
+  document.getElementById('searchBtn').disabled = false;
+  document.getElementById('searchInput').focus();
+}).catch(function() {
+  var s = document.getElementById('dataStatus');
+  s.className = 'data-status error';
+  s.innerHTML = '<span class="material-icons-outlined">error_outline</span> Failed to load station data.';
+});
+
+function loadPostalCoords() {
+  if (postalCoords) return Promise.resolve();
+  if (pcLoading) return pcLoading;
+  pcLoading = fetch('/data/generated/postal-coords.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) { postalCoords = data; });
+  return pcLoading;
+}
+
+/* ── Input handling ── */
+var searchInput = document.getElementById('searchInput');
+var detectPill  = document.getElementById('detectPill');
+var searchIcon  = document.getElementById('searchIcon');
+
+searchInput.addEventListener('input', function() {
+  var normalized = searchInput.value.normalize('NFKC');
+  if (normalized !== searchInput.value) searchInput.value = normalized;
+
+  var val = searchInput.value;
+  if (!val) {
+    detectPill.className = 'detect-pill';
+    searchIcon.textContent = 'search';
+    return;
+  }
+  if (/^[\d\-\s]*$/.test(val)) {
+    var d = val.replace(/\D/g, '').slice(0, 7);
+    var fmt = d.length > 3 ? d.slice(0,3) + '-' + d.slice(3) : d;
+    if (searchInput.value !== fmt) searchInput.value = fmt;
+    detectPill.textContent = '〒 code';
+    detectPill.className = 'detect-pill visible';
+    searchIcon.textContent = 'pin';
+  } else {
+    detectPill.textContent = aliases && aliases[val.replace(/[\s　]/g,'')] ? 'station' : 'address';
+    detectPill.className = 'detect-pill visible';
+    searchIcon.textContent = 'location_on';
+  }
+});
+searchInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+});
+
+/* ── Helpers ── */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function shake() {
+  var wrap = document.getElementById('searchWrap');
+  wrap.classList.add('error');
+  setTimeout(function() { wrap.classList.remove('error'); }, 400);
+}
+
+/* ── Haversine ── */
+function haversine(lat1, lng1, lat2, lng2) {
+  var R = 6371;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+          Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+          Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* ── Find nearest ── */
+function findNearest(lat, lng) {
+  var limitKm = (walkLimit / 60) * 4.8;
+  var results = [];
+  for (var i = 0; i < stations.length; i++) {
+    var s = stations[i];
+    if (!s.lat || !s.lng) continue;
+    var d = haversine(lat, lng, s.lat, s.lng);
+    if (d <= limitKm) {
+      results.push({ station: s, dist: d, walkMin: Math.round((d / 4.8) * 60) });
+    }
+  }
+  results.sort(function(a, b) { return a.dist - b.dist; });
+  return results.slice(0, 5);
+}
+
+/* ── Binary search in postalCoords (sorted by code[0]) ── */
+function pcLookupCode(code7) {
+  var lo = 0, hi = postalCoords.length - 1;
+  while (lo <= hi) {
+    var mid = (lo + hi) >> 1;
+    var c = postalCoords[mid][0];
+    if (c === code7) {
+      // Scan nearby for a record with coordinates
+      for (var i = mid; i < postalCoords.length && postalCoords[i][0] === code7; i++) {
+        if (postalCoords[i][4] != null) return postalCoords[i];
+      }
+      for (var i = mid - 1; i >= 0 && postalCoords[i][0] === code7; i--) {
+        if (postalCoords[i][4] != null) return postalCoords[i];
+      }
+      return postalCoords[mid]; // no coords but code exists
+    }
+    if (c < code7) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  return null;
+}
+
+/* ── Address text search ── */
+function pcSearchText(query) {
+  var results = [];
+  for (var i = 0; i < postalCoords.length; i++) {
+    var r = postalCoords[i];
+    if ((r[1] + r[2] + r[3]).indexOf(query) !== -1 ||
+        (r[2] + r[3]).indexOf(query) !== -1) {
+      results.push(r);
+      if (results.length >= 100) break;
+    }
+  }
+  return results;
+}
+
+/* ── Render ── */
+function showArea(html) {
+  document.getElementById('resultsArea').innerHTML = html;
+}
+
+function renderResults(nearest, fromName, subName) {
+  var fromHtml = '<div class="from-label">Nearest to <strong>' + esc(fromName) + '</strong>' +
+    (subName ? '<span class="from-sub"> · ' + esc(subName) + '</span>' : '') + '</div>';
+
+  if (!nearest.length) {
+    showArea(fromHtml + '<div class="result-card"><div class="result-body err-text">' +
+      'No stations within ' + walkLimit + ' min walk. Try a higher limit.' +
+      '</div></div>');
+    return;
+  }
+
+  var html = fromHtml + '<div class="station-list">';
+  nearest.forEach(function(item, idx) {
+    var s = item.station;
+    var lines = (s.lines || []).map(function(l) {
+      return '<span class="line-chip">' + esc(l) + '</span>';
+    }).join('');
+    html += '<div class="station-card">' +
+      '<div class="station-rank">' + (idx + 1) + '</div>' +
+      '<div class="station-info">' +
+        '<div class="station-name">' + esc(s.displayName || s.name) + '</div>' +
+        (lines ? '<div class="station-lines">' + lines + '</div>' : '') +
+        (s.prefecture ? '<div class="station-pref">' + esc(s.prefecture) + '</div>' : '') +
+      '</div>' +
+      '<div class="station-dist">' +
+        '<div class="dist-km">' + item.dist.toFixed(1) + ' km</div>' +
+        '<div class="walk-min">' + item.walkMin + ' 分</div>' +
+      '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  showArea(html);
+}
+
+function renderNoCoords(label, address) {
+  showArea('<div class="no-coords-note">' +
+    '<div class="no-coords-code">' + esc(label) + '</div>' +
+    '<div class="no-coords-addr">' + esc(address) + '</div>' +
+    '<div class="no-coords-hint">No coordinates in our database for this area — cannot calculate distance.</div>' +
+    '</div>');
+}
+
+/* ── Main search ── */
+function doSearch() {
+  var raw = searchInput.value.trim();
+  if (!raw || !stations) { shake(); return; }
+
+  var query  = raw.normalize('NFKC').replace(/[\s　]/g, '');
+  var digits = query.replace(/\D/g, '');
+  var isPostal = /^[\d\-\s]*$/.test(raw) && digits.length === 7;
+
+  showArea('<div class="result-card"><div class="result-body"><span class="loading-dots">Searching…</span></div></div>');
+
+  if (isPostal) {
+    loadPostalCoords().then(function() {
+      var rec = pcLookupCode(digits);
+      if (!rec) {
+        showArea('<div class="result-card"><div class="result-body err-text">〒 ' +
+          esc(digits.slice(0,3) + '-' + digits.slice(3)) + ' — not found.</div></div>');
+        return;
+      }
+      var label = '〒 ' + digits.slice(0,3) + '-' + digits.slice(3);
+      var addr  = rec[1] + rec[2] + (rec[3] ? '　' + rec[3] : '');
+      if (rec[4] == null) { renderNoCoords(label, addr); return; }
+      renderResults(findNearest(rec[4], rec[5]), label, addr);
+    }).catch(function() {
+      showArea('<div class="result-card"><div class="result-body err-text">Failed to load address data.</div></div>');
+    });
+    return;
+  }
+
+  // Alias check (exact match after stripping spaces)
+  if (aliases && aliases[query]) {
+    var a = aliases[query];
+    if (a.lat != null && a.lng != null) {
+      var name = query + (a.type === 'station' ? '駅' : '');
+      renderResults(findNearest(a.lat, a.lng), name, null);
+      return;
+    }
+  }
+
+  // Address text search
+  loadPostalCoords().then(function() {
+    var matches = pcSearchText(query);
+    if (!matches.length) {
+      showArea('<div class="result-card"><div class="result-body err-text">' +
+        '「' + esc(query) + '」 — no match found. Try station name, postal code, or address.' +
+        '</div></div>');
+      return;
+    }
+
+    // Group by prefecture+city to detect ambiguity
+    var uniqueCities = {};
+    var uniquePrefs  = {};
+    matches.forEach(function(r) {
+      var k = r[1] + r[2];
+      if (!uniqueCities[k]) uniqueCities[k] = 0;
+      uniqueCities[k]++;
+      uniquePrefs[r[1]] = true;
+    });
+    var cityCount = Object.keys(uniqueCities).length;
+    var prefCount = Object.keys(uniquePrefs).length;
+
+    // Show disambiguation when: too many results, OR spans multiple prefectures
+    if (matches.length >= 100 || cityCount > 6 || prefCount > 1) {
+      var cities = Object.keys(uniqueCities).sort(function(a,b){ return uniqueCities[b]-uniqueCities[a]; });
+      var html = '<div class="result-card"><div class="result-body">' +
+        '<div style="font-size:0.8rem;margin-bottom:8px;color:var(--text)">' +
+        (prefCount > 1
+          ? '「<strong>' + esc(query) + '</strong>」 exists in multiple areas — which one?'
+          : 'Too many matches for「<strong>' + esc(query) + '</strong>」— narrow it down:') +
+        '</div>';
+      cities.slice(0, 12).forEach(function(k) {
+        html += '<span style="display:inline-block;margin:3px;padding:4px 10px;background:var(--mid);' +
+          'border-radius:8px;font-size:0.8rem;cursor:pointer;color:var(--accent);border:1px solid var(--border)" ' +
+          'onclick="refineSearch(\'' + k.replace(/'/g,"\\'") + '\')">' + esc(k) + '</span>';
+      });
+      if (cities.length > 12) {
+        html += '<div style="font-size:0.72rem;color:var(--muted);margin-top:6px">+ ' + (cities.length-12) + ' more areas</div>';
+      }
+      html += '</div></div>';
+      showArea(html);
+      return;
+    }
+
+    // Pick first match with coordinates
+    var rec = null;
+    for (var i = 0; i < matches.length; i++) {
+      if (matches[i][4] != null) { rec = matches[i]; break; }
+    }
+    if (!rec) {
+      var m = matches[0];
+      renderNoCoords(query, m[1] + m[2] + (m[3] ? '　' + m[3] : ''));
+      return;
+    }
+    var addr = rec[1] + rec[2] + (rec[3] ? '　' + rec[3] : '');
+    renderResults(findNearest(rec[4], rec[5]), addr, null);
+  }).catch(function() {
+    showArea('<div class="result-card"><div class="result-body err-text">Failed to load address data.</div></div>');
+  });
+}
+
+function refineSearch(text) {
+  searchInput.value = text;
+  detectPill.textContent = 'address';
+  detectPill.className = 'detect-pill visible';
+  searchIcon.textContent = 'location_on';
+  doSearch();
+}
+</script>
+<script src="/greetings.js"></script>
+</body>
+</html>

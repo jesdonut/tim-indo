@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indonesian Team PDF Merger</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<link href="/cropper.min.css" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+}
+body.dark {
+  --bg: #111827;
+  --text: #f1f5f9;
+  --primary: #93c5fd;
+  --primary-2: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-dark: #dbeafe;
+  --light: #1e293b;
+  --mid: #243453;
+  --border: #334155;
+  --border-soft: #475569;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --brand-bg: #1e293b;
+  --brand-sub: #93c5fd;
+  --input-bg: #263348;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0;
+  background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px;
+  display: flex; gap: 2px; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 8px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.mid {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 12px 16px 6px; display: flex; flex-direction: column; gap: 10px;
+}
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+.lang-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--mid); border: 1px solid var(--border-soft);
+  border-radius: 9px; padding: 8px 13px; cursor: pointer; user-select: none;
+}
+.lang-toggle-left { display: flex; align-items: center; gap: 8px; }
+.lang-toggle-label { font-size: 0.78rem; font-weight: 600; color: var(--primary); }
+.lang-arrow {
+  font-size: 1.2rem; color: var(--accent); transition: transform 0.2s; display: inline-block;
+}
+.lang-arrow.open { transform: rotate(180deg); }
+
+.lang-cards { display: none; flex-direction: column; gap: 4px; margin-top: 5px; }
+.lang-cards.open { display: flex; }
+.lang-card {
+  display: flex; align-items: flex-start; gap: 9px;
+  background: var(--light); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px;
+}
+.lang-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 20px; padding: 0 5px;
+  background: var(--primary-2); color: #fff; border-radius: 4px;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em;
+  flex-shrink: 0; line-height: 1; margin-top: 2px;
+}
+.lang-label { font-size: 0.63rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.lang-text { font-size: 0.78rem; color: var(--text); line-height: 1.5; }
+.lang-text strong { color: var(--primary); }
+
+.drop-zone {
+  border: 2px dashed var(--border-soft); border-radius: 14px; padding: 22px 16px;
+  text-align: center; cursor: pointer; background: var(--input-bg);
+  transition: border-color 0.2s, background 0.2s; flex-shrink: 0;
+}
+.drop-zone:hover { border-color: var(--primary-2); background: var(--light); }
+.drop-zone.dragover { border-color: var(--primary); background: var(--mid); }
+.drop-zone.paste-flash { border-color: #16a34a; background: #f0fdf4; transition: none; }
+.drop-icon { font-size: 3rem; display: block; margin-bottom: 7px; color: var(--border-soft); line-height: 1; }
+.drop-zone h2 { font-size: 0.92rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.drop-sub { color: var(--muted); font-size: 0.74rem; margin-bottom: 6px; }
+.paste-badge {
+  display: inline-block; background: var(--light); border: 1px solid var(--border);
+  border-radius: 5px; padding: 2px 8px; font-size: 0.68rem; color: var(--accent);
+  margin-bottom: 10px; font-family: monospace;
+}
+.browse-btn {
+  display: inline-block; padding: 7px 18px; background: var(--primary-2);
+  color: #fff; border-radius: 7px; font-size: 0.8rem; font-weight: 500;
+  cursor: pointer; transition: background 0.2s;
+}
+.browse-btn:hover { background: var(--primary-hover); }
+
+.file-list { display: flex; flex-direction: column; gap: 5px; }
+.file-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+  padding: 7px 10px; cursor: grab;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s; user-select: none;
+}
+.file-item:active { cursor: grabbing; }
+.file-item.drag-over { border-color: var(--primary-2); background: var(--light); }
+.file-item.dragging { opacity: 0.3; }
+.drag-handle { color: var(--border-soft); flex-shrink: 0; display: flex; align-items: center; }
+.drag-handle .material-icons-outlined { font-size: 1.1rem; }
+
+.file-thumb {
+  width: 50px; height: 50px; border-radius: 7px; background: var(--light);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; cursor: default;
+}
+.file-thumb img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 7px;
+  transform-origin: center; transition: transform 0.25s ease;
+}
+.file-thumb img.rot90  { transform: rotate(90deg); }
+.file-thumb img.rot180 { transform: rotate(180deg); }
+.file-thumb img.rot270 { transform: rotate(270deg); }
+.pdf-thumb-icon { font-size: 1.8rem; color: var(--border-soft); }
+
+#imgPreview {
+  position: fixed; z-index: 9999; display: none;
+  width: 200px; height: 200px; background: var(--input-bg);
+  border: 1.5px solid var(--border-soft); border-radius: 12px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.14); overflow: hidden; pointer-events: none;
+}
+#imgPreview img { width: 100%; height: 100%; object-fit: contain; transform-origin: center; }
+#imgPreview img.rot90  { transform: rotate(90deg)  scale(0.9); }
+#imgPreview img.rot180 { transform: rotate(180deg) scale(1); }
+#imgPreview img.rot270 { transform: rotate(270deg) scale(0.9); }
+
+.file-info { flex: 1; min-width: 0; }
+.file-name { font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.file-meta { font-size: 0.66rem; color: var(--muted); margin-top: 1px; }
+.rotate-btns { display: flex; gap: 2px; flex-shrink: 0; }
+.rot-btn {
+  background: var(--light); border: 1px solid var(--border); color: var(--primary-2);
+  cursor: pointer; width: 26px; height: 26px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s; flex-shrink: 0;
+}
+.rot-btn .material-icons-outlined { font-size: 1.05rem; }
+.rot-btn:hover { background: var(--mid); border-color: var(--border-soft); }
+.file-remove {
+  background: none; border: none; color: var(--border); cursor: pointer;
+  width: 24px; height: 24px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s; flex-shrink: 0;
+}
+.file-remove .material-icons-outlined { font-size: 1rem; }
+.file-remove:hover { color: #ef4444; background: #fef2f2; }
+
+.list-actions { display: none; align-items: center; justify-content: space-between; padding-bottom: 4px; }
+.list-actions.visible { display: flex; }
+.reorder-tip { font-size: 0.67rem; color: var(--border-soft); display: flex; align-items: center; gap: 3px; }
+.reorder-tip .material-icons-outlined { font-size: 0.9rem; }
+.clear-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.68rem; padding: 3px 10px; border-radius: 5px;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.clear-btn:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
+
+.bottom-bar {
+  flex-shrink: 0; background: var(--bg); border-top: 1px solid var(--border);
+  padding: 8px 16px 12px; display: flex; flex-direction: column; gap: 6px;
+}
+
+.saved-section { display: none; flex-direction: column; gap: 4px; }
+.saved-section.visible { display: flex; }
+.saved-label {
+  font-size: 0.65rem; font-weight: 600; color: var(--border-soft);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  display: flex; align-items: center; gap: 3px;
+}
+.saved-label .material-icons { font-size: 0.85rem; }
+.saved-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.saved-chip {
+  display: flex; align-items: center;
+  background: var(--light); border: 1px solid var(--border);
+  border-radius: 6px; max-width: 100%; overflow: hidden;
+}
+.saved-chip-name {
+  padding: 4px 2px 4px 9px; font-size: 0.72rem; color: var(--primary);
+  cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 260px; transition: color 0.15s;
+}
+.saved-chip-name:hover { color: var(--primary-dark); text-decoration: underline; }
+.saved-chip-del {
+  padding: 3px 6px 3px 3px; color: var(--border);
+  cursor: pointer; flex-shrink: 0; transition: color 0.15s;
+  display: flex; align-items: center;
+}
+.saved-chip-del .material-icons-outlined { font-size: 0.85rem; }
+.saved-chip-del:hover { color: #ef4444; }
+
+.controls { display: flex; gap: 6px; align-items: stretch; }
+.filename-wrap { flex: 1; position: relative; }
+.ext-label {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--border-soft); font-size: 0.72rem; pointer-events: none;
+}
+.filename-input {
+  width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+  color: var(--text); border-radius: 8px; padding: 10px 36px 10px 12px;
+  font-size: 0.88rem; outline: none; transition: border-color 0.2s;
+}
+.filename-input:focus { border-color: var(--primary-2); }
+.filename-input::placeholder { color: var(--border-soft); }
+.save-name-btn {
+  background: var(--input-bg); border: 1px solid var(--border); color: var(--border);
+  width: 38px; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, border-color 0.15s, background 0.15s; flex-shrink: 0;
+}
+.save-name-btn .material-icons-outlined, .save-name-btn .material-icons { font-size: 1.2rem; }
+.save-name-btn:hover { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
+.save-name-btn.flash { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
+.download-btn {
+  padding: 10px 14px; background: var(--primary-2); color: #fff; border: none;
+  border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+  white-space: nowrap; transition: background 0.2s, transform 0.1s;
+  display: flex; align-items: center; gap: 5px;
+}
+.download-btn .material-icons-outlined { font-size: 1.1rem; }
+.download-btn:hover { background: var(--primary-hover); }
+.download-btn:active { transform: scale(0.97); }
+.download-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.progress-wrap {
+  height: 3px; background: var(--border); border-radius: 2px; overflow: hidden;
+  opacity: 0; transition: opacity 0.2s;
+}
+.progress-wrap.visible { opacity: 1; }
+.progress-bar { height: 100%; background: var(--primary-2); width: 0%; transition: width 0.3s ease; }
+.status { text-align: center; font-size: 0.74rem; color: var(--muted); min-height: 16px; }
+.status.error { color: #ef4444; }
+.status.success { color: #16a34a; }
+
+.edit-btn { background: var(--light); border: 1px solid var(--border); color: var(--primary-2); }
+.edit-btn:hover { background: var(--mid); border-color: var(--border-soft); }
+
+.edit-modal {
+  position: fixed; inset: 0; z-index: 10000;
+  display: none; flex-direction: column; background: #000;
+}
+.edit-modal.open { display: flex; }
+.edit-modal-header {
+  flex-shrink: 0; background: var(--brand-bg); color: #fff;
+  padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+}
+.edit-modal-title { font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.edit-modal-close {
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 50%; width: 28px; height: 28px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.edit-modal-close .material-icons-outlined { font-size: 1rem; }
+.edit-modal-body { flex: 1; min-height: 0; overflow: hidden; background: #1a1a2e; }
+.edit-modal-body img { display: block; max-width: 100%; }
+.edit-modal-footer {
+  flex-shrink: 0; background: var(--bg); padding: 10px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.angle-row { display: flex; align-items: center; gap: 10px; }
+.angle-label { font-size: 0.75rem; color: var(--muted); flex-shrink: 0; }
+.angle-slider { flex: 1; accent-color: var(--primary-2); }
+.angle-val { font-size: 0.78rem; font-weight: 700; color: var(--primary); min-width: 38px; text-align: right; flex-shrink: 0; }
+.edit-action-row { display: flex; gap: 8px; }
+.edit-cancel-btn {
+  flex: 1; padding: 10px; border-radius: 8px;
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.88rem; font-weight: 600; cursor: pointer;
+}
+.edit-apply-btn {
+  flex: 2; padding: 10px; border-radius: 8px;
+  background: var(--primary-2); color: #fff; border: none;
+  font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
+}
+.edit-apply-btn:hover { background: var(--primary-hover); }
+.edit-apply-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.greeting-bar {
+  background: var(--mid); border: 1px solid var(--border-soft);
+  border-radius: 9px; padding: 8px 13px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.78rem; color: var(--text); flex-shrink: 0;
+}
+.greeting-text { flex: 1; }
+.greeting-close {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 1.1rem; line-height: 1; padding: 0 0 0 10px; flex-shrink: 0;
+}
+.greeting-close:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">description</span>
+  <div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab active" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
+    <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
+    <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
+  </div>
+</nav>
+<script>
+(function(){var t=document.querySelector('.nav-tabs'),a=document.querySelector('.nav-tab.active');if(t&&a)t.scrollLeft=a.offsetLeft-(t.offsetWidth-a.offsetWidth)/2;})();
+</script>
+
+
+<div class="mid">
+  <div class="app-title">
+    <h1>PDF Merger</h1>
+    <p>Gabungin PDF &amp; gambar, bisa rotate, urutkan, terus download</p>
+  </div>
+
+  <div>
+    <div class="lang-toggle" onclick="toggleLang()">
+      <div class="lang-toggle-left">
+        <span class="material-icons-outlined" style="font-size:1.1rem;color:var(--accent)">language</span>
+        <span class="lang-toggle-label">How to use</span>
+      </div>
+      <span class="material-icons-outlined lang-arrow" id="langArrow">expand_more</span>
+    </div>
+    <div class="lang-cards" id="langCards">
+      <div class="lang-card">
+        <div class="lang-badge">EN</div>
+        <div>
+          <div class="lang-label">English</div>
+          <div class="lang-text">Drop, paste <strong>(Ctrl+V)</strong>, or browse files. Use <strong>rotate left / right</strong> to rotate. Drag rows to reorder. Type a name, save it with the star button, and click <strong>Download PDF</strong>.</div>
+        </div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-badge">JP</div>
+        <div>
+          <div class="lang-label">&#26085;&#26412;&#35486;</div>
+          <div class="lang-text">&#12489;&#12525;&#12483;&#12503;&#12289;<strong>Ctrl+V</strong>&#12289;&#12414;&#12383;&#12399;&#12501;&#12449;&#12452;&#12523;&#36984;&#25246;&#12290;&#22238;&#36578;&#12508;&#12479;&#12531;&#12391;&#22238;&#36578;&#12290;&#34180;&#12434;&#12489;&#12521;&#12483;&#12464;&#12375;&#12390;&#20006;&#12403;&#26367;&#12360;&#12290;&#12501;&#12449;&#12452;&#12523;&#21517;&#12434;&#20837;&#21147;&#12375;&#12289;&#26143;&#12391;&#20445;&#23384;&#12289;<strong>Download PDF</strong>&#12434;&#12463;&#12522;&#12483;&#12463;&#12290;</div>
+        </div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-badge">MY</div>
+        <div>
+          <div class="lang-label">&#4121;&#4156;&#4116;&#4154;&#4121;&#4140;</div>
+          <div class="lang-text">&#4127;&#4151;&#4150;&#4101;&#4155;&#4131;&#4145;&#4123;&#4140;&#12289; <strong>Ctrl+V</strong> &#4116;&#4154;&#4126;&#4103;&#4126;&#4154; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4126;&#4103;&#12290; &#4126;&#4152;&#4126;&#4140;&#4111;&#4150;&#4118;&#4154;&#12290; &#4124;&#4140;&#4116;&#4156;&#4116;&#4154;&#4100;&#4121;&#4154;&#4116;&#4154; &#4126;&#4140;&#4137;&#4150;&#4153; &#4116;&#4154;&#4126;&#4103;&#4126;&#4140; &#4126;&#4140;&#4137;&#4150;&#4153;&#4123;&#4140;&#4112;&#4140;&#4116;&#4116;&#4154;&#12290; <strong>Download PDF</strong> &#4116;&#4154;&#4126;&#4103;&#4121;&#4155;&#4126;&#4140;&#12290;</div>
+        </div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-badge">VN</div>
+        <div>
+          <div class="lang-label">Ti&#7871;ng Vi&#7879;t</div>
+          <div class="lang-text">K&#233;o th&#7843;, d&#225;n <strong>(Ctrl+V)</strong> ho&#7863;c ch&#7885;n file. D&#249;ng n&#250;t xoay &#273;&#7875; xoay. K&#233;o &#273;&#7875; s&#7855;p x&#7871;p. Nh&#7853;p t&#234;n, l&#432;u b&#7857;ng n&#250;t sao, r&#7891;i nh&#7845;n <strong>Download PDF</strong>.</div>
+        </div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-badge">ID</div>
+        <div>
+          <div class="lang-label">Bahasa Indonesia</div>
+          <div class="lang-text">Seret, tempel <strong>(Ctrl+V)</strong>, atau pilih file. Gunakan tombol putar untuk memutar. Seret untuk mengatur urutan. Ketik nama, simpan dengan tombol bintang, lalu klik <strong>Download PDF</strong>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="drop-zone" id="dropZone">
+    <span class="material-icons-outlined drop-icon">upload_file</span>
+    <h2>Drop files here</h2>
+    <p class="drop-sub">PDF &middot; JPG &middot; PNG</p>
+    <div class="paste-badge">Ctrl+V &mdash; paste from clipboard</div><br>
+    <div class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse files</div>
+    <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none">
+  </div>
+
+  <div class="file-list" id="fileList"></div>
+
+  <div class="list-actions" id="listActions">
+    <span class="reorder-tip">
+      <span class="material-icons-outlined">swap_vert</span> Drag to reorder
+      &nbsp;
+      <span class="material-icons-outlined">rotate_left</span><span class="material-icons-outlined">rotate_right</span> Rotate
+    </span>
+    <button class="clear-btn" onclick="clearAll()">Clear all</button>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <div class="saved-section" id="savedSection">
+    <div>
+      <span class="saved-label"><span class="material-icons">star</span> Saved names</span>
+    </div>
+    <div class="saved-chips" id="savedChips"></div>
+  </div>
+  <div class="controls">
+    <div class="filename-wrap">
+      <input type="text" class="filename-input" id="filenameInput" placeholder="Output filename" value="output">
+      <span class="ext-label">.pdf</span>
+    </div>
+    <button class="save-name-btn" id="saveNameBtn" onclick="saveName()" title="Save this filename">
+      <span class="material-icons-outlined">star_border</span>
+    </button>
+    <button class="download-btn" id="downloadBtn" onclick="handleDownload()">
+      <span class="material-icons-outlined">download</span> Download PDF
+    </button>
+  </div>
+  <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="status" id="status"></div>
+</div>
+
+<div id="imgPreview"><img id="imgPreviewImg" src="" alt=""></div>
+
+<div class="edit-modal" id="editModal">
+  <div class="edit-modal-header">
+    <span class="edit-modal-title">
+      <span class="material-icons-outlined">crop</span> Crop &amp; Straighten
+    </span>
+    <button class="edit-modal-close" onclick="cancelEdit()">
+      <span class="material-icons-outlined">close</span>
+    </button>
+  </div>
+  <div class="edit-modal-body">
+    <img id="editImg" src="" alt="">
+  </div>
+  <div class="edit-modal-footer">
+    <div class="angle-row">
+      <span class="angle-label">Straighten</span>
+      <input type="range" class="angle-slider" id="angleSlider" min="-45" max="45" step="0.5" value="0">
+      <span class="angle-val" id="angleVal">0°</span>
+    </div>
+    <div class="edit-action-row">
+      <button class="edit-cancel-btn" onclick="cancelEdit()">Cancel</button>
+      <button class="edit-apply-btn" id="editApplyBtn" onclick="applyEdit()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script src="greetings.js"></script>
+<script src="/cropper.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+var files = [];
+var editedBlobs = [];
+var rotations = [];
+var dragSrcIdx = null;
+var langOpen = false;
+var STORAGE_KEY = 'gaj_pdf_saved_names';
+var THEME_KEY   = 'gaj_theme';
+var THEMES      = ['blue','pink','dark'];
+var THEME_ICONS = {blue:'palette',pink:'dark_mode',dark:'light_mode'};
+var THEME_LABELS= {blue:'Pink',pink:'Dark',dark:'Blue'};
+
+var imgPreview    = document.getElementById('imgPreview');
+var imgPreviewImg = document.getElementById('imgPreviewImg');
+
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t)+1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+function showPreview(src, rotClass, e) {
+  imgPreviewImg.src = src; imgPreviewImg.className = rotClass;
+  imgPreview.style.display = 'block'; movePreview(e);
+}
+function movePreview(e) {
+  var x = e.clientX + 16, y = e.clientY - 100;
+  if (x + 210 > window.innerWidth)  x = e.clientX - 218;
+  if (y < 6)                        y = 6;
+  if (y + 210 > window.innerHeight) y = window.innerHeight - 216;
+  imgPreview.style.left = x + 'px'; imgPreview.style.top = y + 'px';
+}
+function hidePreview() { imgPreview.style.display = 'none'; }
+
+function toggleLang() {
+  langOpen = !langOpen;
+  document.getElementById('langCards').className = 'lang-cards' + (langOpen ? ' open' : '');
+  var arrow = document.getElementById('langArrow');
+  if (langOpen) arrow.classList.add('open'); else arrow.classList.remove('open');
+}
+
+function getSavedNames() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveName() {
+  var name = document.getElementById('filenameInput').value.trim();
+  if (!name || name === 'output') return;
+  var names = getSavedNames();
+  if (names.indexOf(name) === -1) {
+    names.unshift(name);
+    if (names.length > 20) names = names.slice(0, 20);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
+  }
+  renderSavedNames();
+  var btn = document.getElementById('saveNameBtn');
+  btn.innerHTML = '<span class="material-icons">star</span>';
+  btn.classList.add('flash');
+  setTimeout(function() {
+    btn.innerHTML = '<span class="material-icons-outlined">star_border</span>';
+    btn.classList.remove('flash');
+  }, 800);
+}
+function deleteSavedName(name) {
+  var names = getSavedNames().filter(function(n) { return n !== name; });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(names)); renderSavedNames();
+}
+function loadSavedName(name) {
+  document.getElementById('filenameInput').value = name;
+  document.getElementById('filenameInput').focus();
+}
+function renderSavedNames() {
+  var names = getSavedNames();
+  var section = document.getElementById('savedSection');
+  var chips   = document.getElementById('savedChips');
+  section.className = 'saved-section' + (names.length > 0 ? ' visible' : '');
+  chips.innerHTML = '';
+  names.forEach(function(name) {
+    var chip = document.createElement('div');
+    chip.className = 'saved-chip'; chip.title = name;
+    var nameEl = document.createElement('div');
+    nameEl.className = 'saved-chip-name'; nameEl.textContent = name;
+    nameEl.onclick = function() { loadSavedName(name); };
+    var del = document.createElement('span');
+    del.className = 'saved-chip-del';
+    del.innerHTML = '<span class="material-icons-outlined">close</span>';
+    del.onclick = function() { deleteSavedName(name); };
+    chip.appendChild(nameEl); chip.appendChild(del); chips.appendChild(chip);
+  });
+}
+
+var dropZone = document.getElementById('dropZone');
+var fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', function(e) { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('dragover'); });
+dropZone.addEventListener('drop', function(e) { e.preventDefault(); dropZone.classList.remove('dragover'); addFiles(Array.from(e.dataTransfer.files)); });
+fileInput.addEventListener('change', function() { addFiles(Array.from(fileInput.files)); fileInput.value = ''; });
+
+document.addEventListener('paste', function(e) {
+  var pasted = Array.from(e.clipboardData.items)
+    .filter(function(i) { return i.kind === 'file'; })
+    .map(function(i) { return i.getAsFile(); }).filter(Boolean);
+  if (pasted.length > 0) {
+    addFiles(pasted);
+    dropZone.classList.add('paste-flash');
+    setTimeout(function() { dropZone.classList.remove('paste-flash'); }, 500);
+  }
+});
+
+function addFiles(newFiles) {
+  var allowed = ['application/pdf', 'image/jpeg', 'image/png'], added = 0;
+  newFiles.forEach(function(f) {
+    if (allowed.indexOf(f.type) >= 0) { files.push(f); rotations.push(0); editedBlobs.push(null); added++; }
+  });
+  if (added === 0 && newFiles.length > 0) setStatus('Only PDF, JPG, and PNG files are supported.', 'error');
+  else setStatus('', '');
+  renderList();
+}
+
+function clearAll()    { files = []; rotations = []; editedBlobs = []; renderList(); setStatus('', ''); }
+function removeFile(i) { files.splice(i,1); rotations.splice(i,1); editedBlobs.splice(i,1); renderList(); }
+function rotate(i,dir) { rotations[i]=(rotations[i]+dir*90+360)%360; renderList(); }
+
+function fmt(b) {
+  if (b<1024) return b+' B';
+  if (b<1048576) return (b/1024).toFixed(1)+' KB';
+  return (b/1048576).toFixed(1)+' MB';
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderList() {
+  var list = document.getElementById('fileList');
+  var actions = document.getElementById('listActions');
+  list.innerHTML = '';
+  actions.className = 'list-actions' + (files.length > 0 ? ' visible' : '');
+
+  files.forEach(function(file, i) {
+    var rot = rotations[i];
+    var rotClass = rot===90?'rot90':rot===180?'rot180':rot===270?'rot270':'';
+
+    var item = document.createElement('div');
+    item.className = 'file-item'; item.draggable = true;
+
+    var handle = document.createElement('div');
+    handle.className = 'drag-handle';
+    handle.innerHTML = '<span class="material-icons-outlined">drag_indicator</span>';
+
+    var thumb = document.createElement('div');
+    thumb.className = 'file-thumb';
+
+    if (file.type === 'application/pdf') {
+      thumb.innerHTML = '<span class="material-icons-outlined pdf-thumb-icon">picture_as_pdf</span>';
+    } else {
+      var imgEl = document.createElement('img');
+      var thumbSrc = URL.createObjectURL(editedBlobs[i] || file);
+      imgEl.src = thumbSrc;
+      if (rotClass) imgEl.className = rotClass;
+      thumb.appendChild(imgEl);
+      (function(src, rc) {
+        thumb.addEventListener('mouseenter', function(e) { showPreview(src, rc, e); });
+        thumb.addEventListener('mousemove',  function(e) { movePreview(e); });
+        thumb.addEventListener('mouseleave', function()  { hidePreview(); });
+      })(thumbSrc, rotClass);
+    }
+
+    var info = document.createElement('div');
+    info.className = 'file-info';
+    var ext = file.type==='application/pdf'?'PDF':file.type==='image/png'?'PNG':'JPG';
+    var rotTxt = rot>0?' · '+rot+'°':'';
+    var editTxt = editedBlobs[i] ? ' · ✂ edited' : '';
+    info.innerHTML='<div class="file-name">'+esc(file.name)+'</div><div class="file-meta">'+ext+' · '+fmt(file.size)+rotTxt+editTxt+'</div>';
+
+    var rotBtns = document.createElement('div'); rotBtns.className = 'rotate-btns';
+    if (file.type !== 'application/pdf') {
+      var editBtn = document.createElement('button');
+      editBtn.className='rot-btn edit-btn'; editBtn.title='Crop & straighten';
+      editBtn.innerHTML='<span class="material-icons-outlined">crop</span>';
+      editBtn.onclick=(function(idx){ return function(e){ e.stopPropagation(); openEdit(idx); }; })(i);
+      rotBtns.appendChild(editBtn);
+    }
+    var rotL = document.createElement('button');
+    rotL.className='rot-btn'; rotL.title='Rotate left';
+    rotL.innerHTML='<span class="material-icons-outlined">rotate_left</span>';
+    rotL.onclick=(function(idx){ return function(e){ e.stopPropagation(); rotate(idx,-1); }; })(i);
+    var rotR = document.createElement('button');
+    rotR.className='rot-btn'; rotR.title='Rotate right';
+    rotR.innerHTML='<span class="material-icons-outlined">rotate_right</span>';
+    rotR.onclick=(function(idx){ return function(e){ e.stopPropagation(); rotate(idx,1); }; })(i);
+    rotBtns.appendChild(rotL); rotBtns.appendChild(rotR);
+
+    var rm = document.createElement('button'); rm.className='file-remove';
+    rm.innerHTML='<span class="material-icons-outlined">close</span>';
+    rm.onclick=(function(idx){ return function(e){ e.stopPropagation(); removeFile(idx); }; })(i);
+
+    item.appendChild(handle); item.appendChild(thumb); item.appendChild(info);
+    item.appendChild(rotBtns); item.appendChild(rm);
+    list.appendChild(item);
+
+    item.addEventListener('dragstart', function(e) {
+      dragSrcIdx=i;
+      setTimeout(function(){ item.classList.add('dragging'); },0);
+      e.dataTransfer.effectAllowed='move';
+    });
+    item.addEventListener('dragend', function() {
+      item.classList.remove('dragging');
+      Array.from(list.querySelectorAll('.file-item')).forEach(function(el){ el.classList.remove('drag-over'); });
+    });
+    item.addEventListener('dragover',  function(e){ e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', function(){ item.classList.remove('drag-over'); });
+    item.addEventListener('drop', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      item.classList.remove('drag-over');
+      if (dragSrcIdx!==null && dragSrcIdx!==i) {
+        var mf=files.splice(dragSrcIdx,1)[0], mr=rotations.splice(dragSrcIdx,1)[0], me=editedBlobs.splice(dragSrcIdx,1)[0];
+        files.splice(i,0,mf); rotations.splice(i,0,mr); editedBlobs.splice(i,0,me);
+        dragSrcIdx=null; renderList();
+      }
+    });
+  });
+}
+
+var cropper = null;
+var editingIdx = -1;
+
+function openEdit(idx) {
+  editingIdx = idx;
+  var src = editedBlobs[idx] || files[idx];
+  var rot = rotations[idx];
+  document.getElementById('editModal').classList.add('open');
+  document.getElementById('angleSlider').value = 0;
+  document.getElementById('angleVal').textContent = '0°';
+  if (rot === 0) {
+    initCropperUrl(URL.createObjectURL(src));
+  } else {
+    rotateImageBytes(src, rot).then(function(bytes) {
+      initCropperUrl(URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' })));
+    });
+  }
+}
+
+function initCropperUrl(url) {
+  if (cropper) { cropper.destroy(); cropper = null; }
+  var img = document.getElementById('editImg');
+  img.onload = function() {
+    URL.revokeObjectURL(url);
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        cropper = new Cropper(img, {
+          viewMode: 1,
+          autoCropArea: 0.95,
+          movable: true,
+          zoomable: true,
+          rotatable: true,
+          background: true,
+        });
+      });
+    });
+  };
+  img.src = url;
+}
+
+function cancelEdit() {
+  document.getElementById('editModal').classList.remove('open');
+  if (cropper) { cropper.destroy(); cropper = null; }
+}
+
+document.getElementById('angleSlider').addEventListener('input', function() {
+  var a = parseFloat(this.value);
+  document.getElementById('angleVal').textContent = (a > 0 ? '+' : '') + a.toFixed(1) + '°';
+  if (cropper) cropper.rotateTo(a);
+});
+
+function applyEdit() {
+  if (!cropper) return;
+  var btn = document.getElementById('editApplyBtn');
+  btn.disabled = true; btn.textContent = 'Applying…';
+  var canvas = cropper.getCroppedCanvas({ fillColor: '#ffffff', imageSmoothingQuality: 'high' });
+  canvas.toBlob(function(blob) {
+    editedBlobs[editingIdx] = blob;
+    rotations[editingIdx] = 0;
+    renderList();
+    cancelEdit();
+    btn.disabled = false; btn.textContent = 'Apply';
+  }, 'image/jpeg', 0.92);
+}
+
+function rotateImageBytes(file, rotation) {
+  return new Promise(function(resolve) {
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function() {
+      var swap=(rotation===90||rotation===270);
+      var canvas=document.createElement('canvas');
+      canvas.width =swap?img.naturalHeight:img.naturalWidth;
+      canvas.height=swap?img.naturalWidth :img.naturalHeight;
+      var ctx=canvas.getContext('2d');
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.translate(canvas.width/2,canvas.height/2);
+      ctx.rotate(rotation*Math.PI/180);
+      ctx.drawImage(img,-img.naturalWidth/2,-img.naturalHeight/2);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(function(blob){ blob.arrayBuffer().then(resolve); },'image/jpeg',0.90);
+    };
+    img.src=url;
+  });
+}
+
+function setProgress(pct) {
+  var wrap=document.getElementById('progressWrap'), bar=document.getElementById('progressBar');
+  if (pct<0){ wrap.classList.remove('visible'); bar.style.width='0%'; return; }
+  wrap.classList.add('visible'); bar.style.width=pct+'%';
+}
+function setStatus(msg,type) {
+  var el=document.getElementById('status'); el.textContent=msg;
+  el.className='status'+(type?' '+type:'');
+}
+
+function handleDownload() {
+  if (files.length===0){ setStatus('Add at least one file first.','error'); return; }
+  var btn=document.getElementById('downloadBtn');
+  btn.disabled=true; btn.textContent='Building...';
+  setStatus('Processing files...',''); setProgress(5);
+
+  PDFLib.PDFDocument.create().then(function(pdfDoc) {
+    var chain=Promise.resolve();
+    files.forEach(function(file,idx) {
+      chain=chain.then(function() {
+        setProgress(10+Math.round((idx/files.length)*80));
+        var rot=rotations[idx];
+        var src=editedBlobs[idx]||file;
+        if (file.type==='application/pdf') {
+          return file.arrayBuffer().then(function(bytes) {
+            return PDFLib.PDFDocument.load(bytes).then(function(srcDoc) {
+              return pdfDoc.copyPages(srcDoc,srcDoc.getPageIndices()).then(function(pages) {
+                pages.forEach(function(p) {
+                  if (rot!==0){ var cur=p.getRotation().angle; p.setRotation(PDFLib.degrees((cur+rot)%360)); }
+                  pdfDoc.addPage(p);
+                });
+              });
+            });
+          });
+        } else {
+          return rotateImageBytes(src,rot).then(function(bytes) {
+            return pdfDoc.embedJpg(bytes).then(function(img) {
+              var maxW=595,maxH=842,w=img.width,h=img.height;
+              var scale=Math.min(1,maxW/w,maxH/h);
+              w=Math.round(w*scale); h=Math.round(h*scale);
+              var page=pdfDoc.addPage([w,h]);
+              page.drawImage(img,{x:0,y:0,width:w,height:h});
+            });
+          });
+        }
+      });
+    });
+    return chain.then(function(){ return pdfDoc.save({ useObjectStreams: true }); });
+  }).then(function(pdfBytes) {
+    setProgress(95);
+    var blob=new Blob([pdfBytes],{type:'application/pdf'});
+    var url=URL.createObjectURL(blob);
+    var name=document.getElementById('filenameInput').value.trim()||'output';
+    if (!name.toLowerCase().endsWith('.pdf')) name+='.pdf';
+    var a=document.createElement('a');
+    a.href=url; a.download=name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); },5000);
+    setProgress(100);
+    var sizeMB=(pdfBytes.byteLength/1048576).toFixed(1);
+    setStatus('Downloaded "'+name+'" ('+sizeMB+' MB)','success');
+    setTimeout(function(){ setProgress(-1); },1800);
+  }).catch(function(err) {
+    console.error(err); setStatus('Error: '+err.message,'error'); setProgress(-1);
+  }).finally(function() {
+    btn.disabled=false;
+    btn.innerHTML='<span class="material-icons-outlined">download</span> Download PDF';
+  });
+}
+
+renderSavedNames();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Japanese Translator - Tim Indo Serba Bisa</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+}
+body.dark {
+  --bg: #111827;
+  --text: #f1f5f9;
+  --primary: #93c5fd;
+  --primary-2: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-dark: #dbeafe;
+  --light: #1e293b;
+  --mid: #243453;
+  --border: #334155;
+  --border-soft: #475569;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --brand-bg: #1e293b;
+  --brand-sub: #93c5fd;
+  --input-bg: #263348;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; height: 100dvh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex; align-items: center; gap: 10px; justify-content: center; position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px;
+  display: flex; gap: 2px; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 8px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.mid {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+.input-section { display: flex; flex-direction: column; gap: 8px; }
+.input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+.input-wrap { position: relative; }
+.input-textarea {
+  width: 100%; background: var(--input-bg); border: 1.5px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 12px 14px 28px;
+  font-size: 1rem; line-height: 1.6; outline: none; resize: vertical;
+  min-height: 110px; transition: border-color 0.2s; font-family: inherit;
+}
+.input-textarea:focus { border-color: var(--primary-2); }
+.input-textarea::placeholder { color: var(--border-soft); }
+.char-count {
+  position: absolute; bottom: 8px; right: 12px;
+  font-size: 0.65rem; color: var(--border-soft); pointer-events: none;
+}
+.char-count.warn { color: #f59e0b; }
+.char-count.over { color: #ef4444; }
+.btn-row { display: flex; justify-content: flex-end; }
+.translate-btn {
+  padding: 10px 24px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+}
+.translate-btn:hover { background: var(--primary-hover); }
+.translate-btn:active { transform: scale(0.97); }
+.translate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.results { display: none; flex-direction: column; gap: 8px; }
+.results.visible { display: flex; }
+.result-card { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--light);
+}
+.result-label { font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+.copy-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.copy-btn:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
+.copy-btn.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
+.result-body {
+  padding: 10px 14px; font-size: 0.92rem; line-height: 1.75;
+  color: var(--text); min-height: 42px;
+}
+.loading-dots { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
+.err-text { color: #ef4444; font-size: 0.82rem; }
+.result-alt {
+  display: none; padding: 6px 14px 9px;
+  border-top: 1px dashed var(--border);
+}
+.result-alt.visible { display: block; }
+.result-alt-label {
+  font-size: 0.6rem; font-weight: 700; color: var(--border-soft);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px;
+}
+.result-alt-text { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">translate</span>
+  <div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab active" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
+    <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
+    <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
+  </div>
+</nav>
+<script>
+(function(){var t=document.querySelector('.nav-tabs'),a=document.querySelector('.nav-tab.active');if(t&&a)t.scrollLeft=a.offsetLeft-(t.offsetWidth-a.offsetWidth)/2;})();
+</script>
+
+
+<div class="mid">
+  <div class="app-title">
+    <h1>Japanese Translator</h1>
+    <p>Tempel teks Jepang, langsung dapet bacaan romaji + terjemahan</p>
+  </div>
+
+  <div class="input-section">
+    <div class="input-label">Teks Jepang</div>
+    <div class="input-wrap">
+      <textarea class="input-textarea" id="inputText" rows="4"
+        placeholder="&#12371;&#12371;&#12395;&#26085;&#26412;&#35486;&#12434;&#36984;&#12387;&#12390;&#12367;&#12384;&#12373;&#12356;&#12288;&#12288;&#12288;(Paste Teks Jepang here)"
+        oninput="updateCharCount()"></textarea>
+      <span class="char-count" id="charCount">0 / 500</span>
+    </div>
+    <div class="btn-row">
+      <button class="translate-btn" id="translateBtn" onclick="doTranslate()">Terjemahkan</button>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Bacaan (Romaji)</span>
+        <button class="copy-btn" onclick="copyResult('romajiOut',this)">Salin</button>
+      </div>
+      <div class="result-body" id="romajiOut"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Bahasa Indonesia</span>
+        <button class="copy-btn" onclick="copyResult('idOut',this)">Salin</button>
+      </div>
+      <div class="result-body" id="idOut"></div>
+      <div class="result-alt" id="idAlt">
+        <div class="result-alt-label">MyMemory</div>
+        <div class="result-alt-text" id="idAltText"></div>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Inggris</span>
+        <button class="copy-btn" onclick="copyResult('enOut',this)">Salin</button>
+      </div>
+      <div class="result-body" id="enOut"></div>
+      <div class="result-alt" id="enAlt">
+        <div class="result-alt-label">MyMemory</div>
+        <div class="result-alt-text" id="enAltText"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var THEME_KEY = 'gaj_theme';
+var THEMES      = ['blue','pink','dark'];
+var THEME_ICONS = {blue:'palette',pink:'dark_mode',dark:'light_mode'};
+var THEME_LABELS= {blue:'Pink',pink:'Dark',dark:'Blue'};
+
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t)+1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+function updateCharCount() {
+  var len = document.getElementById('inputText').value.length;
+  var el  = document.getElementById('charCount');
+  el.textContent = len + ' / 500';
+  el.className = 'char-count' + (len > 500 ? ' over' : len > 400 ? ' warn' : '');
+}
+
+function googleTranslate(text, tl, withRomaji) {
+  var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=' + tl +
+            '&dt=t' + (withRomaji ? '&dt=rm' : '') +
+            '&dj=1' +
+            '&q=' + encodeURIComponent(text);
+  return fetch(url)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      var translation = '', romaji = '';
+      if (data && Array.isArray(data.sentences)) {
+        data.sentences.forEach(function(seg) {
+          if (seg.trans) translation += seg.trans;
+          if (withRomaji) {
+            var r = seg.src_translit || seg.translit || '';
+            if (r) romaji += (romaji ? ' ' : '') + r;
+          }
+        });
+      } else if (data && Array.isArray(data[0])) {
+        data[0].forEach(function(seg) {
+          if (seg[0]) translation += seg[0];
+          if (withRomaji) {
+            var r = seg[2] || (Array.isArray(seg) && seg[3]) || '';
+            if (r) romaji += r;
+          }
+        });
+        if (!romaji && withRomaji && data[12]) romaji = data[12];
+      }
+      return { translation: translation.trim(), romaji: romaji.trim() };
+    });
+}
+
+function copyResult(elId, btn) {
+  var text = (document.getElementById(elId).innerText || '').trim();
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.className = 'copy-btn copied';
+    setTimeout(function() { btn.textContent = 'Copy'; btn.className = 'copy-btn'; }, 1500);
+  });
+}
+
+function setResult(id, text, isErr) {
+  var el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'result-body' + (isErr ? ' err-text' : '');
+}
+
+function setAlt(altId, textId, text) {
+  if (!text || text.length < 2) return;
+  document.getElementById(textId).textContent = text;
+  document.getElementById(altId).className = 'result-alt visible';
+}
+
+function myMemoryTranslate(text, tl) {
+  var url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=ja|' + tl;
+  return fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      return (data && data.responseData && data.responseData.translatedText) || null;
+    })
+    .catch(function() { return null; });
+}
+
+function doTranslate() {
+  var text = document.getElementById('inputText').value.trim();
+  if (!text) return;
+  if (text.length > 500) { alert('Maksimal 500 karakter ya, tolong diperpendek.'); return; }
+
+  var btn = document.getElementById('translateBtn');
+  btn.disabled = true; btn.textContent = 'Lagi nerjemahin…';
+
+  document.getElementById('results').className = 'results visible';
+  ['romajiOut','idOut','enOut'].forEach(function(id) {
+    document.getElementById(id).innerHTML = '<span class="loading-dots">…</span>';
+    document.getElementById(id).className = 'result-body';
+  });
+  ['idAlt','enAlt'].forEach(function(id) {
+    document.getElementById(id).className = 'result-alt';
+  });
+
+  Promise.all([
+    googleTranslate(text, 'en', true),
+    googleTranslate(text, 'id', false),
+    myMemoryTranslate(text, 'en'),
+    myMemoryTranslate(text, 'id')
+  ]).then(function(res) {
+    setResult('romajiOut', res[0].romaji || '(no reading returned)', !res[0].romaji);
+    setResult('enOut',     res[0].translation || '(empty)', !res[0].translation);
+    setResult('idOut',     res[1].translation || '(empty)', !res[1].translation);
+    setAlt('enAlt', 'enAltText', res[2]);
+    setAlt('idAlt', 'idAltText', res[3]);
+  }).catch(function(err) {
+    var msg = 'Error: ' + (err.message || 'request failed');
+    setResult('romajiOut', msg, true);
+    setResult('enOut',     msg, true);
+    setResult('idOut',     msg, true);
+  }).finally(function() {
+    btn.disabled = false; btn.textContent = 'Translate';
+  });
+}
+
+document.getElementById('inputText').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); doTranslate(); }
+});
+</script>
+<script src="/greetings.js"></script>
+</body>
+</html>

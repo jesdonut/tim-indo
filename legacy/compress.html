@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Compressor - Tim Indo Serba Bisa</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+}
+body.dark {
+  --bg: #111827;
+  --text: #f1f5f9;
+  --primary: #93c5fd;
+  --primary-2: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-dark: #dbeafe;
+  --light: #1e293b;
+  --mid: #243453;
+  --border: #334155;
+  --border-soft: #475569;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --brand-bg: #1e293b;
+  --brand-sub: #93c5fd;
+  --input-bg: #263348;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; height: 100dvh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex; align-items: center; gap: 10px; justify-content: center; position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px;
+  display: flex; gap: 2px; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 8px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.mid {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 10px;
+}
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+.drop-zone {
+  border: 2px dashed var(--border-soft); border-radius: 14px; padding: 20px 16px;
+  text-align: center; cursor: pointer; background: var(--input-bg);
+  transition: border-color 0.2s, background 0.2s;
+}
+.drop-zone:hover { border-color: var(--primary-2); background: var(--light); }
+.drop-zone.dragover { border-color: var(--primary); background: var(--mid); }
+.drop-icon { font-size: 2.4rem; display: block; margin-bottom: 5px; color: var(--border-soft); }
+.drop-zone h2 { font-size: 0.88rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.drop-sub { color: var(--muted); font-size: 0.72rem; }
+
+.section-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+
+.quality-btns { display: flex; gap: 6px; }
+.quality-btn {
+  flex: 1; padding: 8px 4px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--input-bg);
+  color: var(--muted); font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s;
+  text-align: center; line-height: 1.3;
+}
+.quality-btn .q-desc { display: block; font-size: 0.62rem; font-weight: 400; color: var(--muted); }
+.quality-btn:hover { border-color: var(--border-soft); color: var(--text); }
+.quality-btn.active { border-color: var(--primary-2); background: var(--mid); color: var(--primary); }
+.quality-btn.active .q-desc { color: var(--primary); opacity: 0.75; }
+
+.actions-bar {
+  display: none; align-items: center; justify-content: space-between; gap: 8px;
+}
+.actions-bar.visible { display: flex; }
+.compress-all-btn {
+  flex: 1; padding: 10px 14px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.compress-all-btn .material-icons-outlined { font-size: 1.05rem; }
+.compress-all-btn:hover { background: var(--primary-hover); }
+.compress-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.clear-all-btn {
+  padding: 10px 12px; background: none; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.clear-all-btn:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
+
+.file-list { display: flex; flex-direction: column; gap: 6px; }
+
+.file-card {
+  background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.file-card.done { border-color: #86efac; }
+.file-card.error { border-color: #fca5a5; }
+
+.file-card-top {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+}
+.file-card-icon { color: var(--accent); flex-shrink: 0; font-size: 1.4rem; }
+.file-card-info { flex: 1; min-width: 0; }
+.file-card-name {
+  font-size: 0.82rem; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.file-card-size { font-size: 0.68rem; color: var(--muted); margin-top: 1px; }
+.file-card-remove {
+  background: none; border: none; color: var(--border-soft);
+  cursor: pointer; flex-shrink: 0; display: flex; align-items: center;
+  transition: color 0.15s; padding: 2px;
+}
+.file-card-remove:hover { color: #ef4444; }
+.file-card-remove .material-icons-outlined { font-size: 1rem; }
+
+.file-card-bar {
+  display: none; height: 3px; background: var(--border); margin: 0 12px 9px;
+  border-radius: 2px; overflow: hidden;
+}
+.file-card-bar.visible { display: block; }
+.file-card-bar-fill { height: 100%; background: var(--primary-2); width: 0%; transition: width 0.25s; }
+
+.file-card-result {
+  display: none; align-items: center; gap: 8px;
+  padding: 7px 12px; border-top: 1px solid var(--border);
+  background: var(--light);
+}
+.file-card-result.visible { display: flex; }
+.result-sizes { flex: 1; font-size: 0.78rem; color: var(--text); display: flex; align-items: center; gap: 5px; }
+.result-saving { font-size: 0.78rem; font-weight: 700; color: #16a34a; margin-right: 4px; }
+.result-saving.worse { color: #ef4444; }
+.dl-btn {
+  padding: 5px 12px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+  display: flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0;
+}
+.dl-btn .material-icons-outlined { font-size: 0.9rem; }
+.dl-btn:hover { background: var(--primary-hover); }
+
+.file-card-error {
+  display: none; padding: 6px 12px; border-top: 1px solid #fca5a5;
+  background: #fef2f2; font-size: 0.72rem; color: #dc2626;
+}
+.file-card-error.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">compress</span>
+  <div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab active" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
+    <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
+    <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
+  </div>
+</nav>
+<script>
+(function(){var t=document.querySelector('.nav-tabs'),a=document.querySelector('.nav-tab.active');if(t&&a)t.scrollLeft=a.offsetLeft-(t.offsetWidth-a.offsetWidth)/2;})();
+</script>
+
+
+<div class="mid">
+  <div class="app-title">
+    <h1>PDF Compressor</h1>
+    <p>Drop PDF di sini, langsung download versi yang lebih kecil</p>
+  </div>
+
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <span class="material-icons-outlined drop-icon">picture_as_pdf</span>
+    <h2>Drop PDFs here or click to browse</h2>
+    <p class="drop-sub">Multiple files supported</p>
+    <input type="file" id="fileInput" accept=".pdf,application/pdf" multiple style="display:none">
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div class="section-label">Quality</div>
+    <div class="quality-btns">
+      <button class="quality-btn" data-q="high" onclick="setQuality('high')">
+        High<span class="q-desc">Best quality</span>
+      </button>
+      <button class="quality-btn active" data-q="balanced" onclick="setQuality('balanced')">
+        Balanced<span class="q-desc">Recommended</span>
+      </button>
+      <button class="quality-btn" data-q="small" onclick="setQuality('small')">
+        Small<span class="q-desc">Smallest file</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="actions-bar" id="actionsBar">
+    <button class="compress-all-btn" id="compressAllBtn" onclick="compressAll()">
+      <span class="material-icons-outlined">compress</span> Compress All
+    </button>
+    <button class="clear-all-btn" onclick="clearAll()">Clear all</button>
+  </div>
+
+  <div class="file-list" id="fileList"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+var THEME_KEY   = 'gaj_theme';
+var THEMES      = ['blue','pink','dark'];
+var THEME_ICONS = {blue:'palette',pink:'dark_mode',dark:'light_mode'};
+var THEME_LABELS= {blue:'Pink',pink:'Dark',dark:'Blue'};
+
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t)+1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+var QUALITY_SETTINGS = {
+  high:     { scale: 2.0, jpegQuality: 0.90 },
+  balanced: { scale: 1.5, jpegQuality: 0.78 },
+  small:    { scale: 1.2, jpegQuality: 0.62 }
+};
+
+var currentQuality = 'balanced';
+var fileEntries = [];
+var idCounter = 0;
+var isCompressing = false;
+
+function setQuality(q) {
+  currentQuality = q;
+  document.querySelectorAll('.quality-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.q === q);
+  });
+}
+
+function fmtSize(bytes) {
+  if (bytes >= 1048576) return (bytes/1048576).toFixed(1)+' MB';
+  return (bytes/1024).toFixed(0)+' KB';
+}
+
+var dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover',  function(e){ e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', function(){ dropZone.classList.remove('dragover'); });
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  addFiles(Array.from(e.dataTransfer.files));
+});
+document.getElementById('fileInput').addEventListener('change', function() {
+  addFiles(Array.from(this.files));
+  this.value = '';
+});
+
+function addFiles(files) {
+  files.forEach(function(f) {
+    if (f.type !== 'application/pdf') return;
+    var entry = { id: ++idCounter, file: f, status: 'pending', blob: null };
+    fileEntries.push(entry);
+    renderCard(entry);
+  });
+  updateActionsBar();
+}
+
+function renderCard(entry) {
+  var el = document.createElement('div');
+  el.className = 'file-card';
+  el.id = 'fc-' + entry.id;
+  el.innerHTML =
+    '<div class="file-card-top">'+
+      '<span class="material-icons-outlined file-card-icon">picture_as_pdf</span>'+
+      '<div class="file-card-info">'+
+        '<div class="file-card-name">'+escHtml(entry.file.name)+'</div>'+
+        '<div class="file-card-size">'+fmtSize(entry.file.size)+'</div>'+
+      '</div>'+
+      '<button class="file-card-remove" onclick="removeEntry('+entry.id+')" title="Remove">'+
+        '<span class="material-icons-outlined">close</span>'+
+      '</button>'+
+    '</div>'+
+    '<div class="file-card-bar" id="fcbar-'+entry.id+'">'+
+      '<div class="file-card-bar-fill" id="fcfill-'+entry.id+'"></div>'+
+    '</div>'+
+    '<div class="file-card-result" id="fcres-'+entry.id+'"></div>'+
+    '<div class="file-card-error" id="fcerr-'+entry.id+'"></div>';
+  document.getElementById('fileList').appendChild(el);
+}
+
+function removeEntry(id) {
+  fileEntries = fileEntries.filter(function(e){ return e.id !== id; });
+  var el = document.getElementById('fc-'+id);
+  if (el) el.remove();
+  updateActionsBar();
+}
+
+function clearAll() {
+  fileEntries = [];
+  document.getElementById('fileList').innerHTML = '';
+  updateActionsBar();
+}
+
+function updateActionsBar() {
+  var bar = document.getElementById('actionsBar');
+  bar.classList.toggle('visible', fileEntries.length > 0);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function setCardProgress(id, pct) {
+  var bar  = document.getElementById('fcbar-'+id);
+  var fill = document.getElementById('fcfill-'+id);
+  if (!bar || !fill) return;
+  bar.classList.add('visible');
+  fill.style.width = pct+'%';
+}
+
+function setCardDone(entry, outBytes) {
+  var card = document.getElementById('fc-'+entry.id);
+  var bar  = document.getElementById('fcbar-'+entry.id);
+  if (bar) bar.classList.remove('visible');
+
+  var origBytes = entry.file.size;
+  var saving = Math.round((1 - outBytes.byteLength / origBytes) * 100);
+
+  if (saving <= 0) {
+    if (card) card.classList.add('error');
+    var err = document.getElementById('fcerr-'+entry.id);
+    if (err) {
+      err.className = 'file-card-error visible';
+      err.textContent = 'Already fully compressed — can\'t shrink further. Original kept.';
+    }
+    return;
+  }
+
+  if (card) card.classList.add('done');
+  var res = document.getElementById('fcres-'+entry.id);
+  if (!res) return;
+  res.className = 'file-card-result visible';
+  res.innerHTML =
+    '<div class="result-sizes">'+
+      fmtSize(origBytes)+
+      ' <span class="material-icons-outlined" style="font-size:0.85rem;color:var(--border-soft)">arrow_forward</span> '+
+      fmtSize(outBytes.byteLength)+
+    '</div>'+
+    '<span class="result-saving">-'+saving+'%</span>'+
+    '<button class="dl-btn" id="dlbtn-'+entry.id+'">'+
+      '<span class="material-icons-outlined">download</span> Download'+
+    '</button>';
+
+  var blob = new Blob([outBytes], { type: 'application/pdf' });
+  document.getElementById('dlbtn-'+entry.id).onclick = function() {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = entry.file.name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  };
+}
+
+function setCardError(id, msg) {
+  var card = document.getElementById('fc-'+id);
+  if (card) card.classList.add('error');
+  var bar = document.getElementById('fcbar-'+id);
+  if (bar) bar.classList.remove('visible');
+  var err = document.getElementById('fcerr-'+id);
+  if (err) { err.className = 'file-card-error visible'; err.textContent = msg; }
+}
+
+function compressEntry(entry) {
+  var settings = QUALITY_SETTINGS[currentQuality];
+  entry.status = 'compressing';
+  setCardProgress(entry.id, 2);
+
+  return entry.file.arrayBuffer().then(function(buf) {
+    return pdfjsLib.getDocument({ data: buf }).promise;
+  }).then(function(pdfDoc) {
+    var numPages = pdfDoc.numPages;
+    var pageJpegs = [];
+    var chain = Promise.resolve();
+    for (var i = 1; i <= numPages; i++) {
+      (function(pageNum) {
+        chain = chain.then(function() {
+          setCardProgress(entry.id, 5 + Math.round((pageNum / numPages) * 78));
+          return pdfDoc.getPage(pageNum).then(function(page) {
+            var vp0 = page.getViewport({ scale: 1 });
+            var vp  = page.getViewport({ scale: settings.scale });
+            var canvas = document.createElement('canvas');
+            canvas.width  = Math.round(vp.width);
+            canvas.height = Math.round(vp.height);
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            return page.render({ canvasContext: ctx, viewport: vp }).promise.then(function() {
+              return new Promise(function(resolve) {
+                canvas.toBlob(function(blob) {
+                  blob.arrayBuffer().then(function(jpegBuf) {
+                    pageJpegs.push({ jpegBuf: jpegBuf, w: vp0.width, h: vp0.height });
+                    resolve();
+                  });
+                }, 'image/jpeg', settings.jpegQuality);
+              });
+            });
+          });
+        });
+      })(i);
+    }
+    return chain.then(function(){ return pageJpegs; });
+  }).then(function(pageJpegs) {
+    setCardProgress(entry.id, 86);
+    return PDFLib.PDFDocument.create().then(function(outDoc) {
+      var embedChain = Promise.resolve();
+      pageJpegs.forEach(function(pg) {
+        embedChain = embedChain.then(function() {
+          return outDoc.embedJpg(pg.jpegBuf).then(function(img) {
+            var page = outDoc.addPage([pg.w, pg.h]);
+            page.drawImage(img, { x:0, y:0, width:pg.w, height:pg.h });
+          });
+        });
+      });
+      return embedChain.then(function(){ return outDoc.save({ useObjectStreams: true }); });
+    });
+  }).then(function(outBytes) {
+    setCardProgress(entry.id, 100);
+    entry.status = 'done';
+    setCardDone(entry, outBytes);
+  }).catch(function(err) {
+    entry.status = 'error';
+    setCardError(entry.id, 'Error: ' + err.message);
+  });
+}
+
+function compressAll() {
+  if (isCompressing) return;
+  var pending = fileEntries.filter(function(e){ return e.status === 'pending'; });
+  if (pending.length === 0) return;
+
+  isCompressing = true;
+  var btn = document.getElementById('compressAllBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-icons-outlined">hourglass_top</span> Compressing…';
+
+  var chain = Promise.resolve();
+  pending.forEach(function(entry) {
+    chain = chain.then(function(){ return compressEntry(entry); });
+  });
+  chain.then(function() {
+    isCompressing = false;
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-icons-outlined">compress</span> Compress All';
+  });
+}
+</script>
+<script src="/greetings.js"></script>
+</body>
+</html>

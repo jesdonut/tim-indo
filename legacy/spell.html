@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Katakana Spell - Tim Indo Serba Bisa</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+}
+body.dark {
+  --bg: #111827;
+  --text: #f1f5f9;
+  --primary: #93c5fd;
+  --primary-2: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-dark: #dbeafe;
+  --light: #1e293b;
+  --mid: #243453;
+  --border: #334155;
+  --border-soft: #475569;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --brand-bg: #1e293b;
+  --brand-sub: #93c5fd;
+  --input-bg: #263348;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; height: 100dvh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex; align-items: center; gap: 10px; justify-content: center; position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px;
+  display: flex; gap: 2px; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 8px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.mid {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+.input-section { display: flex; flex-direction: column; gap: 8px; }
+.input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+
+.spell-wrap {
+  display: flex; align-items: center;
+  background: var(--input-bg); border: 1.5px solid var(--border); border-radius: 10px;
+  overflow: hidden; transition: border-color 0.2s;
+}
+.spell-wrap:focus-within { border-color: var(--primary-2); }
+.spell-wrap.error { border-color: #ef4444; }
+.spell-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  padding: 13px 14px; font-size: 1.3rem; font-weight: 500;
+  color: var(--text); font-family: inherit; letter-spacing: 0.05em;
+}
+.spell-input::placeholder { color: var(--border-soft); font-weight: 400; font-size: 1rem; letter-spacing: 0; }
+
+.btn-row { display: flex; justify-content: flex-end; }
+.search-btn {
+  padding: 10px 24px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+  display: flex; align-items: center; gap: 5px;
+}
+.search-btn .material-icons-outlined { font-size: 1.1rem; }
+.search-btn:hover { background: var(--primary-hover); }
+.search-btn:active { transform: scale(0.97); }
+
+.results { display: none; flex-direction: column; gap: 8px; }
+.results.visible { display: flex; }
+.result-card { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--light);
+}
+.result-label { font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+.copy-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.copy-btn:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
+.copy-btn.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
+
+.spell-list { display: flex; flex-direction: column; }
+.spell-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.spell-row:last-child { border-bottom: none; }
+.spell-row:hover { background: var(--light); }
+.spell-char {
+  font-size: 1.35rem; font-weight: 700; color: var(--primary);
+  min-width: 2.5rem; text-align: center; flex-shrink: 0;
+  background: var(--mid); border-radius: 7px; padding: 5px 4px; line-height: 1.2;
+}
+.spell-reading { flex: 1; font-size: 0.92rem; line-height: 1.4; }
+.spell-word { font-weight: 600; color: var(--text); }
+.spell-no { color: var(--muted); margin: 0 5px; font-weight: 400; }
+.spell-target { font-weight: 700; color: var(--primary); }
+.spell-note { font-size: 0.72rem; color: var(--muted); font-style: italic; margin-left: 6px; }
+.spell-yokobou { color: var(--muted); font-style: italic; }
+.spell-unknown { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">spellcheck</span>
+  <div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab active" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
+    <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
+    <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
+  </div>
+</nav>
+<script>
+(function(){var t=document.querySelector('.nav-tabs'),a=document.querySelector('.nav-tab.active');if(t&&a)t.scrollLeft=a.offsetLeft-(t.offsetWidth-a.offsetWidth)/2;})();
+</script>
+
+
+<div class="mid">
+  <div class="app-title">
+    <h1>Katakana Spell</h1>
+    <p>Ketik nama dalam katakana, dapet cara bacanya per karakter</p>
+  </div>
+
+  <div class="input-section">
+    <div class="input-label">Name in katakana</div>
+    <div class="spell-wrap" id="spellWrap">
+      <input class="spell-input" id="spellInput" type="text"
+        placeholder="e.g. ダイスケ or ロカリ">
+    </div>
+    <div class="btn-row">
+      <button class="search-btn" onclick="doSpell()">
+        <span class="material-icons-outlined">spellcheck</span> Spell
+      </button>
+    </div>
+  </div>
+
+  <div class="results" id="spellResults">
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Spelling</span>
+        <button class="copy-btn" id="copyAllBtn" onclick="copyAll()">Copy all</button>
+      </div>
+      <div class="spell-list" id="spellList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var THEME_KEY = 'gaj_theme';
+var THEMES      = ['blue','pink','dark'];
+var THEME_ICONS = {blue:'palette',pink:'dark_mode',dark:'light_mode'};
+var THEME_LABELS= {blue:'Pink',pink:'Dark',dark:'Blue'};
+
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t)+1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+var KANA_WORDS = {
+  // Vowels
+  'ア':'アイス','イ':'イタリア','ウ':'ウイスキー','エ':'エレベーター','オ':'オレンジ',
+  // K row
+  'カ':'カメラ','キ':'キーボード','ク':'クリスマス','ケ':'ケーキ','コ':'コーヒー',
+  // S row
+  'サ':'サラダ','シ':'シネマ','ス':'スポーツ','セ':'セブン','ソ':'ソファ',
+  // T row
+  'タ':'タクシー','チ':'チキン','ツ':'ツアー','テ':'テレビ','ト':'トマト',
+  // N row
+  'ナ':'ナイフ','ニ':'ニッポン','ヌ':'ヌードル','ネ':'ネクタイ','ノ':'ノート',
+  // H row
+  'ハ':'ハンバーガー','ヒ':'ヒーロー','フ':'フランス','ヘ':'ヘルメット','ホ':'ホテル',
+  // M row
+  'マ':'マスク','ミ':'ミルク','ム':'ムービー','メ':'メロン','モ':'モデル',
+  // Y row
+  'ヤ':'ヤング','ユ':'ユニフォーム','ヨ':'ヨーグルト',
+  // R row
+  'ラ':'ラジオ','リ':'リズム','ル':'ルーム','レ':'レストラン','ロ':'ロマンス',
+  // W row
+  'ワ':'ワイン','ヲ':'ヲタク',
+  // Special
+  'ン':'ワオン','ッ':'ロケット',
+  // G row
+  'ガ':'ガム','ギ':'ギター','グ':'グループ','ゲ':'ゲーム','ゴ':'ゴール',
+  // Z row
+  'ザ':'ザック','ジ':'ジーンズ','ズ':'ズーム','ゼ':'ゼリー','ゾ':'ゾーン',
+  // D row
+  'ダ':'ダイヤモンド','デ':'デザイン','ド':'ドラマ',
+  // B row
+  'バ':'バナナ','ビ':'ビデオ','ブ':'ブランド','ベ':'ベスト','ボ':'ボール',
+  // P row
+  'パ':'パン','ピ':'ピアノ','プ':'プール','ペ':'ペン','ポ':'ポスター',
+  // Yoon K
+  'キャ':'キャンプ','キュ':'キューブ','キョ':'キョウト',
+  // Yoon SH
+  'シャ':'シャワー','シュ':'シュート','ショ':'ショッピング',
+  // Yoon CH
+  'チャ':'チャンス','チュ':'チューリップ','チョ':'チョコレート',
+  // Yoon N
+  'ニャ':'ニャー','ニュ':'ニュース','ニョ':'ニョッキ',
+  // Yoon H
+  'ヒャ':'ヒャク','ヒュ':'ヒューマン','ヒョ':'ヒョウ',
+  // Yoon M
+  'ミャ':'ミャンマー','ミュ':'ミュージック','ミョ':'ミョウジン',
+  // Yoon R
+  'リャ':'リャマ','リュ':'リュック','リョ':'リョカン',
+  // Voiced G yoon
+  'ギャ':'ギャラクシー','ギュ':'ギュウニュウ','ギョ':'ギョウザ',
+  // Voiced J yoon
+  'ジャ':'ジャズ','ジュ':'ジュース','ジョ':'ジョギング',
+  // Voiced B yoon
+  'ビュ':'ビュッフェ','ビョ':'ビョウイン',
+  // P yoon
+  'ピュ':'ピューマ','ピョ':'ピョンヤン',
+  // F+vowel
+  'ファ':'ファッション','フィ':'フィルム','フェ':'フェリー','フォ':'フォーク',
+  // W+vowel
+  'ウィ':'ウィーン','ウェ':'ウェブ','ウォ':'ウォーター',
+  // T+vowel
+  'ティ':'ティッシュ','トゥ':'トゥルー',
+  // D+vowel
+  'ディ':'ディズニー','ドゥ':'ドゥカティ',
+  // V
+  'ヴァ':'ヴァイオリン','ヴィ':'ヴィラ','ヴ':'ヴァイオリン','ヴェ':'ヴェール','ヴォ':'ヴォーカル',
+  // Extended
+  'ツァ':'ツァーリ',
+  'チェ':'チェス','ジェ':'ジェット','シェ':'シェフ','イェ':'イェール'
+};
+
+var SMALL_KANA = 'ァィゥェォャュョヮ';
+
+function parseKatakana(text) {
+  var chars = [];
+  var i = 0;
+  while (i < text.length) {
+    var c = text[i];
+    if (i + 1 < text.length && SMALL_KANA.indexOf(text[i + 1]) >= 0) {
+      chars.push(c + text[i + 1]);
+      i += 2;
+    } else {
+      chars.push(c);
+      i++;
+    }
+  }
+  return chars;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function doSpell() {
+  var text = document.getElementById('spellInput').value.trim();
+  if (!text) {
+    var wrap = document.getElementById('spellWrap');
+    wrap.classList.add('error');
+    setTimeout(function() { wrap.classList.remove('error'); }, 800);
+    return;
+  }
+  var chars = parseKatakana(text);
+  var html = '';
+  chars.forEach(function(c) {
+    if (c === 'ー') {
+      html += '<div class="spell-row">' +
+        '<div class="spell-char">' + esc(c) + '</div>' +
+        '<div class="spell-reading"><span class="spell-yokobou">ヨコボウ（長音符）</span></div>' +
+        '</div>';
+    } else if (KANA_WORDS[c]) {
+      var word = KANA_WORDS[c];
+      var note = c === 'ッ' ? '<span class="spell-note">（小ツ）</span>' : '';
+      html += '<div class="spell-row">' +
+        '<div class="spell-char">' + esc(c) + '</div>' +
+        '<div class="spell-reading">' +
+          '<span class="spell-word">' + esc(word) + '</span>' +
+          '<span class="spell-no">の</span>' +
+          '<span class="spell-target">' + esc(c) + '</span>' +
+          note +
+        '</div>' +
+        '</div>';
+    } else {
+      html += '<div class="spell-row">' +
+        '<div class="spell-char">' + esc(c) + '</div>' +
+        '<div class="spell-reading"><span class="spell-unknown">—</span></div>' +
+        '</div>';
+    }
+  });
+  document.getElementById('spellList').innerHTML = html;
+  document.getElementById('spellResults').className = 'results visible';
+}
+
+function copyAll() {
+  var text = document.getElementById('spellInput').value.trim();
+  if (!text) return;
+  var chars = parseKatakana(text);
+  var lines = chars.map(function(c) {
+    if (c === 'ー') return 'ヨコボウ';
+    if (KANA_WORDS[c]) return KANA_WORDS[c] + ' の ' + c;
+    return c;
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(function() {
+    var btn = document.getElementById('copyAllBtn');
+    btn.textContent = 'Copied!';
+    btn.className = 'copy-btn copied';
+    setTimeout(function() { btn.textContent = 'Copy all'; btn.className = 'copy-btn'; }, 1500);
+  });
+}
+
+document.getElementById('spellInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); doSpell(); }
+});
+</script>
+<script src="/greetings.js"></script>
+</body>
+</html>

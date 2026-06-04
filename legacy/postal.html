@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Postal Code - Tim Indo Serba Bisa</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --text: #1e3a5f;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --light: #eff6ff;
+  --mid: #dbeafe;
+  --border: #bfdbfe;
+  --border-soft: #93c5fd;
+  --muted: #5b87c5;
+  --accent: #3b82f6;
+  --brand-bg: #1d4ed8;
+  --brand-sub: #bfdbfe;
+  --input-bg: #f8faff;
+}
+body.pink {
+  --bg: #fdf5f8;
+  --text: #4d2a38;
+  --primary: #9e5c78;
+  --primary-2: #b07090;
+  --primary-hover: #8a4a65;
+  --primary-dark: #6e3450;
+  --light: #faecf2;
+  --mid: #f5dae5;
+  --border: #e8bece;
+  --border-soft: #f2cdd8;
+  --muted: #9e7585;
+  --accent: #a86880;
+  --brand-bg: #b8899e;
+  --brand-sub: #f5dae5;
+  --input-bg: #fdf5f8;
+}
+body.dark {
+  --bg: #111827;
+  --text: #f1f5f9;
+  --primary: #93c5fd;
+  --primary-2: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-dark: #dbeafe;
+  --light: #1e293b;
+  --mid: #243453;
+  --border: #334155;
+  --border-soft: #475569;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --brand-bg: #1e293b;
+  --brand-sub: #93c5fd;
+  --input-bg: #263348;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.material-icons, .material-icons-outlined { vertical-align: middle; user-select: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; height: 100dvh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+
+.brand-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 11px 20px 0;
+  display: flex; align-items: center; gap: 10px; justify-content: center; position: relative;
+}
+.brand-icon { font-size: 1.6rem; color: #fff; line-height: 1; }
+.brand-name { font-size: 1rem; font-weight: 700; color: #fff; }
+.brand-ja { font-size: 0.67rem; color: var(--brand-sub); margin-top: 1px; }
+.theme-toggle {
+  position: absolute; right: 14px; top: 11px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 0.78rem;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+.theme-toggle .material-icons-outlined { font-size: 0.95rem; }
+
+.nav-bar {
+  flex-shrink: 0; background: var(--brand-bg);
+  padding: 8px 16px 10px; display: flex; justify-content: center;
+}
+.nav-tabs {
+  background: rgba(0,0,0,0.18); border-radius: 9px; padding: 3px;
+  display: flex; gap: 2px; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 8px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+  color: rgba(255,255,255,0.72); text-decoration: none; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.nav-tab .material-icons-outlined { font-size: 0.95rem; }
+.nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.95); color: var(--brand-bg); }
+
+.mid {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+
+.app-title { text-align: center; }
+.app-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+.app-title p { color: var(--muted); font-size: 0.76rem; }
+
+
+.input-section { display: flex; flex-direction: column; gap: 8px; }
+.input-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+
+.postal-wrap {
+  display: flex; align-items: center;
+  background: var(--input-bg); border: 1.5px solid var(--border); border-radius: 10px;
+  overflow: hidden; transition: border-color 0.2s;
+}
+.postal-wrap:focus-within { border-color: var(--primary-2); }
+.postal-wrap.error { border-color: #ef4444; }
+.postal-mark { padding: 0 8px 0 14px; font-size: 1.3rem; color: var(--accent); flex-shrink: 0; user-select: none; line-height: 1; }
+.postal-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  padding: 13px 14px 13px 2px; font-size: 1.3rem; font-weight: 500;
+  color: var(--text); letter-spacing: 0.08em; font-family: 'Courier New', monospace;
+}
+.postal-input::placeholder { color: var(--border-soft); font-weight: 400; font-size: 1rem; letter-spacing: 0.02em; font-family: inherit; }
+
+.addr-wrap {
+  display: flex; align-items: center;
+  background: var(--input-bg); border: 1.5px solid var(--border); border-radius: 10px;
+  overflow: hidden; transition: border-color 0.2s;
+}
+.addr-wrap:focus-within { border-color: var(--primary-2); }
+.addr-wrap.error { border-color: #ef4444; }
+.addr-icon { padding: 0 8px 0 12px; color: var(--accent); flex-shrink: 0; font-size: 1.1rem; }
+.addr-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  padding: 13px 14px 13px 2px; font-size: 1rem;
+  color: var(--text); font-family: inherit;
+}
+.addr-input::placeholder { color: var(--border-soft); }
+.addr-hint { font-size: 0.68rem; color: var(--border-soft); }
+
+.btn-row { display: flex; justify-content: flex-end; }
+.search-btn {
+  padding: 10px 24px; background: var(--primary-2); color: #fff;
+  border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+  display: flex; align-items: center; gap: 5px;
+}
+.search-btn .material-icons-outlined { font-size: 1.1rem; }
+.search-btn:hover { background: var(--primary-hover); }
+.search-btn:active { transform: scale(0.97); }
+.search-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.results { display: none; flex-direction: column; gap: 8px; }
+.results.visible { display: flex; }
+.result-card { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--light);
+}
+.result-label { font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+.result-meta { font-size: 0.68rem; color: var(--muted); font-style: italic; text-align: right; }
+.copy-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.copy-btn:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
+.copy-btn.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
+.result-body { padding: 10px 14px; font-size: 0.92rem; line-height: 1.75; color: var(--text); min-height: 42px; }
+.loading-dots { color: var(--border-soft); font-style: italic; font-size: 0.82rem; }
+.err-text { color: #ef4444; font-size: 0.82rem; }
+.addr-code { font-size: 0.78rem; color: var(--muted); margin-bottom: 3px; }
+.addr-main { font-size: 1rem; font-weight: 600; }
+.addr-extra { font-size: 0.78rem; color: var(--accent); margin-top: 4px; }
+
+.narrowed-note {
+  font-size: 0.72rem; color: var(--accent); background: var(--light);
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 6px 10px; display: flex; align-items: center; gap: 5px;
+}
+.narrowed-note .material-icons-outlined { font-size: 0.9rem; }
+
+.addr-list { display: flex; flex-direction: column; }
+.addr-list-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.addr-list-item:last-child { border-bottom: none; }
+.addr-list-item:hover { background: var(--light); }
+.addr-item-code {
+  font-size: 0.82rem; font-weight: 700; color: var(--primary);
+  font-family: 'Courier New', monospace; letter-spacing: 0.04em;
+  white-space: nowrap; flex-shrink: 0; min-width: 76px;
+}
+.addr-item-info { flex: 1; min-width: 0; }
+.addr-item-address { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+.addr-item-kana { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+.addr-item-copy {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 0.62rem; padding: 2px 7px; border-radius: 4px;
+  cursor: pointer; flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s; white-space: nowrap;
+}
+.addr-item-copy:hover { color: var(--primary); border-color: var(--border-soft); background: var(--mid); }
+.addr-item-copy.copied { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
+</style>
+</head>
+<body>
+
+<div class="brand-bar">
+  <span class="material-icons-outlined brand-icon">local_post_office</span>
+  <div>
+    <div class="brand-name">Tim Indo Serba Bisa</div>
+    <div class="brand-ja">website serba bisa</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <span class="material-icons-outlined">palette</span> Pink
+  </button>
+</div>
+<nav class="nav-bar">
+  <div class="nav-tabs">
+    <a class="nav-tab" href="/"><span class="material-icons-outlined">description</span> PDF</a>
+    <a class="nav-tab" href="/translate"><span class="material-icons-outlined">translate</span> Translate</a>
+    <a class="nav-tab active" href="/postal"><span class="material-icons-outlined">local_post_office</span> Postal</a>
+    <a class="nav-tab" href="/spell"><span class="material-icons-outlined">spellcheck</span> Spell</a>
+    <a class="nav-tab" href="/compress"><span class="material-icons-outlined">compress</span> Compress</a>
+    <a class="nav-tab" href="/station"><span class="material-icons-outlined">train</span> Station</a>
+    <a class="nav-tab" href="/concat"><span class="material-icons-outlined">table_rows</span> Builder</a>
+    <a class="nav-tab" href="/docs"><span class="material-icons-outlined">badge</span> Docs</a>
+    <a class="nav-tab" href="/area"><span class="material-icons-outlined">map</span> Area</a>
+    <a class="nav-tab" href="/phone"><span class="material-icons-outlined">call</span> Phone</a>
+  </div>
+</nav>
+<script>
+(function(){var t=document.querySelector('.nav-tabs'),a=document.querySelector('.nav-tab.active');if(t&&a)t.scrollLeft=a.offsetLeft-(t.offsetWidth-a.offsetWidth)/2;})();
+</script>
+
+
+<div class="mid">
+  <div class="app-title">
+    <h1>Japan Postal Code</h1>
+    <p>Masukin kode pos 〒 atau alamat Jepang</p>
+  </div>
+
+  <div class="input-section">
+    <div class="postal-wrap" id="smartWrap">
+      <span class="postal-mark">〒</span>
+      <input class="postal-input" id="smartInput" type="text"
+        placeholder="123-4567 or 渋谷区…" maxlength="80">
+    </div>
+
+    <div class="btn-row">
+      <button class="search-btn" id="searchBtn" onclick="doSearch()">
+        <span class="material-icons-outlined">search</span> Search
+      </button>
+    </div>
+  </div>
+
+  <div class="results" id="codeResults">
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Address</span>
+        <button class="copy-btn" onclick="copyEl('addressOut',this)">Copy</button>
+      </div>
+      <div class="result-body" id="addressOut"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Reading (Kana)</span>
+        <button class="copy-btn" onclick="copyEl('kanaOut',this)">Copy</button>
+      </div>
+      <div class="result-body" id="kanaOut"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Reading (Romaji)</span>
+        <button class="copy-btn" onclick="copyEl('romajiOut',this)">Copy</button>
+      </div>
+      <div class="result-body" id="romajiOut"></div>
+    </div>
+  </div>
+
+  <div class="results" id="addrResults">
+    <div id="narrowedNote" style="display:none" class="narrowed-note">
+      <span class="material-icons-outlined">info</span>
+      <span id="narrowedText"></span>
+    </div>
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-label">Matching postal codes</span>
+        <span class="result-meta" id="resultCountNote"></span>
+      </div>
+      <div class="addr-list" id="addrList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var THEME_KEY = 'gaj_theme';
+var THEMES      = ['blue','pink','dark'];
+var THEME_ICONS = {blue:'palette',pink:'dark_mode',dark:'light_mode'};
+var THEME_LABELS= {blue:'Pink',pink:'Dark',dark:'Blue'};
+
+function applyTheme(t) {
+  document.body.classList.remove('pink','dark');
+  if (t !== 'blue') document.body.classList.add(t);
+  document.getElementById('themeToggle').innerHTML =
+    '<span class="material-icons-outlined">'+THEME_ICONS[t]+'</span> '+THEME_LABELS[t];
+}
+function toggleTheme() {
+  var t = localStorage.getItem(THEME_KEY) || 'blue';
+  var next = THEMES[(THEMES.indexOf(t)+1) % THEMES.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'blue'); })();
+
+var smartInput = document.getElementById('smartInput');
+
+smartInput.addEventListener('input', function() {
+  var val = this.value;
+  if (/^[\d\-ー－]+$/.test(val)) {
+    var digits = val.replace(/\D/g, '').slice(0, 7);
+    this.value = digits.length > 3 ? digits.slice(0,3) + '-' + digits.slice(3) : digits;
+  }
+});
+smartInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+});
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function setLoading(id) {
+  var el = document.getElementById(id);
+  el.innerHTML = '<span class="loading-dots">…</span>';
+  el.className = 'result-body';
+}
+function setCard(id, html, isErr) {
+  var el = document.getElementById(id);
+  el.innerHTML = html;
+  el.className = 'result-body' + (isErr ? ' err-text' : '');
+}
+function copyEl(elId, btn) {
+  var text = (document.getElementById(elId).innerText || '').trim();
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.className = 'copy-btn copied';
+    setTimeout(function() { btn.textContent = 'Copy'; btn.className = 'copy-btn'; }, 1500);
+  });
+}
+function copyCode(code, btn) {
+  navigator.clipboard.writeText(code).then(function() {
+    btn.textContent = 'Copied!';
+    btn.className = 'addr-item-copy copied';
+    setTimeout(function() { btn.textContent = 'Copy 〒'; btn.className = 'addr-item-copy'; }, 1500);
+  });
+}
+
+function googleRomaji(text) {
+  var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en' +
+            '&dt=t&dt=rm&dj=1&q=' + encodeURIComponent(text);
+  return fetch(url)
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(data) {
+      var romaji = '';
+      if (data && Array.isArray(data.sentences)) {
+        data.sentences.forEach(function(seg) {
+          var r = seg.src_translit || seg.translit || '';
+          if (r) romaji += (romaji ? ' ' : '') + r;
+        });
+      } else if (data && Array.isArray(data[0])) {
+        data[0].forEach(function(seg) {
+          var r = seg[2] || (Array.isArray(seg) && seg[3]) || '';
+          if (r) romaji += r;
+        });
+        if (!romaji && data[12]) romaji = data[12];
+      }
+      return romaji.trim();
+    });
+}
+
+function stripBlockNumbers(s) {
+  return s
+    .replace(/[\s　]*[0-9０-９][0-9０-９\-ー―丁目番地号\s]*/u, '')
+    .trim();
+}
+
+function searchByAddress(query) {
+  var url = 'https://nominatim.openstreetmap.org/search?' +
+    'q=' + encodeURIComponent(query) +
+    '&format=json&addressdetails=1&countrycodes=jp&limit=10';
+  return fetch(url, { headers: { 'Accept-Language': 'ja' } })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(items) {
+      var seen = {};
+      var codes = [];
+      (items || []).forEach(function(item) {
+        var pc = (item.address || {}).postcode;
+        if (!pc) return;
+        var d = pc.replace(/\D/g, '');
+        if (d.length === 7 && !seen[d]) { seen[d] = true; codes.push(d); }
+      });
+      if (codes.length === 0) return [];
+      return Promise.all(codes.slice(0, 5).map(function(code) {
+        return fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + code)
+          .then(function(r) { return r.json(); })
+          .then(function(d) { return d.results ? d.results[0] : null; })
+          .catch(function() { return null; });
+      })).then(function(results) {
+        return results.filter(Boolean);
+      });
+    });
+}
+
+function doSearch() {
+  var raw = smartInput.value.trim();
+  var digits = raw.replace(/\D/g, '');
+  if (digits.length === 7 && /^[\d\-ー－\s]+$/.test(raw)) {
+    doCodeSearch(digits);
+  } else if (raw) {
+    doAddrSearch(raw);
+  } else {
+    var wrap = document.getElementById('smartWrap');
+    wrap.classList.add('error');
+    setTimeout(function() { wrap.classList.remove('error'); }, 800);
+  }
+}
+
+function doCodeSearch(digits) {
+  var btn = document.getElementById('searchBtn');
+  btn.disabled = true;
+  document.getElementById('addrResults').className = 'results';
+  document.getElementById('codeResults').className = 'results visible';
+  setLoading('addressOut'); setLoading('kanaOut'); setLoading('romajiOut');
+
+  fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + digits)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.results || data.results.length === 0) {
+        var code = digits.slice(0,3) + '-' + digits.slice(3);
+        setCard('addressOut', '〒 ' + esc(code) + ' — no address found.', true);
+        setCard('kanaOut', '—', false); setCard('romajiOut', '—', false);
+        return;
+      }
+      var first = data.results[0];
+      var code  = first.zipcode.slice(0,3) + '-' + first.zipcode.slice(3);
+      var addrHtml = '<div class="addr-code">〒 ' + esc(code) + '</div>' +
+        '<div class="addr-main">' + esc(first.address1) + '　' + esc(first.address2) + '　' + esc(first.address3) + '</div>';
+      if (data.results.length > 1) {
+        addrHtml += '<div class="addr-extra">+ ' + (data.results.length - 1) + ' more area' + (data.results.length > 2 ? 's' : '') + ' share this code</div>';
+      }
+      setCard('addressOut', addrHtml, false);
+      var kana = [first.kana1, first.kana2, first.kana3].filter(Boolean).join('　');
+      setCard('kanaOut', esc(kana) || '—', false);
+      googleRomaji(first.address1 + first.address2 + first.address3)
+        .then(function(r) { setCard('romajiOut', esc(r) || '(no reading returned)', !r); })
+        .catch(function(e) { setCard('romajiOut', 'Error: ' + esc(e.message), true); });
+    })
+    .catch(function(e) {
+      setCard('addressOut', 'Error: ' + esc(e.message), true);
+      setCard('kanaOut', '—', false); setCard('romajiOut', '—', false);
+    })
+    .finally(function() { btn.disabled = false; });
+}
+
+function doAddrSearch(query) {
+  var btn = document.getElementById('searchBtn');
+  btn.disabled = true;
+  document.getElementById('codeResults').className = 'results';
+  document.getElementById('addrResults').className = 'results visible';
+  document.getElementById('narrowedNote').style.display = 'none';
+  document.getElementById('resultCountNote').textContent = '';
+  document.getElementById('addrList').innerHTML =
+    '<div style="padding:12px 14px"><span class="loading-dots">Searching…</span></div>';
+
+  searchByAddress(query)
+    .then(function(results) {
+      if (!results || results.length === 0) {
+        var stripped = stripBlockNumbers(query);
+        if (stripped && stripped !== query) {
+          return searchByAddress(stripped).then(function(results2) {
+            renderAddrResults(results2, stripped, query);
+          });
+        }
+        renderAddrResults([], query, null);
+        return;
+      }
+      renderAddrResults(results, query, null);
+    })
+    .catch(function(e) {
+      document.getElementById('addrList').innerHTML =
+        '<div class="result-body err-text">Error: ' + esc(e.message) + '</div>';
+    })
+    .finally(function() { btn.disabled = false; });
+}
+
+function renderAddrResults(results, usedQuery, originalQuery) {
+  if (originalQuery && originalQuery !== usedQuery) {
+    var note = document.getElementById('narrowedNote');
+    note.style.display = 'flex';
+    document.getElementById('narrowedText').textContent =
+      'Building numbers removed — showing results for 「' + usedQuery + '」';
+  }
+
+  if (!results || results.length === 0) {
+    document.getElementById('resultCountNote').textContent = '';
+    document.getElementById('addrList').innerHTML =
+      '<div class="result-body err-text">No results found. Try searching just the area name.</div>';
+    return;
+  }
+
+  var atMax = results.length >= 5;
+  document.getElementById('resultCountNote').textContent =
+    atMax ? '5 shown — try a more specific address' : results.length + ' result' + (results.length > 1 ? 's' : '');
+
+  var html = '';
+  results.forEach(function(r) {
+    var code    = r.zipcode.slice(0,3) + '-' + r.zipcode.slice(3);
+    var address = esc(r.address1) + esc(r.address2) + esc(r.address3);
+    var kana    = esc([r.kana1, r.kana2, r.kana3].filter(Boolean).join('　'));
+    html += '<div class="addr-list-item">' +
+      '<div class="addr-item-code">〒 ' + esc(code) + '</div>' +
+      '<div class="addr-item-info">' +
+        '<div class="addr-item-address">' + (address || '—') + '</div>' +
+        (kana ? '<div class="addr-item-kana">' + kana + '</div>' : '') +
+      '</div>' +
+      '<button class="addr-item-copy" onclick="copyCode(\'' + esc(code) + '\',this)">Copy 〒</button>' +
+    '</div>';
+  });
+  document.getElementById('addrList').innerHTML = html;
+}
+</script>
+<script src="/greetings.js"></script>
+</body>
+</html>
