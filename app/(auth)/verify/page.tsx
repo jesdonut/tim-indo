@@ -14,7 +14,7 @@ export default function VerifyPage() {
         </h1>
 
         <p className="text-sm text-[var(--text-2)] leading-relaxed mb-8">
-          We sent a confirmation link to your inbox. Click it to activate your account —
+          We sent a confirmation link to your inbox. Click it to activate your account,
           then you're in.
         </p>
 

@@ -13,9 +13,18 @@
   --text-3:      #999990;
   --accent:      #1a1a1a;
   --accent-fg:   #ffffff;
-  --highlight:   #e8ff47;   /* awwwards-style chartreuse pop */
+  --highlight:   #e8ff47;
   --highlight-fg:#0d0d0d;
 }
+
+/* Highlight color themes */
+.highlight-lime   { --highlight: #e8ff47; --highlight-fg: #0d0d0d; }
+.highlight-pink   { --highlight: #f472b6; --highlight-fg: #0d0d0d; }
+.highlight-purple { --highlight: #c084fc; --highlight-fg: #0d0d0d; }
+
+.dark.highlight-lime   { --highlight: #e8ff47; --highlight-fg: #0d0d0d; }
+.dark.highlight-pink   { --highlight: #f472b6; --highlight-fg: #0d0d0d; }
+.dark.highlight-purple { --highlight: #c084fc; --highlight-fg: #0d0d0d; }
 
 .dark {
   --bg:          #0a0a0a;
