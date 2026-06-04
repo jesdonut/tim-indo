@@ -13,6 +13,39 @@ export type GuidebookData = {
   water: string
 }
 
+export type PostalResult = {
+  zipcode: string
+  address: string   // kanji full address
+  reading: string   // kana full reading
+  prefecture: string
+  city: string
+  town: string
+}
+
+export async function lookupPostal(code: string): Promise<{ results?: PostalResult[]; error?: string }> {
+  const clean = code.replace(/[^0-9]/g, "")
+  if (clean.length !== 7) return { error: "Enter a 7-digit postal code" }
+
+  try {
+    const res = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${clean}`)
+    const data = await res.json()
+    if (!data.results) return { error: "No results found" }
+
+    const results: PostalResult[] = data.results.map((r: Record<string, string>) => ({
+      zipcode:    r.zipcode,
+      address:    r.address1 + r.address2 + r.address3,
+      reading:    r.kana1 + r.kana2 + r.kana3,
+      prefecture: r.address1,
+      city:       r.address2,
+      town:       r.address3,
+    }))
+
+    return { results }
+  } catch (e) {
+    return { error: String(e) }
+  }
+}
+
 async function getRomaji(text: string): Promise<string> {
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en&dt=t&dt=rm&dj=1&q=${encodeURIComponent(text)}`
