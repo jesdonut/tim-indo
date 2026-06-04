@@ -64,6 +64,7 @@ export default function ExtractPage() {
     if (!data) return
     const text = [
       `${data.apartmentName} ${data.roomNumber}`,
+      data.postalCode ? `〒 ${data.postalCode}` : null,
       `住所: ${data.address}`,
       data.addressRomaji ? `読み: ${data.addressRomaji}` : null,
       `電気: ${data.electricity}`,
@@ -74,7 +75,7 @@ export default function ExtractPage() {
   }
 
   const rows: { key: keyof GuidebookData; label: string; value: string; sub?: string; reading?: string }[] = data ? [
-    { key: "address",     label: "住所",  value: data.address, reading: data.addressRomaji },
+    { key: "address",     label: "住所",  value: data.address, reading: data.addressRomaji, sub: data.postalCode ? `〒 ${data.postalCode}` : undefined },
     { key: "electricity", label: "電気",  value: data.electricity },
     { key: "gasPhone",    label: "ガス",  value: data.gasPhone, sub: data.gasCompany },
     { key: "water",       label: "水道",  value: data.water },

@@ -7,6 +7,7 @@ export type GuidebookData = {
   roomNumber: string
   address: string
   addressRomaji: string
+  postalCode: string
   electricity: string
   gasCompany: string
   gasPhone: string
@@ -43,6 +44,23 @@ export async function lookupPostal(code: string): Promise<{ results?: PostalResu
     return { results }
   } catch (e) {
     return { error: String(e) }
+  }
+}
+
+async function getPostalCode(address: string): Promise<string> {
+  try {
+    // Strip block/lot numbers — Nominatim matches better on town level
+    const query = address.replace(/[\s　]*[0-9０-９][0-9０-９\-ー―丁目番地号\s]*/u, "").trim()
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&countrycodes=jp&limit=5`
+    const res = await fetch(url, { headers: { "Accept-Language": "ja", "User-Agent": "TimIndoApp/1.0" } })
+    const items: Array<{ address?: { postcode?: string } }> = await res.json()
+    for (const item of items) {
+      const pc = item.address?.postcode?.replace(/\D/g, "")
+      if (pc?.length === 7) return `${pc.slice(0, 3)}-${pc.slice(3)}`
+    }
+    return ""
+  } catch {
+    return ""
   }
 }
 
@@ -99,11 +117,14 @@ export async function extractGuidebook(url: string): Promise<{ data?: GuidebookD
     const gasPhone    = getLifeline("ガス連絡先")
     const water       = getLifeline("水道連絡先")
 
-    // Romaji reading of the address (run in parallel with the rest)
-    const addressRomaji = address ? await getRomaji(address) : ""
+    // Romaji + postal code in parallel
+    const [addressRomaji, postalCode] = await Promise.all([
+      address ? getRomaji(address) : Promise.resolve(""),
+      address ? getPostalCode(address) : Promise.resolve(""),
+    ])
 
     return {
-      data: { apartmentName, roomNumber, address, addressRomaji, electricity, gasCompany, gasPhone, water },
+      data: { apartmentName, roomNumber, address, addressRomaji, postalCode, electricity, gasCompany, gasPhone, water },
     }
   } catch (e) {
     return { error: String(e) }
