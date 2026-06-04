@@ -26,7 +26,15 @@ export default function TemplatePanel({ template, cols, rows, onTemplateChange, 
     .map(v => cols.find(c => c.label.toLowerCase() === v.toLowerCase() || c.id === `var_${v}`))
     .filter(Boolean) as ColDef[]
 
-  const previews = rows.map(r => applyTemplate(template, r))
+  // Resolve {{varName}} by matching against column labels (not raw col IDs)
+  function resolve(row: Row) {
+    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+      const col = cols.find(c => c.label.toLowerCase() === key.toLowerCase())
+      return col ? (row[col.id] ?? match) : (row[key] ?? match)
+    })
+  }
+
+  const previews = rows.map(r => resolve(r))
 
   async function clickCopy(i: number) {
     await navigator.clipboard.writeText(previews[i])
