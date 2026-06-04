@@ -1,53 +1,60 @@
 import Link from "next/link"
 
-const TOOLS = [
-  { href: "/pdf",       label: "PDF",       desc: "Merge, rotate & download" },
-  { href: "/translate", label: "Translate",  desc: "Japanese ↔ Indonesian" },
-  { href: "/postal",    label: "Postal",     desc: "Japan postcode lookup" },
-  { href: "/spell",     label: "Spell",      desc: "Spell checker" },
-  { href: "/compress",  label: "Compress",   desc: "Image compression" },
-  { href: "/station",   label: "Station",    desc: "Nearest station finder" },
-  { href: "/builder",   label: "Builder",    desc: "Document builder" },
-  { href: "/docs",      label: "Docs",       desc: "ID & document templates" },
-  { href: "/area",      label: "Area",       desc: "Prefecture map & assignments" },
-  { href: "/phone",     label: "Phone",      desc: "Utility call scripts" },
-]
-
 export default function Home() {
   return (
-    <div className="min-h-[calc(100dvh-48px)] flex flex-col px-5 py-10 max-w-5xl mx-auto w-full">
+    <div className="min-h-[calc(100dvh-48px)] flex flex-col px-5 py-12 max-w-5xl mx-auto w-full">
 
-      {/* Hero */}
-      <div className="border-b border-[var(--border)] pb-10 mb-10">
-        <p className="label-xs mb-4">Internal tools — Tim Indo Serba Bisa</p>
-        <h1 className="display text-[var(--text)]">
-          Every tool<br />
-          <span className="text-[var(--text-3)]">in one place.</span>
-        </h1>
-      </div>
+      {/* Top label */}
+      <p className="label-xs">Internal tools — Team Indonesia</p>
 
-      {/* Tool grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-px bg-[var(--border)]">
-        {TOOLS.map(({ href, label, desc }) => (
-          <Link
-            key={href}
-            href={href}
-            className="group flex flex-col justify-between bg-[var(--bg)] p-4 min-h-[110px] hover:bg-[var(--bg-2)] transition-colors duration-150"
-          >
-            <span className="text-[0.7rem] font-semibold tracking-[0.08em] uppercase text-[var(--text-3)] group-hover:text-[var(--text-2)] transition-colors">
-              {label}
-            </span>
-            <span className="text-[0.82rem] text-[var(--text-2)] leading-snug mt-2">
-              {desc}
-            </span>
-          </Link>
-        ))}
+      {/* Main content — fills remaining space */}
+      <div className="flex-1 flex flex-col justify-center gap-10 py-12">
+
+        {/* Headline */}
+        <div className="border-l-2 border-[var(--highlight)] pl-5">
+          <h1 className="display text-[var(--text)]">
+            Tim Indo<br />
+            <span className="text-[var(--text-3)]">Serba Bisa</span>
+          </h1>
+        </div>
+
+        {/* Divider + descriptor */}
+        <div className="flex flex-col sm:flex-row sm:items-end gap-6 sm:gap-16 border-t border-[var(--border)] pt-8">
+          <p className="text-sm text-[var(--text-2)] max-w-xs leading-relaxed">
+            One place for all the tools the team uses every day —
+            PDF, translation, postal lookup, area management, and more.
+          </p>
+
+          {/* CTAs */}
+          <div className="flex items-center gap-3 sm:ml-auto shrink-0">
+            <Link
+              href="/login"
+              className="px-5 py-2.5 rounded border border-[var(--border)] text-sm font-medium text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all duration-150"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/signup"
+              className="px-5 py-2.5 rounded bg-[var(--text)] text-[var(--bg)] text-sm font-semibold hover:opacity-80 transition-opacity duration-150"
+            >
+              Sign up
+            </Link>
+          </div>
+        </div>
+
+        {/* Tool strip */}
+        <div className="flex flex-wrap gap-x-5 gap-y-1">
+          {["PDF", "Translate", "Postal", "Spell", "Compress", "Station", "Builder", "Docs", "Area", "Phone"].map(t => (
+            <span key={t} className="label-xs">{t}</span>
+          ))}
+        </div>
+
       </div>
 
       {/* Footer */}
-      <div className="mt-auto pt-10 border-t border-[var(--border)] flex items-center justify-between">
-        <span className="label-xs">v2</span>
-        <span className="label-xs">Tim Indo © 2026</span>
+      <div className="border-t border-[var(--border)] pt-5 flex items-center justify-between">
+        <span className="label-xs">v2 — 2026</span>
+        <span className="label-xs">Team only · invite required</span>
       </div>
 
     </div>
