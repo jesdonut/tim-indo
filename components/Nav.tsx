@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { href: "/docs",     label: "Docs" },
   { href: "/area",     label: "Area" },
   { href: "/phone",    label: "Phone" },
+  { href: "/extract",  label: "Extract" },
 ]
 
 export default function Nav() {
