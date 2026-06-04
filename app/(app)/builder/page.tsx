@@ -108,6 +108,7 @@ export default function BuilderPage() {
               rows={rows}
               onTemplateChange={setTemplate}
               onSyncCols={syncColsFromVars}
+              onRowsChange={r => handleChange(cols, r)}
             />
           </div>
         )}

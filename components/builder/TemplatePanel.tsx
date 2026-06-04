@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { extractVars, applyTemplate } from "./templateUtils"
+import { extractVars, applyTemplate, parsePaste } from "./templateUtils"
 import { cn } from "@/lib/cn"
 import type { ColDef, Row } from "./types"
 
@@ -11,154 +11,174 @@ type Props = {
   rows: Row[]
   onTemplateChange: (t: string) => void
   onSyncCols: (vars: string[]) => void
+  onRowsChange: (rows: Row[]) => void
 }
 
-export default function TemplatePanel({ template, cols, rows, onTemplateChange, onSyncCols }: Props) {
-  const [copied, setCopied] = useState(false)
+export default function TemplatePanel({ template, cols, rows, onTemplateChange, onSyncCols, onRowsChange }: Props) {
+  const [justCopied, setJustCopied] = useState<number | null>(null)
 
   const vars = extractVars(template)
-  const inputCols = cols.filter(c => !c.computed)
+  // Find which cols match detected vars (by label match)
+  const varCols = vars
+    .map(v => cols.find(c => c.label.toLowerCase() === v.toLowerCase() || c.id === `var_${v}`))
+    .filter(Boolean) as ColDef[]
 
-  // Only rows that have at least one value
-  const activeRows = rows
-    .map((r, i) => ({ row: r, idx: i }))
-    .filter(({ row }) => Object.values(row).some(v => v.trim() !== ""))
+  const previews = rows.map(r => applyTemplate(template, r))
 
-  const previews = activeRows.map(({ row }) => applyTemplate(template, row))
-
-  async function copyAll() {
-    await navigator.clipboard.writeText(previews.join("\n\n"))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+  async function clickCopy(i: number) {
+    await navigator.clipboard.writeText(previews[i])
+    setJustCopied(i)
+    setTimeout(() => setJustCopied(null), 1000)
   }
 
-  async function copyOne(text: string, id: string) {
-    await navigator.clipboard.writeText(text)
-    setCopiedOne(id)
-    setTimeout(() => setCopiedOne(null), 1200)
+  function setCell(rowIdx: number, colId: string, value: string) {
+    const next = rows.map((r, i) => i === rowIdx ? { ...r, [colId]: value } : r)
+    onRowsChange(next)
   }
 
-  const [copiedOne, setCopiedOne] = useState<string | null>(null)
+  function onVarColPaste(e: React.ClipboardEvent, rowIdx: number, colIdx: number) {
+    const text = e.clipboardData.getData("text/plain")
+    if (!text.includes("\t") && !text.includes("\n")) return
+    e.preventDefault()
+    const grid = parsePaste(text)
+    const next = [...rows]
+    grid.forEach((pasteRow, ri) => {
+      const r = rowIdx + ri
+      while (next.length <= r) next.push({})
+      pasteRow.forEach((val, ci) => {
+        const col = varCols[colIdx + ci]
+        if (col) next[r] = { ...next[r], [col.id]: val }
+      })
+    })
+    onRowsChange(next)
+  }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0">
 
-      {/* Template input — top bar */}
-      <div className="flex flex-col gap-2 px-4 py-3 border-b border-[var(--border)]">
-        <div className="flex items-center justify-between">
-          <span className="label-xs">Template</span>
+      {/* LEFT: template + outputs */}
+      <div className="flex flex-col flex-1 min-w-0 border-r border-[var(--border)]">
+
+        {/* Template input */}
+        <div className="flex flex-col gap-2 p-3 border-b border-[var(--border)]">
+          <div className="flex items-center justify-between">
+            <span className="label-xs">Template</span>
+            {vars.length > 0 && (
+              <button
+                onClick={() => onSyncCols(vars)}
+                className="text-[0.7rem] text-[var(--highlight-text)] hover:opacity-80 transition-opacity font-medium"
+              >
+                Sync columns
+              </button>
+            )}
+          </div>
+          <textarea
+            className={cn(
+              "w-full min-h-[80px] bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 resize-y",
+              "text-[var(--text)] text-sm font-mono placeholder:text-[var(--text-3)]",
+              "outline-none focus:border-[var(--highlight)] transition-colors"
+            )}
+            placeholder="Hi {{name}}, your interview is on {{date}}."
+            value={template}
+            onChange={e => onTemplateChange(e.target.value)}
+          />
           {vars.length > 0 && (
-            <button
-              onClick={() => onSyncCols(vars)}
-              className="text-[0.7rem] text-[var(--highlight-text)] hover:opacity-80 transition-opacity font-medium"
-            >
-              Sync columns from variables
-            </button>
+            <div className="flex flex-wrap gap-1.5">
+              {vars.map(v => (
+                <span key={v} className="px-2 py-0.5 rounded-full bg-[var(--highlight)] text-[var(--highlight-fg)] text-[0.65rem] font-bold">
+                  {`{{${v}}}`}
+                </span>
+              ))}
+            </div>
           )}
         </div>
-        <textarea
-          className={cn(
-            "w-full min-h-[80px] bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5",
-            "text-[var(--text)] text-sm font-mono placeholder:text-[var(--text-3)]",
-            "outline-none focus:border-[var(--highlight)] transition-colors resize-y"
+
+        {/* Generated outputs — click to copy */}
+        <div className="flex-1 overflow-y-auto">
+          {template.trim() === "" ? (
+            <p className="p-4 text-sm text-[var(--text-3)]">Write a template above to generate versions.</p>
+          ) : (
+            <div className="divide-y divide-[var(--border)]">
+              {previews.map((p, i) => {
+                const empty = !Object.values(rows[i] ?? {}).some(v => v.trim())
+                if (empty) return null
+                return (
+                  <button
+                    key={i}
+                    onClick={() => clickCopy(i)}
+                    className={cn(
+                      "w-full text-left px-4 py-3 flex items-start gap-3 transition-colors group",
+                      justCopied === i
+                        ? "bg-[var(--highlight)]/20"
+                        : "hover:bg-[var(--bg-2)]"
+                    )}
+                  >
+                    <span className="text-[0.6rem] font-mono text-[var(--text-3)] mt-1 shrink-0 w-4 text-right">{i + 1}</span>
+                    <span className="text-sm text-[var(--text)] leading-relaxed flex-1">{p}</span>
+                    <span className={cn(
+                      "text-[0.65rem] shrink-0 mt-0.5 transition-all",
+                      justCopied === i ? "text-green-400" : "text-[var(--text-3)] opacity-0 group-hover:opacity-100"
+                    )}>
+                      {justCopied === i ? "Copied!" : "Copy"}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           )}
-          placeholder="Hi {{name}}, your interview is on {{date}}. See you then."
-          value={template}
-          onChange={e => onTemplateChange(e.target.value)}
-        />
-        {vars.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {vars.map(v => (
-              <span key={v} className="px-2 py-0.5 rounded-full bg-[var(--highlight)] text-[var(--highlight-fg)] text-[0.65rem] font-bold">
-                {`{{${v}}}`}
-              </span>
-            ))}
+        </div>
+      </div>
+
+      {/* RIGHT: variable columns */}
+      <div className="w-64 shrink-0 flex flex-col">
+        <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--bg-2)]">
+          <span className="label-xs">
+            {varCols.length > 0 ? "Column data" : "No columns synced yet"}
+          </span>
+        </div>
+
+        {varCols.length === 0 ? (
+          <p className="p-3 text-[0.75rem] text-[var(--text-3)] leading-relaxed">
+            Use <span className="font-mono">{"{{variable}}"}</span> in your template, then click Sync columns to create them.
+          </p>
+        ) : (
+          <div className="flex-1 overflow-auto">
+            <table className="w-full border-collapse text-sm" style={{ tableLayout: "fixed" }}>
+              <thead>
+                <tr>
+                  {varCols.map(col => (
+                    <th
+                      key={col.id}
+                      className="border-r border-b border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-left"
+                      style={{ width: `${100 / varCols.length}%` }}
+                    >
+                      <span className="text-[0.68rem] font-semibold uppercase tracking-wide text-[var(--text-2)]">
+                        {col.label}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {varCols.map((col, ci) => (
+                      <td key={col.id} className="border-r border-b border-[var(--border)] p-0">
+                        <input
+                          className="w-full h-7 px-2 bg-transparent text-[var(--text)] text-sm outline-none focus:bg-[var(--bg-2)] focus:ring-1 focus:ring-[var(--highlight)] focus:ring-inset"
+                          value={row[col.id] ?? ""}
+                          onChange={e => setCell(ri, col.id, e.target.value)}
+                          onPaste={e => onVarColPaste(e, ri, ci)}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
-
-      {/* Side-by-side results */}
-      {activeRows.length > 0 && (
-        <div className="flex flex-col flex-1 min-h-0">
-
-          {/* Header row */}
-          <div className="grid border-b border-[var(--border)] bg-[var(--bg-2)]"
-            style={{ gridTemplateColumns: `32px 1fr 1fr` }}>
-            <div className="border-r border-[var(--border)]" />
-            <div className="px-3 py-1.5 border-r border-[var(--border)]">
-              <span className="label-xs">Source data</span>
-            </div>
-            <div className="px-3 py-1.5 flex items-center justify-between">
-              <span className="label-xs">{activeRows.length} version{activeRows.length !== 1 ? "s" : ""}</span>
-              <button
-                onClick={copyAll}
-                className={cn(
-                  "text-[0.7rem] font-medium transition-all",
-                  copied ? "text-green-400" : "text-[var(--text-2)] hover:text-[var(--text)]"
-                )}
-              >
-                {copied ? "Copied!" : "Copy all"}
-              </button>
-            </div>
-          </div>
-
-          {/* Rows */}
-          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border)]">
-            {activeRows.map(({ row, idx }, i) => (
-              <div
-                key={idx}
-                className="grid"
-                style={{ gridTemplateColumns: `32px 1fr 1fr` }}
-              >
-                {/* Row number */}
-                <div className="border-r border-[var(--border)] flex items-center justify-center text-[0.65rem] text-[var(--text-3)] font-mono bg-[var(--bg-2)]">
-                  {idx + 1}
-                </div>
-
-                {/* Source values */}
-                <div className="border-r border-[var(--border)] px-3 py-2.5 flex flex-col gap-1">
-                  {inputCols.map(col => {
-                    const val = row[col.id]
-                    if (!val) return null
-                    return (
-                      <div key={col.id} className="flex items-baseline gap-1.5">
-                        <span className="text-[0.6rem] font-bold text-[var(--text-3)] uppercase tracking-wide shrink-0">
-                          {col.label}
-                        </span>
-                        <span className="text-sm text-[var(--text)] truncate">{val}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Generated output */}
-                <div className="px-3 py-2.5 flex items-start justify-between gap-2 group">
-                  <p className="text-sm text-[var(--text)] leading-relaxed flex-1">
-                    {previews[i]}
-                  </p>
-                  <button
-                    onClick={() => copyOne(previews[i], String(idx))}
-                    className={cn(
-                      "shrink-0 text-[0.65rem] opacity-0 group-hover:opacity-100 transition-all",
-                      copiedOne === String(idx) ? "text-green-400" : "text-[var(--text-3)] hover:text-[var(--text)]"
-                    )}
-                  >
-                    {copiedOne === String(idx) ? "Copied" : "Copy"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-        </div>
-      )}
-
-      {/* Empty state */}
-      {activeRows.length === 0 && template.trim() && (
-        <div className="flex-1 flex items-center justify-center text-[var(--text-3)] text-sm">
-          Fill in the Table tab to see versions here.
-        </div>
-      )}
 
     </div>
   )
