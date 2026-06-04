@@ -2,8 +2,11 @@
 
 import { useState } from "react"
 import { extractVars, applyTemplate, parsePaste } from "./templateUtils"
+import { handleTableKeyDown } from "./useTableNav"
 import { cn } from "@/lib/cn"
 import type { ColDef, Row } from "./types"
+
+const TABLE_ID = "builder-vars"
 
 type Props = {
   template: string
@@ -35,6 +38,8 @@ export default function TemplatePanel({ template, cols, rows, onTemplateChange, 
     const next = rows.map((r, i) => i === rowIdx ? { ...r, [colId]: value } : r)
     onRowsChange(next)
   }
+
+  function addRow() { onRowsChange([...rows, {}]) }
 
   function onVarColPaste(e: React.ClipboardEvent, rowIdx: number, colIdx: number) {
     const text = e.clipboardData.getData("text/plain")
@@ -143,7 +148,7 @@ export default function TemplatePanel({ template, cols, rows, onTemplateChange, 
           </p>
         ) : (
           <div className="flex-1 overflow-auto">
-            <table className="w-full border-collapse text-sm" style={{ tableLayout: "fixed" }}>
+            <table className="w-full border-collapse text-sm" style={{ tableLayout: "fixed" }} data-table-id={TABLE_ID}>
               <thead>
                 <tr>
                   {varCols.map(col => (
@@ -169,6 +174,9 @@ export default function TemplatePanel({ template, cols, rows, onTemplateChange, 
                           value={row[col.id] ?? ""}
                           onChange={e => setCell(ri, col.id, e.target.value)}
                           onPaste={e => onVarColPaste(e, ri, ci)}
+                          onKeyDown={e => handleTableKeyDown(e, TABLE_ID, ri, ci, varCols.length, addRow, rows.length)}
+                          data-row={ri}
+                          data-col={ci}
                         />
                       </td>
                     ))}

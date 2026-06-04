@@ -11,8 +11,11 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { parsePaste, applyTemplate } from "./templateUtils"
+import { handleTableKeyDown } from "./useTableNav"
 import { cn } from "@/lib/cn"
 import type { ColDef, Row } from "./types"
+
+const TABLE_ID = "builder-main"
 
 const MIN_COL_W = 80
 const DEFAULT_COL_W = 160
@@ -227,8 +230,10 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
     await navigator.clipboard.writeText(values)
   }
 
+  const inputCols = cols.filter(c => !c.computed)
+
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto" data-table-id={TABLE_ID}>
       {/* Add buttons above table */}
       <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--border)] bg-[var(--bg)]">
         <button
@@ -298,6 +303,9 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
                         value={row[col.id] ?? ""}
                         onChange={e => setCell(ri, col.id, e.target.value)}
                         onPaste={e => onCellPaste(e, ri, ci)}
+                        onKeyDown={e => handleTableKeyDown(e, TABLE_ID, ri, inputCols.indexOf(col), inputCols.length, addRow, rows.length)}
+                        data-row={ri}
+                        data-col={inputCols.indexOf(col)}
                       />
                     )}
                   </td>
