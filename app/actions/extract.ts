@@ -47,12 +47,21 @@ export async function lookupPostal(code: string): Promise<{ results?: PostalResu
   }
 }
 
+async function fetchWithTimeout(url: string, opts: RequestInit, ms = 5000): Promise<Response> {
+  const ctrl = new AbortController()
+  const id = setTimeout(() => ctrl.abort(), ms)
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal })
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 async function getPostalCode(address: string): Promise<string> {
   try {
-    // Strip block/lot numbers — Nominatim matches better on town level
     const query = address.replace(/[\s　]*[0-9０-９][0-9０-９\-ー―丁目番地号\s]*/u, "").trim()
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&countrycodes=jp&limit=5`
-    const res = await fetch(url, { headers: { "Accept-Language": "ja", "User-Agent": "TimIndoApp/1.0" } })
+    const res = await fetchWithTimeout(url, { headers: { "Accept-Language": "ja", "User-Agent": "TimIndoApp/1.0" } })
     const items: Array<{ address?: { postcode?: string } }> = await res.json()
     for (const item of items) {
       const pc = item.address?.postcode?.replace(/\D/g, "")
@@ -67,7 +76,7 @@ async function getPostalCode(address: string): Promise<string> {
 async function getRomaji(text: string): Promise<string> {
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en&dt=t&dt=rm&dj=1&q=${encodeURIComponent(text)}`
-    const res = await fetch(url)
+    const res = await fetchWithTimeout(url, {}, 5000)
     const data = await res.json()
     // Collect romaji from sentence segments
     let romaji = ""
