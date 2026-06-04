@@ -111,6 +111,28 @@ export default function TemplatePanel({ template, cols, rows, onTemplateChange, 
           {template.trim() === "" ? (
             <p className="p-4 text-sm text-[var(--text-3)]">Write a template above to generate versions.</p>
           ) : (
+            <>
+              {/* Copy all bar */}
+              {previews.some((_, i) => Object.values(rows[i] ?? {}).some(v => v.trim())) && (
+                <div className="sticky top-0 z-10 flex justify-end px-4 py-1.5 border-b border-[var(--border)] bg-[var(--bg)]/90 backdrop-blur-sm">
+                  <button
+                    onClick={async () => {
+                      const all = previews
+                        .filter((_, i) => Object.values(rows[i] ?? {}).some(v => v.trim()))
+                        .join("\n\n")
+                      await navigator.clipboard.writeText(all)
+                      setJustCopied(-1)
+                      setTimeout(() => setJustCopied(null), 1500)
+                    }}
+                    className={cn(
+                      "text-[0.72rem] font-medium transition-all",
+                      justCopied === -1 ? "text-green-400" : "text-[var(--text-2)] hover:text-[var(--text)]"
+                    )}
+                  >
+                    {justCopied === -1 ? "Copied all!" : "Copy all"}
+                  </button>
+                </div>
+              )}
             <div className="divide-y divide-[var(--border)]">
               {previews.map((p, i) => {
                 const empty = !Object.values(rows[i] ?? {}).some(v => v.trim())
@@ -138,6 +160,7 @@ export default function TemplatePanel({ template, cols, rows, onTemplateChange, 
                 )
               })}
             </div>
+            </>
           )}
         </div>
       </div>
