@@ -67,7 +67,7 @@ function ColHeader({
         /* Computed column header: formula input + copy button */
         <div className="flex flex-col h-auto min-h-8 px-2 py-1 gap-1">
           <div className="flex items-center gap-1">
-            <span className="text-[0.6rem] font-bold text-[var(--highlight)] uppercase tracking-wider shrink-0">fx</span>
+            <span className="text-[0.6rem] font-bold text-[var(--highlight-text)] uppercase tracking-wider shrink-0">fx</span>
             <input
               className="flex-1 bg-transparent text-[0.72rem] font-mono text-[var(--text)] outline-none min-w-0 placeholder:text-[var(--text-3)]"
               value={col.label}
@@ -77,7 +77,7 @@ function ColHeader({
             />
             <button
               onClick={() => onCopyCol(col.id)}
-              className="shrink-0 text-[0.6rem] text-[var(--text-3)] hover:text-[var(--highlight)] transition-colors"
+              className="shrink-0 text-[0.6rem] text-[var(--text-3)] hover:text-[var(--highlight-text)] transition-colors"
               title="Copy output column"
             >⎘</button>
             <button
@@ -91,7 +91,7 @@ function ColHeader({
               <button
                 key={c.id}
                 onClick={() => onFormulaChange(col.id, col.label + `{{${c.label}}}`)}
-                className="text-[0.55rem] px-1 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--highlight)] hover:border-[var(--highlight)] transition-colors font-mono"
+                className="text-[0.55rem] px-1 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--highlight-text)] hover:border-[var(--highlight)] transition-colors font-mono"
                 title={`Insert {{${c.label}}}`}
               >
                 {`{{${c.label}}}`}
@@ -190,7 +190,8 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
 
   function addCol() {
     const id = `col_${Date.now()}`
-    onChange([...cols, { id, label: `Col ${cols.filter(c => !c.computed).length + 1}`, width: DEFAULT_COL_W }], rows)
+    const letter = String.fromCharCode(65 + cols.filter(c => !c.computed).length)
+    onChange([...cols, { id, label: letter, width: DEFAULT_COL_W }], rows)
   }
 
   function addComputedCol() {
@@ -238,7 +239,7 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
         </button>
         <button
           onClick={addComputedCol}
-          className="text-[0.7rem] text-[var(--highlight)] hover:opacity-80 transition-opacity font-medium"
+          className="text-[0.7rem] text-[var(--highlight-text)] hover:opacity-80 transition-opacity font-medium"
         >
           + Output column
         </button>

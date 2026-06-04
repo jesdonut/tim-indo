@@ -13,18 +13,20 @@
   --text-3:      #999990;
   --accent:      #1a1a1a;
   --accent-fg:   #ffffff;
-  --highlight:   #e8ff47;
-  --highlight-fg:#0d0d0d;
+  --highlight:      #e8ff47;
+  --highlight-fg:   #0d0d0d;
+  --highlight-text: #5c6600;   /* readable on light bg */
 }
 
-/* Highlight color themes */
-.highlight-lime   { --highlight: #e8ff47; --highlight-fg: #0d0d0d; }
-.highlight-pink   { --highlight: #f472b6; --highlight-fg: #0d0d0d; }
-.highlight-purple { --highlight: #c084fc; --highlight-fg: #0d0d0d; }
+/* Highlight color themes — light mode */
+.highlight-lime   { --highlight: #e8ff47; --highlight-fg: #0d0d0d; --highlight-text: #5c6600; }
+.highlight-pink   { --highlight: #f472b6; --highlight-fg: #0d0d0d; --highlight-text: #9d1265; }
+.highlight-purple { --highlight: #c084fc; --highlight-fg: #0d0d0d; --highlight-text: #6b21a8; }
 
-.dark.highlight-lime   { --highlight: #e8ff47; --highlight-fg: #0d0d0d; }
-.dark.highlight-pink   { --highlight: #f472b6; --highlight-fg: #0d0d0d; }
-.dark.highlight-purple { --highlight: #c084fc; --highlight-fg: #0d0d0d; }
+/* Highlight color themes — dark mode (highlight color is readable directly as text) */
+.dark.highlight-lime   { --highlight: #e8ff47; --highlight-fg: #0d0d0d; --highlight-text: #e8ff47; }
+.dark.highlight-pink   { --highlight: #f472b6; --highlight-fg: #0d0d0d; --highlight-text: #f472b6; }
+.dark.highlight-purple { --highlight: #c084fc; --highlight-fg: #0d0d0d; --highlight-text: #c084fc; }
 
 .dark {
   --bg:          #0a0a0a;
@@ -52,8 +54,9 @@
   --color-text3:       var(--text-3);
   --color-accent:      var(--accent);
   --color-accent-fg:   var(--accent-fg);
-  --color-highlight:   var(--highlight);
-  --color-highlight-fg:var(--highlight-fg);
+  --color-highlight:      var(--highlight);
+  --color-highlight-fg:   var(--highlight-fg);
+  --color-highlight-text: var(--highlight-text);
   --font-sans:         var(--font-geist-sans);
   --font-mono:         var(--font-geist-mono);
 }

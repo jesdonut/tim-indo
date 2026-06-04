@@ -8,9 +8,9 @@ import { cn } from "@/lib/cn"
 import type { ColDef, Row } from "@/components/builder/types"
 
 const DEFAULT_COLS: ColDef[] = [
-  { id: "col_a", label: "Column A", width: 160 },
-  { id: "col_b", label: "Column B", width: 160 },
-  { id: "col_c", label: "Column C", width: 160 },
+  { id: "col_a", label: "A", width: 160 },
+  { id: "col_b", label: "B", width: 160 },
+  { id: "col_c", label: "C", width: 160 },
 ]
 
 const DEFAULT_ROWS: Row[] = Array.from({ length: 5 }, () => ({}))

@@ -40,7 +40,7 @@ export default function TemplatePanel({ template, cols, rows, onTemplateChange, 
           {vars.length > 0 && (
             <button
               onClick={syncColumns}
-              className="text-[0.7rem] text-[var(--highlight)] hover:opacity-80 transition-opacity font-medium"
+              className="text-[0.7rem] text-[var(--highlight-text)] hover:opacity-80 transition-opacity font-medium"
             >
               Sync columns from variables
             </button>
