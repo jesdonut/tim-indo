@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useCallback } from "react"
+import { useRef } from "react"
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -10,24 +10,41 @@ import {
   useSortable, arrayMove,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { parsePaste } from "./templateUtils"
+import { parsePaste, applyTemplate } from "./templateUtils"
 import { cn } from "@/lib/cn"
 import type { ColDef, Row } from "./types"
 
 const MIN_COL_W = 80
 const DEFAULT_COL_W = 160
 
+// ── Computed cell value ──────────────────────────────────────────────────────
+function computeCell(formula: string, row: Row, cols: ColDef[]): string {
+  // Replace {{col_id}} and {{col_label}} both
+  let result = formula
+  cols.forEach(c => {
+    const val = row[c.id] ?? ""
+    result = result.replaceAll(`{{${c.id}}}`, val)
+    result = result.replaceAll(`{{${c.label}}}`, val)
+  })
+  return result
+}
+
 // ── Sortable column header ───────────────────────────────────────────────────
 function ColHeader({
-  col, onRename, onDelete, onResizeStart,
+  col, allCols, onFormulaChange, onRename, onDelete, onResizeStart, onCopyCol,
 }: {
   col: ColDef
+  allCols: ColDef[]
+  onFormulaChange: (id: string, formula: string) => void
   onRename: (id: string, label: string) => void
   onDelete: (id: string) => void
   onResizeStart: (e: React.MouseEvent, id: string) => void
+  onCopyCol: (id: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: col.id })
+
+  const inputCols = allCols.filter(c => !c.computed)
 
   return (
     <th
@@ -39,31 +56,68 @@ function ColHeader({
         transition,
         opacity: isDragging ? 0.4 : 1,
       }}
-      className="relative border-r border-b border-[var(--border)] bg-[var(--bg-2)] select-none"
+      className={cn(
+        "relative border-r border-b border-[var(--border)] select-none",
+        col.computed
+          ? "bg-[var(--highlight)]/10"
+          : "bg-[var(--bg-2)]"
+      )}
     >
-      <div className="flex items-center h-8 px-2 gap-1">
-        {/* Drag handle */}
-        <span
-          {...attributes}
-          {...listeners}
-          className="cursor-grab text-[var(--text-3)] hover:text-[var(--text-2)] text-xs shrink-0"
-          title="Drag to reorder"
-        >⠿</span>
-
-        {/* Editable label */}
-        <input
-          className="flex-1 bg-transparent text-[0.72rem] font-semibold uppercase tracking-wide text-[var(--text-2)] outline-none min-w-0"
-          value={col.label}
-          onChange={e => onRename(col.id, e.target.value)}
-        />
-
-        {/* Delete */}
-        <button
-          onClick={() => onDelete(col.id)}
-          className="shrink-0 text-[var(--text-3)] hover:text-red-400 text-xs leading-none"
-          title="Remove column"
-        >×</button>
-      </div>
+      {col.computed ? (
+        /* Computed column header: formula input + copy button */
+        <div className="flex flex-col h-auto min-h-8 px-2 py-1 gap-1">
+          <div className="flex items-center gap-1">
+            <span className="text-[0.6rem] font-bold text-[var(--highlight)] uppercase tracking-wider shrink-0">fx</span>
+            <input
+              className="flex-1 bg-transparent text-[0.72rem] font-mono text-[var(--text)] outline-none min-w-0 placeholder:text-[var(--text-3)]"
+              value={col.label}
+              onChange={e => onFormulaChange(col.id, e.target.value)}
+              placeholder="{{col_a}}_{{col_b}}"
+              title="Formula: use {{column_name}} to reference columns"
+            />
+            <button
+              onClick={() => onCopyCol(col.id)}
+              className="shrink-0 text-[0.6rem] text-[var(--text-3)] hover:text-[var(--highlight)] transition-colors"
+              title="Copy output column"
+            >⎘</button>
+            <button
+              onClick={() => onDelete(col.id)}
+              className="shrink-0 text-[var(--text-3)] hover:text-red-400 text-xs leading-none"
+            >×</button>
+          </div>
+          {/* Show available column names as hints */}
+          <div className="flex flex-wrap gap-1">
+            {inputCols.map(c => (
+              <button
+                key={c.id}
+                onClick={() => onFormulaChange(col.id, col.label + `{{${c.label}}}`)}
+                className="text-[0.55rem] px-1 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--highlight)] hover:border-[var(--highlight)] transition-colors font-mono"
+                title={`Insert {{${c.label}}}`}
+              >
+                {`{{${c.label}}}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* Regular column header */
+        <div className="flex items-center h-8 px-2 gap-1">
+          <span
+            {...attributes}
+            {...listeners}
+            className="cursor-grab text-[var(--text-3)] hover:text-[var(--text-2)] text-xs shrink-0"
+          >⠿</span>
+          <input
+            className="flex-1 bg-transparent text-[0.72rem] font-semibold uppercase tracking-wide text-[var(--text-2)] outline-none min-w-0"
+            value={col.label}
+            onChange={e => onRename(col.id, e.target.value)}
+          />
+          <button
+            onClick={() => onDelete(col.id)}
+            className="shrink-0 text-[var(--text-3)] hover:text-red-400 text-xs leading-none"
+          >×</button>
+        </div>
+      )}
 
       {/* Resize handle */}
       <div
@@ -85,7 +139,6 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const resizeRef = useRef<{ id: string; startX: number; startW: number } | null>(null)
 
-  // ── Column drag reorder
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (over && active.id !== over.id) {
@@ -95,16 +148,13 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
     }
   }
 
-  // ── Column resize
   function onResizeStart(e: React.MouseEvent, id: string) {
     e.preventDefault()
     const col = cols.find(c => c.id === id)!
     resizeRef.current = { id, startX: e.clientX, startW: col.width }
-
     function onMove(ev: MouseEvent) {
       if (!resizeRef.current) return
-      const delta = ev.clientX - resizeRef.current.startX
-      const newW = Math.max(MIN_COL_W, resizeRef.current.startW + delta)
+      const newW = Math.max(MIN_COL_W, resizeRef.current.startW + ev.clientX - resizeRef.current.startX)
       onChange(cols.map(c => c.id === id ? { ...c, width: newW } : c), rows)
     }
     function onUp() {
@@ -116,16 +166,13 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
     window.addEventListener("mouseup", onUp)
   }
 
-  // ── Cell edit
   function setCell(rowIdx: number, colId: string, value: string) {
-    const next = rows.map((r, i) => i === rowIdx ? { ...r, [colId]: value } : r)
-    onChange(cols, next)
+    onChange(cols, rows.map((r, i) => i === rowIdx ? { ...r, [colId]: value } : r))
   }
 
-  // ── Paste into a cell (handles multi-cell Excel paste)
   function onCellPaste(e: React.ClipboardEvent, rowIdx: number, colIdx: number) {
     const text = e.clipboardData.getData("text/plain")
-    if (!text.includes("\t") && !text.includes("\n")) return // single cell, let default handle it
+    if (!text.includes("\t") && !text.includes("\n")) return
     e.preventDefault()
     const grid = parsePaste(text)
     const nextRows = [...rows]
@@ -134,73 +181,93 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
       while (nextRows.length <= targetRow) nextRows.push({})
       pasteRow.forEach((val, ci) => {
         const targetCol = cols[colIdx + ci]
-        if (targetCol) nextRows[targetRow] = { ...nextRows[targetRow], [targetCol.id]: val }
+        if (targetCol && !targetCol.computed)
+          nextRows[targetRow] = { ...nextRows[targetRow], [targetCol.id]: val }
       })
     })
     onChange(cols, nextRows)
   }
 
-  // ── Add column
   function addCol() {
     const id = `col_${Date.now()}`
-    onChange([...cols, { id, label: `Column ${cols.length + 1}`, width: DEFAULT_COL_W }], rows)
+    onChange([...cols, { id, label: `Col ${cols.filter(c => !c.computed).length + 1}`, width: DEFAULT_COL_W }], rows)
   }
 
-  // ── Delete column
+  function addComputedCol() {
+    const id = `out_${Date.now()}`
+    onChange([...cols, { id, label: "", width: 220, computed: true }], rows)
+  }
+
   function deleteCol(id: string) {
-    const nextCols = cols.filter(c => c.id !== id)
-    const nextRows = rows.map(r => { const n = { ...r }; delete n[id]; return n })
-    onChange(nextCols, nextRows)
+    onChange(cols.filter(c => c.id !== id), rows.map(r => { const n = { ...r }; delete n[id]; return n }))
   }
 
-  // ── Rename column
   function renameCol(id: string, label: string) {
     onChange(cols.map(c => c.id === id ? { ...c, label } : c), rows)
   }
 
-  // ── Add row
+  function updateFormula(id: string, formula: string) {
+    onChange(cols.map(c => c.id === id ? { ...c, label: formula } : c), rows)
+  }
+
   function addRow() {
     onChange(cols, [...rows, {}])
   }
 
-  // ── Delete row
   function deleteRow(i: number) {
     onChange(cols, rows.filter((_, idx) => idx !== i))
   }
 
+  async function copyCol(id: string) {
+    const col = cols.find(c => c.id === id)!
+    const values = rows.map(r =>
+      col.computed ? computeCell(col.label, r, cols) : (r[id] ?? "")
+    ).join("\n")
+    await navigator.clipboard.writeText(values)
+  }
+
   return (
     <div className="w-full overflow-x-auto">
+      {/* Add buttons above table */}
+      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--border)] bg-[var(--bg)]">
+        <button
+          onClick={addCol}
+          className="text-[0.7rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
+        >
+          + Column
+        </button>
+        <button
+          onClick={addComputedCol}
+          className="text-[0.7rem] text-[var(--highlight)] hover:opacity-80 transition-opacity font-medium"
+        >
+          + Output column
+        </button>
+      </div>
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <table className="border-collapse text-sm" style={{ tableLayout: "fixed" }}>
           <thead>
             <SortableContext items={cols.map(c => c.id)} strategy={horizontalListSortingStrategy}>
               <tr>
-                {/* Row number header */}
                 <th className="w-8 border-r border-b border-[var(--border)] bg-[var(--bg-2)]" />
                 {cols.map(col => (
                   <ColHeader
                     key={col.id}
                     col={col}
+                    allCols={cols}
+                    onFormulaChange={updateFormula}
                     onRename={renameCol}
                     onDelete={deleteCol}
                     onResizeStart={onResizeStart}
+                    onCopyCol={copyCol}
                   />
                 ))}
-                {/* Add column button */}
-                <th className="border-b border-[var(--border)] bg-[var(--bg-2)] w-10">
-                  <button
-                    onClick={addCol}
-                    className="w-full h-8 text-[var(--text-3)] hover:text-[var(--highlight)] text-lg leading-none transition-colors"
-                    title="Add column"
-                  >+</button>
-                </th>
               </tr>
             </SortableContext>
           </thead>
           <tbody>
             {rows.map((row, ri) => (
               <tr key={ri} className="group">
-                {/* Row number */}
                 <td className="w-8 border-r border-b border-[var(--border)] text-center text-[0.65rem] text-[var(--text-3)] bg-[var(--bg-2)] select-none">
                   <div className="flex items-center justify-center gap-0.5">
                     <span>{ri + 1}</span>
@@ -213,26 +280,31 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
                 {cols.map((col, ci) => (
                   <td
                     key={col.id}
-                    className="border-r border-b border-[var(--border)] p-0"
+                    className={cn(
+                      "border-r border-b border-[var(--border)] p-0",
+                      col.computed && "bg-[var(--highlight)]/5"
+                    )}
                     style={{ width: col.width, minWidth: col.width }}
                   >
-                    <input
-                      className="w-full h-8 px-2 bg-transparent text-[var(--text)] text-sm outline-none focus:bg-[var(--bg-2)] focus:ring-1 focus:ring-[var(--highlight)] focus:ring-inset"
-                      value={row[col.id] ?? ""}
-                      onChange={e => setCell(ri, col.id, e.target.value)}
-                      onPaste={e => onCellPaste(e, ri, ci)}
-                    />
+                    {col.computed ? (
+                      /* Read-only computed cell */
+                      <div className="h-8 px-2 flex items-center text-sm text-[var(--text)] font-mono select-all">
+                        {col.label ? computeCell(col.label, row, cols) : ""}
+                      </div>
+                    ) : (
+                      <input
+                        className="w-full h-8 px-2 bg-transparent text-[var(--text)] text-sm outline-none focus:bg-[var(--bg-2)] focus:ring-1 focus:ring-[var(--highlight)] focus:ring-inset"
+                        value={row[col.id] ?? ""}
+                        onChange={e => setCell(ri, col.id, e.target.value)}
+                        onPaste={e => onCellPaste(e, ri, ci)}
+                      />
+                    )}
                   </td>
                 ))}
-                <td className="border-b border-[var(--border)]" />
               </tr>
             ))}
-            {/* Add row */}
             <tr>
-              <td
-                colSpan={cols.length + 2}
-                className="border-b border-[var(--border)]"
-              >
+              <td colSpan={cols.length + 1} className="border-b border-[var(--border)]">
                 <button
                   onClick={addRow}
                   className="w-full h-7 text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--bg-2)] transition-colors"
