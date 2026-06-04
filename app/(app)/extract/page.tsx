@@ -2,12 +2,25 @@
 
 import { useState } from "react"
 import { extractGuidebook, lookupPostal, type GuidebookData, type PostalResult } from "@/app/actions/extract"
+import { parsePhones, type PhoneEntry } from "@/components/extract/parsePhones"
 import { cn } from "@/lib/cn"
 
 type CopiedKey = keyof GuidebookData | "all" | null
+type Tab = "url" | "text"
+
+const TYPE_COLORS: Record<string, string> = {
+  "電気": "bg-blue-400/15 text-blue-600 dark:text-blue-300",
+  "ガス": "bg-orange-400/15 text-orange-600 dark:text-orange-300",
+  "水道": "bg-cyan-400/15 text-cyan-600 dark:text-cyan-300",
+  "FAX":  "bg-[var(--bg-2)] text-[var(--text-3)]",
+  "TEL":  "bg-[var(--bg-2)] text-[var(--text-2)]",
+  "鍵":   "bg-yellow-400/15 text-yellow-600 dark:text-yellow-300",
+  "光回線":"bg-purple-400/15 text-purple-600 dark:text-purple-300",
+}
 
 export default function ExtractPage() {
-  const [url, setUrl]       = useState("")
+  const [tab, setTab] = useState<Tab>("url")
+  const [url, setUrl] = useState("")
   const [loading, setLoading] = useState(false)
   const [data, setData]     = useState<GuidebookData | null>(null)
   const [error, setError]   = useState<string | null>(null)
@@ -41,6 +54,22 @@ export default function ExtractPage() {
     await navigator.clipboard.writeText(text)
     setCopiedPostal(key)
     setTimeout(() => setCopiedPostal(null), 1200)
+  }
+
+  // Text dump
+  const [dumpText, setDumpText]         = useState("")
+  const [dumpEntries, setDumpEntries]   = useState<PhoneEntry[] | null>(null)
+  const [copiedDump, setCopiedDump]     = useState<string | null>(null)
+
+  function runDump(text = dumpText) {
+    const entries = parsePhones(text)
+    setDumpEntries(entries)
+  }
+
+  async function copyDump(text: string, key: string) {
+    await navigator.clipboard.writeText(text)
+    setCopiedDump(key)
+    setTimeout(() => setCopiedDump(null), 1200)
   }
 
   async function run() {
@@ -84,10 +113,73 @@ export default function ExtractPage() {
   return (
     <div className="max-w-xl mx-auto px-5 py-10 flex flex-col gap-8">
 
-      <div className="border-b border-[var(--border)] pb-6">
-        <p className="label-xs mb-2">Leopalace guidebook</p>
+      <div className="border-b border-[var(--border)] pb-4 flex items-end justify-between">
         <h1 className="text-xl font-bold tracking-tight text-[var(--text)]">Extract</h1>
+        <div className="flex items-center gap-0.5 bg-[var(--bg-2)] rounded p-0.5">
+          {(["url", "text"] as Tab[]).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={cn("px-3 py-1 rounded text-[0.72rem] font-medium transition-all",
+                tab === t ? "bg-[var(--text)] text-[var(--bg)]" : "text-[var(--text-2)] hover:text-[var(--text)]"
+              )}
+            >
+              {t === "url" ? "URL" : "Text dump"}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* ── TEXT DUMP TAB ── */}
+      {tab === "text" && (
+        <div className="flex flex-col gap-4">
+          <textarea
+            className={cn(
+              "w-full min-h-[180px] bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5 resize-y",
+              "text-[var(--text)] text-sm placeholder:text-[var(--text-3)]",
+              "outline-none focus:border-[var(--text)] transition-colors font-mono"
+            )}
+            placeholder={"（電気）東京電力　0120-278-033\n（ガス）曽我部瓦斯　04-7092-1011\nTEL：04-7093-0900"}
+            value={dumpText}
+            onChange={e => { setDumpText(e.target.value); runDump(e.target.value) }}
+          />
+
+          {dumpEntries && dumpEntries.length === 0 && dumpText.trim() && (
+            <p className="text-sm text-[var(--text-3)]">No phone numbers found.</p>
+          )}
+
+          {dumpEntries && dumpEntries.length > 0 && (
+            <div className="flex flex-col divide-y divide-[var(--border-soft)]">
+              {dumpEntries.map((e, i) => (
+                <div key={i} className="flex items-start justify-between gap-3 py-2.5">
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {e.type && (
+                        <span className={cn("text-[0.6rem] font-bold px-1.5 py-0.5 rounded", TYPE_COLORS[e.type] ?? "bg-[var(--bg-2)] text-[var(--text-3)]")}>
+                          {e.type}
+                        </span>
+                      )}
+                      <span className="text-sm font-mono text-[var(--text)]">{e.phone}</span>
+                    </div>
+                    {e.company && (
+                      <span className="text-[0.75rem] text-[var(--text-2)] truncate">{e.company}</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => copyDump(e.phone, `${i}`)}
+                    className={cn("shrink-0 text-[0.65rem] transition-all mt-0.5",
+                      copiedDump === `${i}` ? "text-green-400" : "text-[var(--text-3)] hover:text-[var(--text)]"
+                    )}
+                  >
+                    {copiedDump === `${i}` ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── URL TAB ── */}
+      {tab === "url" && <>
 
       {/* URL input */}
       <div className="flex gap-2">
@@ -232,6 +324,8 @@ export default function ExtractPage() {
           </div>
         )}
       </div>
+
+      </> /* end URL tab */}
 
     </div>
   )
