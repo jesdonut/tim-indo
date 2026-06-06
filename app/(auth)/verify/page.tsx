@@ -14,15 +14,14 @@ export default function VerifyPage() {
         </h1>
 
         <p className="text-sm text-[var(--text-2)] leading-relaxed mb-8">
-          We sent a confirmation link to your inbox. Click it to activate your account,
-          then you're in.
+          We sent a magic link to your inbox. Click it and you're in — no password needed.
         </p>
 
         <div className="border-t border-[var(--border)] pt-6">
           <p className="text-[0.75rem] text-[var(--text-3)]">
             Wrong email?{" "}
-            <Link href="/signup" className="text-[var(--text)] underline underline-offset-2 hover:no-underline">
-              Start over
+            <Link href="/login" className="text-[var(--text)] underline underline-offset-2 hover:no-underline">
+              Try again
             </Link>
           </p>
         </div>

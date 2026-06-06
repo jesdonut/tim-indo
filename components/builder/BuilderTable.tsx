@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import React, { useImperativeHandle, useRef } from "react"
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -94,7 +94,7 @@ function ColHeader({
               <button
                 key={c.id}
                 onClick={() => onFormulaChange(col.id, col.label + `{{${c.label}}}`)}
-                className="text-[0.55rem] px-1 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--highlight-text)] hover:border-[var(--highlight)] transition-colors font-mono"
+                className="text-[0.55rem] px-1 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--highlight-text)] hover:border-[var(--highlight-text)] transition-colors font-mono"
                 title={`Insert {{${c.label}}}`}
               >
                 {`{{${c.label}}}`}
@@ -138,7 +138,12 @@ type Props = {
   onChange: (cols: ColDef[], rows: Row[]) => void
 }
 
-export default function BuilderTable({ cols, rows, onChange }: Props) {
+export type BuilderTableHandle = {
+  addCol: () => void
+  addComputedCol: () => void
+}
+
+const BuilderTable = React.forwardRef<BuilderTableHandle, Props>(function BuilderTable({ cols, rows, onChange }, ref) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const resizeRef = useRef<{ id: string; startX: number; startW: number } | null>(null)
 
@@ -232,23 +237,10 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
 
   const inputCols = cols.filter(c => !c.computed)
 
+  useImperativeHandle(ref, () => ({ addCol, addComputedCol }))
+
   return (
     <div className="w-full overflow-x-auto" data-table-id={TABLE_ID}>
-      {/* Add buttons above table */}
-      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--border)] bg-[var(--bg)]">
-        <button
-          onClick={addCol}
-          className="text-[0.7rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
-        >
-          + Column
-        </button>
-        <button
-          onClick={addComputedCol}
-          className="text-[0.7rem] text-[var(--highlight-text)] hover:opacity-80 transition-opacity font-medium"
-        >
-          + Output column
-        </button>
-      </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <table className="border-collapse text-sm" style={{ tableLayout: "fixed" }}>
@@ -299,7 +291,7 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
                       </div>
                     ) : (
                       <input
-                        className="w-full h-8 px-2 bg-transparent text-[var(--text)] text-sm outline-none focus:bg-[var(--bg-2)] focus:ring-1 focus:ring-[var(--highlight)] focus:ring-inset"
+                        className="w-full h-8 px-2 bg-transparent text-[var(--text)] text-sm outline-none focus:bg-[var(--bg-2)] focus:ring-1 focus:ring-[var(--highlight-text)] focus:ring-inset"
                         value={row[col.id] ?? ""}
                         onChange={e => setCell(ri, col.id, e.target.value)}
                         onPaste={e => onCellPaste(e, ri, ci)}
@@ -327,4 +319,6 @@ export default function BuilderTable({ cols, rows, onChange }: Props) {
       </DndContext>
     </div>
   )
-}
+})
+
+export default BuilderTable

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import BuilderTable from "@/components/builder/BuilderTable"
+import { useRef, useState } from "react"
+import BuilderTable, { type BuilderTableHandle } from "@/components/builder/BuilderTable"
 import TemplatePanel from "@/components/builder/TemplatePanel"
 import { extractVars } from "@/components/builder/templateUtils"
 import { cn } from "@/lib/cn"
 import type { ColDef, Row } from "@/components/builder/types"
+import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 
 const DEFAULT_COLS: ColDef[] = [
   { id: "col_a", label: "A", width: 160 },
@@ -20,6 +21,7 @@ export default function BuilderPage() {
   const [rows, setRows] = useState<Row[]>(DEFAULT_ROWS)
   const [template, setTemplate] = useState("")
   const [tab, setTab] = useState<"table" | "versions">("table")
+  const tableRef = useRef<BuilderTableHandle>(null)
 
   function handleChange(newCols: ColDef[], newRows: Row[]) {
     setCols(newCols)
@@ -55,51 +57,26 @@ export default function BuilderPage() {
   return (
     <div className="flex flex-col h-[calc(100dvh-48px)]">
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 px-4 h-10 border-b border-[var(--border)] bg-[var(--bg)] shrink-0">
-        <span className="label-xs mr-2">Builder</span>
-
-        {/* Tab toggle */}
-        <div className="flex items-center gap-0.5 bg-[var(--bg-2)] rounded p-0.5">
-          {(["table", "versions"] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn(
-                "px-3 py-1 rounded text-[0.72rem] font-medium transition-all",
-                tab === t
-                  ? "bg-[var(--text)] text-[var(--bg)]"
-                  : "text-[var(--text-2)] hover:text-[var(--text)]"
-              )}
-            >
-              {t === "table" ? "Table" : "Versions"}
-              {t === "versions" && hasTemplate && (
-                <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-[var(--highlight)] inline-block" />
-              )}
-            </button>
-          ))}
+      <PageHeader title="Builder" right={
+        <div className="flex items-center gap-3">
+          <PillTabs
+            options={[
+              { value: "table"    as const, label: "Table" },
+              { value: "versions" as const, label: "Versions", dot: hasTemplate },
+            ]}
+            value={tab}
+            onChange={setTab}
+          />
+          <button onClick={() => tableRef.current?.addCol()}         className="text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors">+ Column</button>
+          <button onClick={() => tableRef.current?.addComputedCol()} className="text-[0.72rem] text-[var(--highlight-text)] hover:opacity-80 transition-opacity font-medium">+ Output column</button>
+          <button onClick={copyTable} className="text-[0.72rem] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">Copy table</button>
+          <button onClick={clearAll}  className="text-[0.72rem] text-[var(--text-2)] hover:text-red-400 transition-colors">Clear</button>
         </div>
+      } />
 
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={copyTable}
-            className="text-[0.72rem] text-[var(--text-2)] hover:text-[var(--text)] transition-colors"
-          >
-            Copy table
-          </button>
-          <button
-            onClick={clearAll}
-            className="text-[0.72rem] text-[var(--text-2)] hover:text-red-400 transition-colors"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <ToolContent className="overflow-auto">
         {tab === "table" ? (
-          <BuilderTable cols={cols} rows={rows} onChange={handleChange} />
+          <BuilderTable ref={tableRef} cols={cols} rows={rows} onChange={handleChange} />
         ) : (
           <div className="h-full flex flex-col">
             <TemplatePanel
@@ -112,7 +89,7 @@ export default function BuilderPage() {
             />
           </div>
         )}
-      </div>
+      </ToolContent>
 
     </div>
   )

@@ -1,11 +1,11 @@
 export type PhoneEntry = {
   phone: string
   type: string      // 電気 / ガス / 水道 / TEL / FAX / etc
-  company: string   // company name
-  raw: string       // the source line
+  company: string
+  raw: string
 }
 
-// Covers: 03-1234-5678 / 0120-278-033 / 0570-076-021 / 04-7092-1011 / (0120-993-595)
+// Covers: 03-1234-5678 / 0120-278-033 / 0570-076-021 / 04-7092-1011
 const PHONE_RE = /0\d{1,4}[- ]?\d{2,4}[- ]?\d{2,4}/g
 
 const TYPE_MAP: [RegExp, string][] = [
@@ -26,22 +26,37 @@ function detectType(text: string): string {
   return ""
 }
 
-function cleanCompany(text: string): string {
-  return text
-    .replace(/[（）【】「」：:…→←・｜]/g, " ")
-    .replace(/電気|電力|ガス|水道|TEL|FAX|電話|鍵|光回線|光|hikari|管理|連絡先|番号|フリーダイヤル/gi, " ")
-    .replace(/\s{2,}/g, " ")
-    .trim()
+function stripTypeMarker(text: string): string {
+  // Remove leading （電気）/（ガス）/（水道）/（鍵受取り） etc.
+  return text.replace(/^[（(][^）)]*[）)]\s*/, "").trim()
 }
 
-// Does a line look like a company/org name (not a phone/address/url line)?
+function cleanCompany(text: string): string {
+  // First strip leading type marker like （電気）
+  let t = stripTypeMarker(text)
+  t = t
+    .replace(/[（）【】「」：:…→←・｜]/g, " ")
+    // Only remove TEL/FAX as standalone words, not embedded in company names
+    .replace(/\bTEL\b|\bFAX\b/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+  return t
+}
+
+// Strong company indicator (definitely a company line)
+function isExplicitCompany(line: string): boolean {
+  return /株式会社|有限会社|合同会社|一般財団|一般社団|組合|局/.test(line)
+}
+
+// Does a line look like it might be a company/org name?
 function looksLikeCompany(line: string): boolean {
+  PHONE_RE.lastIndex = 0
   if (PHONE_RE.test(line)) return false
   if (/^〒/.test(line)) return false
   if (/^https?:\/\//.test(line)) return false
   if (/Email|URL|営業時間|定休日/.test(line)) return false
-  if (/株式会社|有限会社|合同会社|一般財団|一般社団|組合|局/.test(line)) return true
-  // A short line with no separators is probably a name
+  if (isExplicitCompany(line)) return true
+  // Short line with no separators could be a name/company
   return line.length <= 20 && !/[：:…→←]/.test(line)
 }
 
@@ -63,21 +78,30 @@ export function parsePhones(text: string): PhoneEntry[] {
 
       const before = line.slice(0, match.index)
 
-      // Detect type from this line, or lines above
-      const type = detectType(before) || detectType(line) ||
-        detectType(lines.slice(Math.max(0, li - 3), li).join(" "))
+      // Detect type: check current line, then scan up to 5 lines back
+      const type =
+        detectType(before) ||
+        detectType(line) ||
+        detectType(lines.slice(Math.max(0, li - 5), li).join(" "))
 
-      // Company: from same line first
+      // Company: strip type marker from same line first
       let company = cleanCompany(before)
 
-      // If nothing on same line, scan up to 4 previous lines for a company-like line
+      // If nothing useful on same line, scan up to 5 previous lines
+      // Prefer lines with explicit company markers (株式会社 etc.) over length heuristic
       if (!company) {
-        for (let back = li - 1; back >= Math.max(0, li - 4); back--) {
-          if (looksLikeCompany(lines[back])) {
-            company = lines[back]
-            break
+        let fallback = ""
+        for (let back = li - 1; back >= Math.max(0, li - 5); back--) {
+          const prev = lines[back]
+          if (looksLikeCompany(prev)) {
+            if (isExplicitCompany(prev)) {
+              company = prev
+              break
+            }
+            if (!fallback) fallback = prev
           }
         }
+        if (!company) company = fallback
       }
 
       results.push({ phone, type, company, raw: line })

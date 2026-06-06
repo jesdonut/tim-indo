@@ -89,7 +89,7 @@ export default function TemplatePanel({ template, cols, rows, onTemplateChange, 
             className={cn(
               "w-full min-h-[80px] bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 resize-y",
               "text-[var(--text)] text-sm font-mono placeholder:text-[var(--text-3)]",
-              "outline-none focus:border-[var(--highlight)] transition-colors"
+              "outline-none focus:border-[var(--highlight-text)] transition-colors"
             )}
             placeholder="Hi {{name}}, your interview is on {{date}}."
             value={template}
@@ -201,7 +201,7 @@ export default function TemplatePanel({ template, cols, rows, onTemplateChange, 
                     {varCols.map((col, ci) => (
                       <td key={col.id} className="border-r border-b border-[var(--border)] p-0">
                         <input
-                          className="w-full h-7 px-2 bg-transparent text-[var(--text)] text-sm outline-none focus:bg-[var(--bg-2)] focus:ring-1 focus:ring-[var(--highlight)] focus:ring-inset"
+                          className="w-full h-7 px-2 bg-transparent text-[var(--text)] text-sm outline-none focus:bg-[var(--bg-2)] focus:ring-1 focus:ring-[var(--highlight-text)] focus:ring-inset"
                           value={row[col.id] ?? ""}
                           onChange={e => setCell(ri, col.id, e.target.value)}
                           onPaste={e => onVarColPaste(e, ri, ci)}

@@ -20,13 +20,8 @@ export default function SignupPage() {
             { name: "name",       label: "Name",        type: "text",     placeholder: "Your name" },
             { name: "email",      label: "Email",       type: "email",    placeholder: "you@example.com" },
             { name: "password",   label: "Password",    type: "password", placeholder: "Min. 8 characters" },
-            {
-              name: "inviteCode",
-              label: "Invite code",
-              type: "text",
-              placeholder: "Ask Jessica for the code",
-              hint: "This tool is for the team only. You need an invite code to sign up.",
-            },
+            { name: "inviteCode", label: "Invite code", type: "text",     placeholder: "Ask Jessica for the code",
+              hint: "Team access only." },
           ]}
           footer={
             <>

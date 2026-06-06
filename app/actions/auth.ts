@@ -9,9 +9,8 @@ export async function signUp(_: unknown, formData: FormData) {
   const name       = formData.get("name") as string
   const inviteCode = formData.get("inviteCode") as string
 
-  // Validate invite code server-side (never exposed to client)
   if (inviteCode !== process.env.INVITE_CODE) {
-    return { error: "Invalid invite code. Ask Jessica for the link." }
+    return { error: "Wrong invite code. Ask Jessica." }
   }
 
   const supabase = await createClient()
@@ -19,13 +18,12 @@ export async function signUp(_: unknown, formData: FormData) {
     email,
     password,
     options: {
-      data: { name },
+      data: { name, invite_code: inviteCode },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     },
   })
 
   if (error) return { error: error.message }
-
   redirect("/verify")
 }
 
@@ -37,7 +35,6 @@ export async function logIn(_: unknown, formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) return { error: error.message }
-
   redirect("/pdf")
 }
 
@@ -45,4 +42,13 @@ export async function logOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect("/")
+}
+
+export async function updateProfile(_: unknown, formData: FormData) {
+  const name   = formData.get("name")   as string
+  const nameJa = formData.get("nameJa") as string
+  const supabase = await createClient()
+  const { error } = await supabase.auth.updateUser({ data: { name, nameJa } })
+  if (error) return { error: error.message }
+  return { success: true as const }
 }

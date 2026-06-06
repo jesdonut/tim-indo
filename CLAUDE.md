@@ -39,6 +39,42 @@ Shows once per browser session; dismissed with ×.
 - Team member first names (Dimas, Jessica, Ben) are intentionally in `greetings.js` — that's fine
 - No API keys anywhere — all APIs used are public/unauthenticated
 
+## Page layout rules
+
+All app pages under `app/(app)/` must follow these rules unless a page has a specific reason to deviate (e.g. full-bleed map, fixed-height tool).
+
+### Standard page (scrollable content)
+```tsx
+<div className="max-w-3xl mx-auto px-5 py-8">
+  <div className="mb-8"> {/* or mb-6 */}
+    <p className="label-xs mb-1">Section label</p>
+    <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">Page title</h1>
+  </div>
+  {/* content */}
+</div>
+```
+
+### Narrow form page (profile, auth)
+```tsx
+<div className="flex justify-center min-h-[calc(100dvh-48px)] px-5 py-10">
+  <div className="w-full max-w-sm flex flex-col gap-8">
+    {/* content */}
+  </div>
+</div>
+```
+
+### Full-height tool page (PDF, Area)
+- Outer shell: `h-[calc(100dvh-48px)] max-w-3xl mx-auto w-full flex flex-col`
+- Page header sits at the top with `px-5 pt-8 pb-4` before the tool chrome
+- Tool chrome (tabs, bottom bar) fills the remaining flex space
+
+### Tokens
+- **Max width**: `max-w-3xl` for all content pages, `max-w-sm` for forms
+- **Horizontal padding**: `px-5` everywhere
+- **Top padding**: `py-8` (standard), `pt-8` when bottom is fixed (full-height tools), `py-10` for forms
+- **Page header spacing**: `mb-6` below the title before first content block
+- **Section labels**: always `label-xs` (the utility class), never plain `text-xs uppercase`
+
 ## Deploy
 
 Push to `main` on GitHub → Vercel auto-deploys. No manual steps needed.

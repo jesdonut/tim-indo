@@ -1,14 +1,16 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "./ThemeProvider"
 import { cn } from "@/lib/cn"
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/verify"]
-const AUTH_PATHS = ["/login", "/signup", "/verify"]
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/verify", "/join-team"]
+const AUTH_PATHS   = ["/login", "/signup", "/verify", "/join-team"]
 
 const NAV_ITEMS = [
+  { href: "/db",       label: "Database" },
+  { href: "/links",    label: "Links" },
   { href: "/pdf",      label: "PDF" },
   { href: "/translate",label: "Translate" },
   { href: "/builder",  label: "Builder" },
@@ -18,7 +20,14 @@ const NAV_ITEMS = [
 
 export default function Nav() {
   const pathname = usePathname()
+  const router   = useRouter()
   const { theme, toggle } = useTheme()
+
+  async function handleLogout() {
+    const { logOut } = await import("@/app/actions/auth")
+    await logOut()
+    router.push("/")
+  }
   const isPublic = PUBLIC_PATHS.includes(pathname)
   const isAuth = AUTH_PATHS.includes(pathname)
 
@@ -61,15 +70,35 @@ export default function Nav() {
           </nav>
         )}
 
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded border border-[var(--border)] text-[0.7rem] font-medium text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all"
-          aria-label="Toggle theme"
-        >
-          {theme === "dark" ? "☀︎" : "◑"}
-          <span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
-        </button>
+        <div className="shrink-0 flex items-center gap-2">
+          {/* Theme toggle */}
+          <button
+            onClick={toggle}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[var(--border)] text-[0.7rem] font-medium text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? "☀︎" : "◑"}
+            <span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
+          </button>
+
+          {/* Profile + Log out — only on app pages */}
+          {!isPublic && (
+            <>
+              <Link
+                href="/profile"
+                className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.7rem] font-medium text-[var(--text-3)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all"
+              >
+                Profile
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.7rem] font-medium text-[var(--text-3)] hover:text-red-400 hover:border-red-400/50 transition-all"
+              >
+                Log out
+              </button>
+            </>
+          )}
+        </div>
 
       </div>
     </header>

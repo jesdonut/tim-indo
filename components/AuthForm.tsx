@@ -10,19 +10,32 @@ type Field = {
   type?: string
   placeholder?: string
   hint?: string
+  optional?: boolean
 }
 
 type Props = {
-  mode: "login" | "signup"
-  action: (_: unknown, formData: FormData) => Promise<{ error: string } | void>
+  mode: string
+  action: (_: unknown, formData: FormData) => Promise<{ error: string } | { success: true } | void>
   fields: Field[]
   submitLabel: string
-  footer: React.ReactNode
+  footer?: React.ReactNode
 }
 
 export default function AuthForm({ mode, action, fields, submitLabel, footer }: Props) {
   const [state, formAction, pending] = useActionState(action, null)
-  const error = state && typeof state === "object" && "error" in state ? (state as { error: string }).error : null
+  const error   = state && typeof state === "object" && "error"   in state ? (state as { error: string }).error : null
+  const success = state && typeof state === "object" && "success" in state
+
+  if (success) {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-[0.78rem] text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-400/10 border border-green-200 dark:border-green-400/20 rounded px-3 py-2.5">
+          Check your email — we sent you a link.
+        </p>
+        {footer && <div className="text-center text-[0.75rem] text-[var(--text-3)]">{footer}</div>}
+      </div>
+    )
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-4 w-full">
@@ -34,7 +47,7 @@ export default function AuthForm({ mode, action, fields, submitLabel, footer }: 
             name={f.name}
             type={f.type ?? "text"}
             placeholder={f.placeholder}
-            required
+            required={!f.optional}
             className={cn(
               "w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5",
               "text-[var(--text)] text-sm placeholder:text-[var(--text-3)]",
@@ -63,7 +76,7 @@ export default function AuthForm({ mode, action, fields, submitLabel, footer }: 
         {pending ? "..." : submitLabel}
       </button>
 
-      <div className="text-center text-[0.75rem] text-[var(--text-3)]">{footer}</div>
+      {footer && <div className="text-center text-[0.75rem] text-[var(--text-3)]">{footer}</div>}
     </form>
   )
 }

@@ -18,7 +18,7 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row sm:items-end gap-6 sm:gap-16 border-t border-[var(--border)] pt-8">
           <p className="text-sm text-[var(--text-2)] max-w-xs leading-relaxed">
             One place for all the tools the team uses every day.
-            PDF, translation, postal lookup, area management, and more.
+            Links, PDF, translation, builder, area management, data extraction, and more.
           </p>
 
           <div className="flex items-center gap-3 sm:ml-auto shrink-0">
@@ -38,7 +38,7 @@ export default function Home() {
         </div>
 
         <div className="flex flex-wrap gap-x-5 gap-y-1">
-          {["PDF", "Translate", "Postal", "Spell", "Compress", "Station", "Builder", "Docs", "Area", "Phone"].map(t => (
+          {["Database", "Links", "PDF", "Translate", "Builder", "Area", "Extract"].map(t => (
             <span key={t} className="label-xs">{t}</span>
           ))}
         </div>
