@@ -141,11 +141,9 @@ export default function Home() {
         <div className="flex flex-col gap-1">
           <p className="text-[0.7rem] text-[var(--text-3)]">{c.copyright}</p>
           <p className="text-[0.7rem] text-[var(--text-3)] leading-relaxed">{c.disclaimer}</p>
-          {lang !== "id" && (
-            <p className="text-[0.65rem] text-[var(--text-3)]/60 leading-relaxed mt-0.5">
-              © 2026 Jessica. All rights reserved. — Personal project maintained independently for team use. Not an official company system.
-            </p>
-          )}
+          <p className="text-[0.65rem] text-[var(--text-3)]/60 leading-relaxed mt-0.5">
+            © 2026 Jessica. All rights reserved. — Personal project maintained independently for team use. Not an official company system.
+          </p>
           <div className="flex gap-3 mt-1">
             <Link href="/terms" className="text-[0.65rem] text-[var(--text-3)] hover:text-[var(--text)] underline underline-offset-2 transition-colors">
               Terms & Conditions
