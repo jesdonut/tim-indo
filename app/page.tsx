@@ -146,10 +146,16 @@ export default function Home() {
           </p>
           <div className="flex gap-3 mt-1">
             <Link href="/terms" className="text-[0.65rem] text-[var(--text-3)] hover:text-[var(--text)] underline underline-offset-2 transition-colors">
-              Terms & Conditions
+              Terms of Use
+            </Link>
+            <Link href="/privacy" className="text-[0.65rem] text-[var(--text-3)] hover:text-[var(--text)] underline underline-offset-2 transition-colors">
+              Privacy Policy
             </Link>
             <Link href="/terms?lang=ja" className="text-[0.65rem] text-[var(--text-3)] hover:text-[var(--text)] underline underline-offset-2 transition-colors">
               利用規約
+            </Link>
+            <Link href="/privacy?lang=ja" className="text-[0.65rem] text-[var(--text-3)] hover:text-[var(--text)] underline underline-offset-2 transition-colors">
+              プライバシーポリシー
             </Link>
           </div>
         </div>
