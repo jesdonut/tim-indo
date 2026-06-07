@@ -20,6 +20,8 @@ const COPY: Record<Lang, {
   login: string
   signup: string
   footer: string
+  copyright: string
+  disclaimer: string
 }> = {
   id: {
     eyebrow: "Alat internal · Tim Indonesia",
@@ -29,6 +31,8 @@ const COPY: Record<Lang, {
     login: "Masuk",
     signup: "Daftar",
     footer: "Khusus tim · undangan diperlukan",
+    copyright: "© 2026 Jessica. Hak cipta dilindungi.",
+    disclaimer: "Proyek pribadi yang dikelola secara independen dan disediakan untuk penggunaan tim. Bukan sistem resmi perusahaan.",
   },
   vi: {
     eyebrow: "Bởi Jessica (Tim Indonesia)",
@@ -38,6 +42,8 @@ const COPY: Record<Lang, {
     login: "Đăng nhập",
     signup: "Đăng ký",
     footer: "Chỉ dành cho thành viên nhóm · Cần lời mời",
+    copyright: "© 2026 Jessica. Bảo lưu mọi quyền.",
+    disclaimer: "Đây là dự án cá nhân được phát triển và duy trì độc lập. Được cung cấp để hỗ trợ nhóm sử dụng, nhưng không phải là hệ thống chính thức của công ty.",
   },
   my: {
     eyebrow: "Jessica မှ (Tim Indonesia)",
@@ -47,6 +53,8 @@ const COPY: Record<Lang, {
     login: "ဝင်ရောက်ရန်",
     signup: "အကောင့်ဖွင့်ရန်",
     footer: "အဖွဲ့ဝင်များသာ · ဖိတ်ကြားချက် လိုအပ်သည်",
+    copyright: "© 2026 Jessica. မူပိုင်ခွင့်အားလုံး ရယူထားသည်။",
+    disclaimer: "ဤစနစ်သည် သီးခြားလွတ်လပ်စွာ ဖန်တီးထိန်းသိမ်းထားသော ကိုယ်ပိုင်ပရောဂျက်တစ်ခုဖြစ်ပြီး အဖွဲ့အသုံးပြုရန်အတွက်သာ ပံ့ပိုးပေးထားပါသည်။ ကုမ္ပဏီ၏ တရားဝင်စနစ် မဟုတ်ပါ။",
   },
   ja: {
     eyebrow: "社内ツール · インドネシアチーム",
@@ -56,6 +64,8 @@ const COPY: Record<Lang, {
     login: "ログイン",
     signup: "登録",
     footer: "チーム専用 · 招待が必要",
+    copyright: "© 2026 Jessica. All rights reserved.",
+    disclaimer: "本サービスは個人プロジェクトとして独自に開発・運営されています。チーム利用のために提供されていますが、会社の公式システムではありません。",
   },
 }
 
@@ -123,9 +133,28 @@ export default function Home() {
 
       </div>
 
-      <div className="border-t border-[var(--border)] pt-5 flex items-center justify-between">
-        <span className="label-xs">v2 · 2026</span>
-        <span className="label-xs">{c.footer}</span>
+      <div className="border-t border-[var(--border)] pt-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <span className="label-xs">v2 · 2026</span>
+          <span className="label-xs">{c.footer}</span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <p className="text-[0.7rem] text-[var(--text-3)]">{c.copyright}</p>
+          <p className="text-[0.7rem] text-[var(--text-3)] leading-relaxed">{c.disclaimer}</p>
+          {lang !== "id" && (
+            <p className="text-[0.65rem] text-[var(--text-3)]/60 leading-relaxed mt-0.5">
+              © 2026 Jessica. All rights reserved. — Personal project maintained independently for team use. Not an official company system.
+            </p>
+          )}
+          <div className="flex gap-3 mt-1">
+            <Link href="/terms" className="text-[0.65rem] text-[var(--text-3)] hover:text-[var(--text)] underline underline-offset-2 transition-colors">
+              Terms & Conditions
+            </Link>
+            <Link href="/terms?lang=ja" className="text-[0.65rem] text-[var(--text-3)] hover:text-[var(--text)] underline underline-offset-2 transition-colors">
+              利用規約
+            </Link>
+          </div>
+        </div>
       </div>
 
     </div>

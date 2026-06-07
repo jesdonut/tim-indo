@@ -33,6 +33,23 @@ export default function SignupPage() {
           }
         />
 
+        <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-col gap-3">
+          <p className="text-[0.68rem] text-[var(--text-3)] leading-relaxed">
+            By using this application, you agree to the{" "}
+            <Link href="/terms" className="underline underline-offset-2 hover:text-[var(--text)] transition-colors">Terms of Use</Link>
+            {" "}and{" "}
+            <Link href="/terms" className="underline underline-offset-2 hover:text-[var(--text)] transition-colors">Privacy Policy</Link>.
+            This application is an independent personal project provided for authorized team use and is not an official company system.
+          </p>
+          <p className="text-[0.68rem] text-[var(--text-3)] leading-relaxed">
+            このアプリケーションを使用することで、
+            <Link href="/terms?lang=ja" className="underline underline-offset-2 hover:text-[var(--text)] transition-colors">利用規約</Link>
+            および
+            <Link href="/terms?lang=ja" className="underline underline-offset-2 hover:text-[var(--text)] transition-colors">プライバシーポリシー</Link>
+            に同意したものとみなされます。本アプリケーションは、認可されたチーム利用のために提供される独立した個人プロジェクトであり、会社の公式システムではありません。
+          </p>
+        </div>
+
       </div>
     </div>
   )
