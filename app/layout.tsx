@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider"
 import Nav from "@/components/Nav"
 import FloatingNotes from "@/components/notes/FloatingNotes"
 import PostHogProvider from "@/components/PostHogProvider"
+import NoRightClick from "@/components/NoRightClick"
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ` }} />
       </head>
       <body>
+        <NoRightClick />
         <PostHogProvider>
           <ThemeProvider>
             <Nav />
