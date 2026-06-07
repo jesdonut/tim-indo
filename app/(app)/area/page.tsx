@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn"
 import type { MapMode } from "@/components/area/types"
 import { MODE_LABELS, EXTRA_COLORS } from "@/components/area/types"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
+import { Icon } from "@/components/Icon"
 
 const MODES: MapMode[] = ["staff", "count", "unassigned"]
 
@@ -82,7 +83,7 @@ export default function AreaPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-48px)] overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-48px)]">
 
       <PageHeader title="Area" right={
         <div className="flex items-center gap-2">
@@ -98,7 +99,7 @@ export default function AreaPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
-            {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--text)] text-xs">✕</button>}
+            {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--text)] flex items-center"><Icon name="close" size={12} /></button>}
           </div>
           <label className="text-[0.72rem] text-[var(--text-2)] hover:text-[var(--text)] cursor-pointer transition-colors">
             CSV<input ref={csvRef} type="file" accept=".csv,.tsv" className="hidden" onChange={handleCSV} />

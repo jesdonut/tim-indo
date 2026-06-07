@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { extractGuidebook, lookupPostal, type GuidebookData, type PostalResult } from "@/app/actions/extract"
 import { parsePhones, type PhoneEntry } from "@/components/extract/parsePhones"
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent, PillTabs } from "@/components/PageHeader"
+import { getWorkers, type Worker } from "@/app/actions/workers"
 // Split view is always on — both panels render immediately
 
 type CopiedKey = keyof GuidebookData | "all" | null
@@ -21,6 +22,56 @@ const TYPE_COLORS: Record<string, string> = {
 }
 
 // ─── Single extraction panel (URL + postal) ───────────────────────────────────
+
+function WorkerUrlSearch({ onSelect }: { onSelect: (url: string) => void }) {
+  const [workers, setWorkers] = useState<Worker[]>([])
+  const [search, setSearch] = useState("")
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => { getWorkers().then(setWorkers) }, [])
+
+  const filtered = search.trim()
+    ? workers.filter(w => {
+        const q = search.toLowerCase()
+        return (w.worker_id ?? "").toLowerCase().includes(q) ||
+          (w.name_latin ?? "").toLowerCase().includes(q) ||
+          (w.name_kana ?? "").toLowerCase().includes(q)
+      }).filter(w => w.leopalace_url).slice(0, 6)
+    : []
+
+  return (
+    <div className="relative">
+      <input
+        className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-[0.8rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] transition-colors"
+        placeholder="Search worker by ID or name to load their Leopalace URL…"
+        value={search}
+        onChange={e => { setSearch(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-20 top-full mt-1 w-full bg-[var(--bg)] border border-[var(--border)] rounded shadow-lg overflow-hidden">
+          {filtered.map(w => (
+            <button
+              key={w.id}
+              onMouseDown={() => { onSelect(w.leopalace_url!); setSearch(w.name_latin ?? w.worker_id ?? ""); setOpen(false) }}
+              className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-[var(--bg-2)] transition-colors"
+            >
+              <span className="text-[0.65rem] font-mono text-[var(--text-3)] w-8 shrink-0">{w.worker_id}</span>
+              <span className="text-[0.8rem] text-[var(--text)] truncate">{w.name_latin ?? w.name_kana}</span>
+              <span className="text-[0.65rem] text-[var(--text-3)] truncate ml-auto">{w.store_name ?? ""}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {open && search.trim() && filtered.length === 0 && (
+        <div className="absolute z-20 top-full mt-1 w-full bg-[var(--bg)] border border-[var(--border)] rounded shadow-lg px-3 py-2">
+          <span className="text-[0.75rem] text-[var(--text-3)]">No workers with a Leopalace URL found.</span>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function UrlPanel({ label }: { label?: string }) {
   const [url, setUrl]           = useState("")
@@ -94,6 +145,9 @@ function UrlPanel({ label }: { label?: string }) {
   return (
     <div className="flex flex-col gap-4 flex-1 min-w-0">
       {label && <p className="label-xs">{label}</p>}
+
+      {/* Worker search — auto-fill URL */}
+      <WorkerUrlSearch onSelect={setUrl} />
 
       {/* URL input */}
       <div className="flex gap-2">

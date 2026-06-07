@@ -13,6 +13,7 @@ export type TeamLink = {
   added_by: string | null
   created_at: string
   pinned?: boolean
+  sort_order?: number | null
 }
 
 export function useLinks() {

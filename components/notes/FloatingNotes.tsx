@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useNotes } from "./useNotes"
 import { cn } from "@/lib/cn"
+import { Icon } from "@/components/Icon"
 
 const AUTH_PATHS = ["/login", "/signup", "/verify"]
 const SIDE_KEY   = "notes_side"
@@ -113,9 +114,9 @@ export default function FloatingNotes() {
             {/* Close */}
             <button
               onClick={() => setOpen(false)}
-              className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--bg-2)] transition-colors text-base leading-none"
+              className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--bg-2)] transition-colors"
             >
-              ×
+              <Icon name="close" size={16} />
             </button>
           </div>
 

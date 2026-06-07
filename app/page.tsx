@@ -1,24 +1,102 @@
+"use client"
+
 import Link from "next/link"
+import { useState } from "react"
+
+type Lang = "id" | "vi" | "my" | "ja"
+
+const LANGS: { code: Lang; label: string }[] = [
+  { code: "id", label: "ID" },
+  { code: "vi", label: "VI" },
+  { code: "my", label: "MY" },
+  { code: "ja", label: "JA" },
+]
+
+const COPY: Record<Lang, {
+  eyebrow: string
+  title: [string, string]
+  desc: string
+  tools: string[]
+  login: string
+  signup: string
+  footer: string
+}> = {
+  id: {
+    eyebrow: "Alat internal · Tim Indonesia",
+    title: ["Tim Indo", "Serba Bisa"],
+    desc: "Satu tempat untuk semua alat yang digunakan tim setiap hari. Tautan, PDF, terjemahan, builder, manajemen area, ekstraksi data, dan lainnya.",
+    tools: ["Database", "Tautan", "PDF", "Terjemahan", "Builder", "Area", "Ekstrak"],
+    login: "Masuk",
+    signup: "Daftar",
+    footer: "Khusus tim · undangan diperlukan",
+  },
+  vi: {
+    eyebrow: "Công cụ nội bộ · Nhóm Indonesia",
+    title: ["Tim Indo", "Serba Bisa"],
+    desc: "Một nơi cho tất cả các công cụ nhóm sử dụng hàng ngày. Liên kết, PDF, dịch thuật, builder, quản lý khu vực, trích xuất dữ liệu và nhiều hơn nữa.",
+    tools: ["Cơ sở dữ liệu", "Liên kết", "PDF", "Dịch thuật", "Builder", "Khu vực", "Trích xuất"],
+    login: "Đăng nhập",
+    signup: "Đăng ký",
+    footer: "Chỉ dành cho nhóm · cần lời mời",
+  },
+  my: {
+    eyebrow: "အတွင်းပိုင်းကိရိယာများ · အင်ဒိုနီးရှားအဖွဲ့",
+    title: ["Tim Indo", "Serba Bisa"],
+    desc: "အဖွဲ့သည် နေ့စဉ်အသုံးပြုသော ကိရိယာများအားလုံးအတွက် နေရာတစ်ခု။ လင့်ခ်များ၊ PDF၊ ဘာသာပြန်ဆိုခြင်း၊ builder၊ နယ်မြေစီမံခန့်ခွဲမှု၊ ဒေတာထုတ်ယူခြင်းနှင့် အခြားများ။",
+    tools: ["ဒေတာဘေ့စ်", "လင့်ခ်", "PDF", "ဘာသာပြန်", "Builder", "နယ်မြေ", "ထုတ်ယူ"],
+    login: "ဝင်ရောက်မည်",
+    signup: "အကောင့်ဖွင့်မည်",
+    footer: "အဖွဲ့သာ · ဖိတ်ကြားချက်လိုအပ်သည်",
+  },
+  ja: {
+    eyebrow: "社内ツール · インドネシアチーム",
+    title: ["Tim Indo", "Serba Bisa"],
+    desc: "チームが毎日使うツールをひとつにまとめました。リンク集、PDF、翻訳、ビルダー、エリア管理、データ抽出などが利用できます。",
+    tools: ["データベース", "リンク", "PDF", "翻訳", "ビルダー", "エリア", "抽出"],
+    login: "ログイン",
+    signup: "登録",
+    footer: "チーム専用 · 招待が必要",
+  },
+}
 
 export default function Home() {
+  const [lang, setLang] = useState<Lang>("id")
+  const c = COPY[lang]
+
   return (
     <div className="min-h-[calc(100dvh-48px)] flex flex-col px-5 py-12 max-w-5xl mx-auto w-full">
 
-      <p className="label-xs">Internal tools · Team Indonesia</p>
+      <div className="flex items-center justify-between">
+        <p className="label-xs">{c.eyebrow}</p>
+        <div className="flex items-center gap-0.5 bg-[var(--bg-2)] rounded p-0.5">
+          {LANGS.map(l => (
+            <button
+              key={l.code}
+              onClick={() => setLang(l.code)}
+              className={`px-2.5 py-1 rounded text-[0.65rem] font-semibold tracking-wide transition-all ${
+                lang === l.code
+                  ? "bg-[var(--text)] text-[var(--bg)]"
+                  : "text-[var(--text-3)] hover:text-[var(--text)]"
+              }`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex-1 flex flex-col justify-center gap-10 py-12">
 
         <div className="border-l-2 border-[var(--highlight)] pl-5">
           <h1 className="display text-[var(--text)]">
-            Tim Indo<br />
-            <span className="text-[var(--text-3)]">Serba Bisa</span>
+            {c.title[0]}<br />
+            <span className="text-[var(--text-3)]">{c.title[1]}</span>
           </h1>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-end gap-6 sm:gap-16 border-t border-[var(--border)] pt-8">
           <p className="text-sm text-[var(--text-2)] max-w-xs leading-relaxed">
-            One place for all the tools the team uses every day.
-            Links, PDF, translation, builder, area management, data extraction, and more.
+            {c.desc}
           </p>
 
           <div className="flex items-center gap-3 sm:ml-auto shrink-0">
@@ -26,19 +104,19 @@ export default function Home() {
               href="/login"
               className="px-5 py-2.5 rounded border border-[var(--border)] text-sm font-medium text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all duration-150"
             >
-              Log in
+              {c.login}
             </Link>
             <Link
               href="/signup"
               className="px-5 py-2.5 rounded bg-[var(--text)] text-[var(--bg)] text-sm font-semibold hover:opacity-80 transition-opacity duration-150"
             >
-              Sign up
+              {c.signup}
             </Link>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-x-5 gap-y-1">
-          {["Database", "Links", "PDF", "Translate", "Builder", "Area", "Extract"].map(t => (
+          {c.tools.map(t => (
             <span key={t} className="label-xs">{t}</span>
           ))}
         </div>
@@ -47,7 +125,7 @@ export default function Home() {
 
       <div className="border-t border-[var(--border)] pt-5 flex items-center justify-between">
         <span className="label-xs">v2 · 2026</span>
-        <span className="label-xs">Team only · invite required</span>
+        <span className="label-xs">{c.footer}</span>
       </div>
 
     </div>

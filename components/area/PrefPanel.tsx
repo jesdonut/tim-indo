@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { AreaState, Worker } from "./types"
 import { cn } from "@/lib/cn"
+import { Icon } from "@/components/Icon"
 
 type Props = {
   pref: string
@@ -50,7 +51,7 @@ export default function PrefPanel({ pref, state, onAssign, onClose }: Props) {
           <h2 className="font-bold text-[var(--text)]">{pref}</h2>
           <span className="text-xs text-[var(--text-3)]">{roster.length}名</span>
         </div>
-        <button onClick={onClose} className="text-[var(--text-3)] hover:text-[var(--text)] transition-colors text-lg leading-none">×</button>
+        <button onClick={onClose} className="text-[var(--text-3)] hover:text-[var(--text)] transition-colors flex items-center"><Icon name="close" size={18} /></button>
       </div>
 
       {/* Tabs */}
@@ -89,10 +90,10 @@ export default function PrefPanel({ pref, state, onAssign, onClose }: Props) {
                       </span>
                     </div>
                     {w.furigana && <p className="text-[0.65rem] text-[var(--text-3)]">{w.furigana}</p>}
-                    {w.storeName && <p className="text-[0.7rem] text-[var(--text-2)] mt-0.5 truncate">🏪 {w.storeName}</p>}
+                    {w.storeName && <p className="text-[0.7rem] text-[var(--text-2)] mt-0.5 truncate flex items-center gap-0.5"><Icon name="store" size={11} />{w.storeName}</p>}
                     <div className="flex gap-3 mt-0.5">
-                      {wm !== null && <span className="text-[0.6rem] text-[var(--text-3)]">勤務 {wm}ヶ月{wm > 0 && wm % 4 === 0 ? " ⚠" : ""}</span>}
-                      {mm !== null && <span className={cn("text-[0.6rem]", mm >= 10 ? "text-amber-500" : "text-[var(--text-3)]")}>入居 {mm}ヶ月{mm >= 10 ? " ⚠" : ""}</span>}
+                      {wm !== null && <span className="text-[0.6rem] text-[var(--text-3)] flex items-center gap-0.5">勤務 {wm}ヶ月{wm > 0 && wm % 4 === 0 ? <Icon name="warning" size={10} /> : null}</span>}
+                      {mm !== null && <span className={cn("text-[0.6rem] flex items-center gap-0.5", mm >= 10 ? "text-amber-500" : "text-[var(--text-3)]")}>入居 {mm}ヶ月{mm >= 10 ? <Icon name="warning" size={10} /> : null}</span>}
                     </div>
                   </div>
                 )

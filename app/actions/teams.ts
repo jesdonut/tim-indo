@@ -47,6 +47,7 @@ export async function getLinks() {
   const supabase = await createClient()
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   console.log("[getLinks] user:", user?.id ?? null, "error:", userError?.message ?? null)
+
   if (!user) return []
 
   const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
@@ -111,6 +112,95 @@ export async function togglePin(id: string, pinned: boolean) {
   const { error } = await supabase.from("team_links").update({ pinned }).eq("id", id)
   if (error) return { error: error.message }
   return { success: true as const }
+}
+
+// Persist a manual card arrangement. Writes each id's index to sort_order.
+// Degrades gracefully if the sort_order column is missing (pre-migration):
+// the UI keeps its optimistic order, it just won't survive a reload yet.
+export async function reorderLinks(orderedIds: string[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not logged in." }
+  const results = await Promise.all(
+    orderedIds.map((id, i) => supabase.from("team_links").update({ sort_order: i }).eq("id", id))
+  )
+  const failed = results.find(r => r.error)
+  if (failed?.error) return { error: failed.error.message }
+  return { success: true as const }
+}
+
+// ─── Phone scripts ────────────────────────────────────────────────────────────
+
+export type PhoneScript = {
+  id: string
+  category: string
+  label: string
+  content: string
+  sort_order: number
+}
+
+export async function renamePhoneCategory(oldName: string, newName: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not logged in." }
+  const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
+  const { error } = await supabase
+    .from("phone_scripts")
+    .update({ category: newName.trim() })
+    .eq("category", oldName)
+    .eq("team_id", teamId)
+  if (error) return { error: error.message }
+  return { success: true as const }
+}
+
+export async function getPhoneScripts(): Promise<PhoneScript[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
+  await ensureProfile(supabase, user.id, user.user_metadata?.name ?? user.email ?? null)
+  const { data } = await supabase
+    .from("phone_scripts")
+    .select("id, category, label, content, sort_order")
+    .eq("team_id", teamId)
+    .order("category").order("sort_order")
+  return (data ?? []) as PhoneScript[]
+}
+
+export async function savePhoneScript(
+  id: string | null,
+  category: string,
+  label: string,
+  content: string,
+  sortOrder: number
+): Promise<{ error: string } | { success: true; id: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not logged in." }
+  const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
+
+  if (id) {
+    const { error } = await supabase
+      .from("phone_scripts")
+      .update({ category: category.trim(), label: label.trim(), content: content.trim(), sort_order: sortOrder })
+      .eq("id", id)
+    if (error) return { error: error.message }
+    return { success: true, id }
+  } else {
+    const { data, error } = await supabase
+      .from("phone_scripts")
+      .insert({ team_id: teamId, category: category.trim(), label: label.trim(), content: content.trim(), sort_order: sortOrder })
+      .select("id").single()
+    if (error || !data) return { error: error?.message ?? "Insert failed." }
+    return { success: true, id: data.id }
+  }
+}
+
+export async function deletePhoneScript(id: string): Promise<{ error: string } | { success: true }> {
+  const supabase = await createClient()
+  const { error } = await supabase.from("phone_scripts").delete().eq("id", id)
+  if (error) return { error: error.message }
+  return { success: true }
 }
 
 // ─── Multi-team actions ──────────────────────────────────────────────────────

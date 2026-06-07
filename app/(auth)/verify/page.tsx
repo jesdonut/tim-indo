@@ -1,12 +1,13 @@
 import Link from "next/link"
+import { Icon } from "@/components/Icon"
 
 export default function VerifyPage() {
   return (
     <div className="min-h-[calc(100dvh-48px)] flex items-center justify-center px-5">
       <div className="w-full max-w-sm text-center">
 
-        <div className="mb-6 inline-flex items-center justify-center w-14 h-14 rounded-full border border-[var(--border)] text-2xl">
-          ✉︎
+        <div className="mb-6 inline-flex items-center justify-center w-14 h-14 rounded-full border border-[var(--border)] text-[var(--text-2)]">
+          <Icon name="mail" size={28} />
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text)] mb-3">

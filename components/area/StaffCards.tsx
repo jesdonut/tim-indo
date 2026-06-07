@@ -4,6 +4,7 @@ import { useState } from "react"
 import type { AreaState } from "./types"
 import { EXTRA_COLORS, MAX_CAPACITY } from "./types"
 import { cn } from "@/lib/cn"
+import { Icon } from "@/components/Icon"
 
 type Props = {
   state: AreaState
@@ -65,8 +66,8 @@ export default function StaffCards({ state, onAdd, onRemove }: Props) {
               <span className="text-[0.65rem] text-[var(--text-3)]">{s.nameEn}</span>
               <button
                 onClick={() => onRemove(s.id)}
-                className="opacity-0 group-hover:opacity-100 text-[var(--text-3)] hover:text-red-400 text-xs transition-all"
-              >×</button>
+                className="opacity-0 group-hover:opacity-100 text-[var(--text-3)] hover:text-red-400 transition-all flex items-center"
+              ><Icon name="close" size={13} /></button>
             </div>
             <div className={cn("text-lg font-bold leading-none mb-1", over ? "text-red-400" : "text-[var(--text)]")}>
               {count}<span className="text-xs font-normal text-[var(--text-3)] ml-0.5">名</span>
@@ -78,7 +79,7 @@ export default function StaffCards({ state, onAdd, onRemove }: Props) {
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[0.6rem] text-[var(--text-3)]">{count} / {MAX_CAPACITY}{over ? " ⚠" : ""}</span>
+              <span className="text-[0.6rem] text-[var(--text-3)] flex items-center gap-0.5">{count} / {MAX_CAPACITY}{over ? <Icon name="warning" size={11} className="text-red-400" /> : null}</span>
               {prefs.length > 0 && (
                 <span className="text-[0.6rem] text-[var(--text-3)] truncate max-w-[120px]">
                   {prefs.slice(0, 4).join(" · ")}{prefs.length > 4 ? `…+${prefs.length - 4}` : ""}
@@ -111,7 +112,7 @@ export default function StaffCards({ state, onAdd, onRemove }: Props) {
             autoFocus
           />
           <button onClick={confirmAdd} className="px-2 py-1.5 rounded bg-[var(--text)] text-[var(--bg)] text-xs font-medium">追加</button>
-          <button onClick={() => setAdding(false)} className="px-2 py-1.5 rounded border border-[var(--border)] text-xs text-[var(--text-2)]">✕</button>
+          <button onClick={() => setAdding(false)} className="px-2 py-1.5 rounded border border-[var(--border)] text-[var(--text-2)] flex items-center"><Icon name="close" size={13} /></button>
         </div>
       ) : (
         <button

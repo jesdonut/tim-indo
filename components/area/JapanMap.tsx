@@ -54,8 +54,9 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
     fetch("/maps/japan.topojson").then(r => r.json()).then(setTopoData).catch(console.error)
   }, [])
 
-  const features = useMemo<MapFeature[]>(() => {
-    if (!topoData) return []
+  const { features, vb } = useMemo<{ features: MapFeature[]; vb: { x: number; y: number; w: number; h: number } }>(() => {
+    const fallback = { x: 0, y: 0, w: MAP_W, h: MAP_H }
+    if (!topoData) return { features: [], vb: fallback }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const topo = topoData as any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,10 +64,19 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
     const proj = geoMercator().fitSize([MAP_W, MAP_H], col)
     const gen  = geoPath(proj)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return col.features.map((f: any) => ({
+    const feats = col.features.map((f: any) => ({
       name: normalizePref(f.properties.nam_ja as string),
       path: gen(f) ?? "",
     }))
+    // Tight bounds around the actual landmass so the SVG has no empty ocean
+    // letterboxing — the map fills its container and stays visually centered
+    // instead of leaning to one side.
+    const [[x0, y0], [x1, y1]] = gen.bounds(col)
+    const pad = 8
+    return {
+      features: feats,
+      vb: { x: x0 - pad, y: y0 - pad, w: x1 - x0 + pad * 2, h: y1 - y0 + pad * 2 },
+    }
   }, [topoData])
 
   const staffColors = useMemo(() => {
@@ -110,8 +120,8 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
     const rect = e.currentTarget.getBoundingClientRect()
     setTransform(prev => ({
       ...prev,
-      x: dragRef.current!.tx + dx * (MAP_W / rect.width),
-      y: dragRef.current!.ty + dy * (MAP_H / rect.height),
+      x: dragRef.current!.tx + dx * (vb.w / rect.width),
+      y: dragRef.current!.ty + dy * (vb.h / rect.height),
     }))
   }
   function onMouseUp() { dragRef.current = null; setDragging(false) }
@@ -121,8 +131,8 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
     const factor = e.deltaY > 0 ? 0.85 : 1.18
     const newScale = Math.max(0.5, Math.min(10, transform.scale * factor))
     const rect = e.currentTarget.getBoundingClientRect()
-    const vx = ((e.clientX - rect.left) / rect.width) * MAP_W
-    const vy = ((e.clientY - rect.top) / rect.height) * MAP_H
+    const vx = vb.x + ((e.clientX - rect.left) / rect.width) * vb.w
+    const vy = vb.y + ((e.clientY - rect.top) / rect.height) * vb.h
     const mx = (vx - transform.x) / transform.scale
     const my = (vy - transform.y) / transform.scale
     setTransform({ x: vx - mx * newScale, y: vy - my * newScale, scale: newScale })
@@ -131,7 +141,7 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
   function zoom(factor: number) {
     setTransform(prev => {
       const s = Math.max(0.5, Math.min(10, prev.scale * factor))
-      const cx = MAP_W / 2, cy = MAP_H / 2
+      const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2
       const mx = (cx - prev.x) / prev.scale
       const my = (cy - prev.y) / prev.scale
       return { x: cx - mx * s, y: cy - my * s, scale: s }
@@ -149,7 +159,7 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
   return (
     <div className="flex-1 relative overflow-hidden bg-[var(--bg-2)]">
       <svg
-        viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+        viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
         className="w-full h-full select-none"
         preserveAspectRatio="xMidYMid meet"
         style={{ cursor: dragging ? "grabbing" : "grab" }}

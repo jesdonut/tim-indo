@@ -7,17 +7,26 @@ import {
   removeLink as removeLinkAction,
   updateLink as updateLinkAction,
   togglePin as togglePinAction,
-  renameCategory as renameCategoryAction,
+  reorderLinks as reorderLinksAction,
 } from "@/app/actions/teams"
 import { createClient } from "@/lib/supabase/client"
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  SortableContext, rectSortingStrategy, useSortable, arrayMove,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent } from "@/components/PageHeader"
+import { Icon } from "@/components/Icon"
 import type { TeamLink } from "@/components/links/useLinks"
 
 const CATEGORY_ORDER = ["グラスプ", "データ", "コンパス社", "ライフライン"]
 
 function linkIcon(url: string) {
-  if (url.includes("drive.google.com"))            return { label: "Drive",  color: "text-blue-500" }
+  if (url.includes("drive.google.com"))             return { label: "Drive", color: "text-blue-500" }
   if (url.includes("docs.google.com/spreadsheets")) return { label: "Sheet", color: "text-green-600" }
   if (url.includes("docs.google.com/forms"))        return { label: "Form",  color: "text-violet-500" }
   if (url.includes("docs.google.com/document"))     return { label: "Doc",   color: "text-blue-600" }
@@ -28,22 +37,32 @@ function shortDate(iso: string) {
   return new Date(iso).toLocaleDateString("ja-JP", { year: "2-digit", month: "numeric", day: "numeric" })
 }
 
+function sortLinks(links: TeamLink[]): TeamLink[] {
+  return [...links].sort((a, b) => {
+    const ao = a.sort_order, bo = b.sort_order
+    if (ao != null && bo != null) return ao - bo
+    if (ao != null) return -1
+    if (bo != null) return 1
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  })
+}
+
 type EditForm = { title: string; url: string; category: string }
 
-export default function LinksPage() {
+export default function MoodboardPage() {
   const [links, setLinks]         = useState<TeamLink[]>([])
   const [loading, setLoading]     = useState(true)
   const [userName, setUserName]   = useState("Team")
   const [confirmId, setConfirmId] = useState<string | null>(null)
-  const [editingId, setEditingId]       = useState<string | null>(null)
-  const [editingCat, setEditingCat]     = useState<string | null>(null)
-  const [editCatValue, setEditCatValue] = useState("")
-  const editCatRef = useRef<HTMLInputElement>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm]   = useState<EditForm>({ title: "", url: "", category: "" })
   const [adding, setAdding]       = useState(false)
   const [form, setForm]           = useState({ title: "", url: "", category: "" })
+  const [filter, setFilter]       = useState<string | null>(null)
   const titleRef     = useRef<HTMLInputElement>(null)
   const editTitleRef = useRef<HTMLInputElement>(null)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   useEffect(() => {
     const supabase = createClient()
@@ -51,35 +70,23 @@ export default function LinksPage() {
       if (user?.user_metadata?.name) setUserName(user.user_metadata.name)
     })
     getLinks().then(data => {
-      setLinks(data as TeamLink[])
+      setLinks(sortLinks(data as TeamLink[]))
       setLoading(false)
     })
   }, [])
 
-  const pinned  = useMemo(() => links.filter(l => l.pinned), [links])
-
-  const grouped = useMemo(() => {
-    const unpinned = links.filter(l => !l.pinned)
-    const map = new Map<string, TeamLink[]>()
-    for (const link of unpinned) {
-      const cat = link.category || "その他"
-      if (!map.has(cat)) map.set(cat, [])
-      map.get(cat)!.push(link)
-    }
-    const ordered: [string, TeamLink[]][] = []
-    for (const cat of CATEGORY_ORDER) {
-      if (map.has(cat)) ordered.push([cat, map.get(cat)!])
-    }
-    for (const [cat, items] of map) {
-      if (!CATEGORY_ORDER.includes(cat)) ordered.push([cat, items])
-    }
-    return ordered
-  }, [links])
+  const ordered = useMemo(() => sortLinks(links), [links])
 
   const allCategories = useMemo(() => {
     const cats = new Set(links.map(l => l.category).filter(Boolean))
-    return [...CATEGORY_ORDER.filter(c => cats.has(c)), ...([...cats].filter(c => !CATEGORY_ORDER.includes(c)))]
+    return [...CATEGORY_ORDER.filter(c => cats.has(c)), ...[...cats].filter(c => !CATEGORY_ORDER.includes(c))]
   }, [links])
+
+  const visible = useMemo(
+    () => (filter ? ordered.filter(l => l.category === filter) : ordered),
+    [ordered, filter]
+  )
+  const canDrag = filter === null
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -87,7 +94,7 @@ export default function LinksPage() {
     const url = form.url.startsWith("http") ? form.url : `https://${form.url}`
     await addLinkAction(form.title.trim(), url, form.category.trim(), userName)
     const data = await getLinks()
-    setLinks(data as TeamLink[])
+    setLinks(sortLinks(data as TeamLink[]))
     setForm({ title: "", url: "", category: "" })
     setAdding(false)
   }
@@ -114,23 +121,20 @@ export default function LinksPage() {
     setEditingId(null)
   }
 
-  function startEditCat(cat: string) {
-    setEditingCat(cat)
-    setEditCatValue(cat)
-    setTimeout(() => editCatRef.current?.focus(), 50)
-  }
-
-  async function handleRenameCat(oldName: string) {
-    const newName = editCatValue.trim()
-    if (!newName || newName === oldName) { setEditingCat(null); return }
-    await renameCategoryAction(oldName, newName)
-    setLinks(prev => prev.map(l => l.category === oldName ? { ...l, category: newName } : l))
-    setEditingCat(null)
-  }
-
   async function handleTogglePin(id: string, current: boolean) {
     await togglePinAction(id, !current)
     setLinks(prev => prev.map(l => l.id === id ? { ...l, pinned: !current } : l))
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIdx = ordered.findIndex(l => l.id === active.id)
+    const newIdx = ordered.findIndex(l => l.id === over.id)
+    if (oldIdx < 0 || newIdx < 0) return
+    const next = arrayMove(ordered, oldIdx, newIdx).map((l, i) => ({ ...l, sort_order: i }))
+    setLinks(next)
+    reorderLinksAction(next.map(l => l.id))
   }
 
   useEffect(() => {
@@ -150,7 +154,7 @@ export default function LinksPage() {
 
   return (
     <div>
-      <PageHeader title="Links" right={
+      <PageHeader title="Moodboard" right={
         <button
           onClick={() => setAdding(v => !v)}
           className={cn(
@@ -160,20 +164,20 @@ export default function LinksPage() {
               : "border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)]"
           )}
         >
-          {adding ? "Cancel" : "+ Add link"}
+          {adding ? "Cancel" : "+ Add card"}
         </button>
       } />
       <PageContent>
 
       {/* Add form */}
       {adding && (
-        <form onSubmit={handleAdd} className="mb-6 p-4 border border-[var(--border)] rounded bg-[var(--surface)] flex flex-col gap-3">
-          <p className="label-xs">New link</p>
+        <form onSubmit={handleAdd} className="mb-6 p-4 border border-[var(--border)] rounded-lg bg-[var(--surface)] flex flex-col gap-3">
+          <p className="label-xs">New card</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.68rem] text-[var(--text-3)] uppercase tracking-wider">Title</label>
               <input ref={titleRef} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                placeholder="Link name" required
+                placeholder="Card name" required
                 className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)]" />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -197,109 +201,96 @@ export default function LinksPage() {
         </form>
       )}
 
-      {/* Links */}
-      <div className="flex flex-col gap-5">
+      {/* Category filter */}
+      {allCategories.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-5">
+          <FilterChip label="All" active={filter === null} onClick={() => setFilter(null)} count={links.length} />
+          {allCategories.map(cat => (
+            <FilterChip key={cat} label={cat} active={filter === cat} onClick={() => setFilter(cat)}
+              count={links.filter(l => l.category === cat).length} />
+          ))}
+        </div>
+      )}
 
-        {/* Pinned section */}
-        {pinned.length > 0 && (
-          <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-            <div className="px-4 py-2 bg-[var(--surface)] border-b border-[var(--border)]">
-              <p className="label-xs">Pinned</p>
-            </div>
-            <div className="divide-y divide-[var(--border-soft)]">
-              {pinned.map(link => (
-                <LinkRow key={link.id} link={link} editingId={editingId} editForm={editForm}
-                  setEditForm={setEditForm} editTitleRef={editTitleRef} confirmId={confirmId}
-                  allCategories={allCategories}
+      {/* Grid */}
+      {links.length === 0 ? (
+        <p className="text-sm text-[var(--text-3)] text-center py-12">No cards yet. Add the first one above.</p>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={visible.map(l => l.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {visible.map(link => (
+                <Card key={link.id} link={link} canDrag={canDrag}
+                  isEditing={editingId === link.id} editForm={editForm} setEditForm={setEditForm}
+                  editTitleRef={editTitleRef} allCategories={allCategories}
+                  isPending={confirmId === link.id} setConfirmId={setConfirmId}
                   onEdit={startEdit} onSaveEdit={handleSaveEdit} onCancelEdit={() => setEditingId(null)}
-                  onDelete={handleDelete} onPin={handleTogglePin} setConfirmId={setConfirmId} />
+                  onDelete={handleDelete} onPin={handleTogglePin} />
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Category groups */}
-        {grouped.map(([category, items]) => (
-          <div key={category} className="border border-[var(--border)] rounded-lg overflow-hidden">
-            <div className="px-4 py-2 bg-[var(--surface)] border-b border-[var(--border)] flex items-center gap-2">
-              {editingCat === category ? (
-                <input
-                  ref={editCatRef}
-                  value={editCatValue}
-                  onChange={e => setEditCatValue(e.target.value)}
-                  onBlur={() => handleRenameCat(category)}
-                  onKeyDown={e => { if (e.key === "Enter") handleRenameCat(category); if (e.key === "Escape") setEditingCat(null) }}
-                  className="label-xs bg-transparent outline-none border-b border-[var(--text-2)] text-[var(--text)] w-40"
-                />
-              ) : (
-                <div className="group/cat flex items-center gap-1.5">
-                  <span className="label-xs">{category}</span>
-                  <button onClick={() => startEditCat(category)} title="Rename category"
-                    className="opacity-0 group-hover/cat:opacity-100 text-[var(--text-3)] hover:text-[var(--text)] text-[0.7rem] transition-opacity leading-none">
-                    ✎
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="divide-y divide-[var(--border-soft)]">
-              {items.map(link => (
-                <LinkRow key={link.id} link={link} editingId={editingId} editForm={editForm}
-                  setEditForm={setEditForm} editTitleRef={editTitleRef} confirmId={confirmId}
-                  allCategories={allCategories}
-                  onEdit={startEdit} onSaveEdit={handleSaveEdit} onCancelEdit={() => setEditingId(null)}
-                  onDelete={handleDelete} onPin={handleTogglePin} setConfirmId={setConfirmId} />
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {links.length === 0 && (
-          <p className="text-sm text-[var(--text-3)] text-center py-12">No links yet. Add the first one above.</p>
-        )}
-      </div>
+          </SortableContext>
+        </DndContext>
+      )}
       </PageContent>
     </div>
   )
 }
 
-type RowProps = {
+function FilterChip({ label, active, onClick, count }: { label: string; active: boolean; onClick: () => void; count: number }) {
+  return (
+    <button onClick={onClick}
+      className={cn(
+        "px-2.5 py-1 rounded-full text-[0.72rem] font-medium transition-colors border",
+        active
+          ? "bg-[var(--text)] text-[var(--bg)] border-[var(--text)]"
+          : "border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)]"
+      )}>
+      {label}<span className={cn("ml-1.5", active ? "text-[var(--bg)]/60" : "text-[var(--text-3)]")}>{count}</span>
+    </button>
+  )
+}
+
+type CardProps = {
   link: TeamLink
-  editingId: string | null
+  canDrag: boolean
+  isEditing: boolean
   editForm: EditForm
   setEditForm: (f: EditForm | ((p: EditForm) => EditForm)) => void
   editTitleRef: React.RefObject<HTMLInputElement | null>
-  confirmId: string | null
   allCategories: string[]
+  isPending: boolean
+  setConfirmId: (id: string | null) => void
   onEdit: (link: TeamLink) => void
   onSaveEdit: (id: string) => void
   onCancelEdit: () => void
   onDelete: (id: string) => void
   onPin: (id: string, current: boolean) => void
-  setConfirmId: (id: string | null) => void
 }
 
-function LinkRow({ link, editingId, editForm, setEditForm, editTitleRef, confirmId, allCategories,
-  onEdit, onSaveEdit, onCancelEdit, onDelete, onPin, setConfirmId }: RowProps) {
+function Card({ link, canDrag, isEditing, editForm, setEditForm, editTitleRef, allCategories,
+  isPending, setConfirmId, onEdit, onSaveEdit, onCancelEdit, onDelete, onPin }: CardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: link.id, disabled: !canDrag })
   const icon = linkIcon(link.url)
-  const isEditing = editingId === link.id
-  const isPending = confirmId === link.id
+  const pinned = link.pinned ?? false
+
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
 
   if (isEditing) {
     return (
-      <div className="px-4 py-3 flex flex-col gap-2 bg-[var(--bg-2)]">
-        <div className="grid grid-cols-2 gap-2">
-          <input ref={editTitleRef} value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
-            placeholder="Title"
-            className="bg-[var(--bg)] border border-[var(--border)] rounded px-2.5 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
-          <input value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}
-            placeholder="Category" list="cat-list-edit"
-            className="bg-[var(--bg)] border border-[var(--border)] rounded px-2.5 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
-          <datalist id="cat-list-edit">{allCategories.map(c => <option key={c} value={c} />)}</datalist>
-        </div>
+      <div ref={setNodeRef} style={style}
+        className="flex flex-col gap-1.5 p-3 rounded-lg border border-[var(--text-2)] bg-[var(--bg-2)]">
+        <input ref={editTitleRef} value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+          placeholder="Title"
+          className="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
+        <input value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}
+          placeholder="Category" list="cat-list-edit"
+          className="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
+        <datalist id="cat-list-edit">{allCategories.map(c => <option key={c} value={c} />)}</datalist>
         <input value={editForm.url} onChange={e => setEditForm(f => ({ ...f, url: e.target.value }))}
           placeholder="https://..."
-          className="bg-[var(--bg)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[0.78rem] font-mono text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
-        <div className="flex gap-2 justify-end">
+          className="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1.5 text-[0.7rem] font-mono text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
+        <div className="flex gap-2 justify-end pt-0.5">
           <button onClick={onCancelEdit} className="px-3 py-1 rounded border border-[var(--border)] text-[0.72rem] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">Cancel</button>
           <button onClick={() => onSaveEdit(link.id)} className="px-3 py-1 rounded bg-[var(--text)] text-[var(--bg)] text-[0.72rem] font-medium hover:opacity-80 transition-opacity">Save</button>
         </div>
@@ -308,41 +299,64 @@ function LinkRow({ link, editingId, editForm, setEditForm, editTitleRef, confirm
   }
 
   return (
-    <div className={cn("flex items-center gap-3 px-4 py-2.5 group", isPending && "bg-red-500/5")}>
-      <span className={cn("text-[0.6rem] font-bold w-8 shrink-0", icon.color)}>{icon.label}</span>
+    <div ref={setNodeRef} style={style}
+      {...(canDrag ? { ...attributes, ...listeners } : {})}
+      className={cn(
+        "group relative h-28 flex flex-col p-3 rounded-lg border bg-[var(--surface)] transition-colors outline-none",
+        canDrag && "cursor-grab active:cursor-grabbing",
+        pinned ? "border-[var(--highlight-text)] ring-1 ring-[var(--highlight-text)]/30" : "border-[var(--border)] hover:border-[var(--text-3)]",
+        isPending && "border-red-400/60"
+      )}>
 
+      {/* Top row: type badge + drag hint */}
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className={cn("text-[0.58rem] font-bold uppercase tracking-wider", icon.color)}>{icon.label}</span>
+        {pinned && <Icon name="star" size={12} className="text-[var(--highlight-text)]" />}
+        <span className="flex-1" />
+        {canDrag && (
+          <span className="text-[var(--text-3)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center" title="Drag to rearrange">
+            <Icon name="drag_indicator" size={15} />
+          </span>
+        )}
+      </div>
+
+      {/* Title — opens the link (a plain click navigates; drag only starts after moving 5px) */}
       <a href={link.url} target="_blank" rel="noopener noreferrer"
-        className="flex-1 text-[0.85rem] text-[var(--text)] hover:text-[var(--highlight-text)] hover:underline underline-offset-2 truncate transition-colors min-w-0">
+        onClick={e => e.stopPropagation()}
+        className="flex-1 min-h-0 text-[0.88rem] font-medium leading-snug text-[var(--text)] hover:text-[var(--highlight-text)] transition-colors line-clamp-2 break-words">
         {link.title}
       </a>
 
-      <div className="shrink-0 flex items-center gap-2 text-[0.62rem] text-[var(--text-3)] hidden sm:flex">
-        {link.added_by && <span>{link.added_by}</span>}
-        {link.created_at && <span className="hidden md:block">{shortDate(link.created_at)}</span>}
+      {/* Footer: category + meta */}
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className="px-1.5 py-0.5 rounded bg-[var(--bg-2)] text-[0.55rem] text-[var(--text-3)] truncate">{link.category}</span>
+        <span className="flex-1" />
+        {link.added_by && <span className="text-[0.55rem] text-[var(--text-3)] shrink-0">{link.added_by}</span>}
+        {link.created_at && <span className="text-[0.52rem] text-[var(--text-3)] shrink-0">· {shortDate(link.created_at)}</span>}
       </div>
 
+      {/* Hover / confirm actions */}
       {isPending ? (
-        <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 py-2 bg-[var(--surface)] border-t border-red-400/40 rounded-b-lg"
+          onClick={e => e.stopPropagation()}>
           <span className="text-[0.7rem] text-red-400">Delete?</span>
           <button onClick={() => onDelete(link.id)} className="px-2 py-0.5 rounded bg-red-500 text-white text-[0.68rem] font-medium hover:bg-red-600 transition-colors">Yes</button>
           <button onClick={() => setConfirmId(null)} className="px-2 py-0.5 rounded border border-[var(--border)] text-[0.68rem] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">No</button>
         </div>
       ) : (
-        <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onPin(link.id, link.pinned ?? false)}
-            title={link.pinned ? "Unpin" : "Pin to top"}
-            className={cn("w-6 h-6 flex items-center justify-center rounded text-[0.75rem] transition-colors",
-              link.pinned ? "text-[var(--highlight-text)]" : "text-[var(--text-3)] hover:text-[var(--highlight-text)]")}>
-            {link.pinned ?? false ? "★" : "☆"}
+        <div className="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--surface)]/80 backdrop-blur-sm rounded">
+          <button onClick={() => onPin(link.id, pinned)} title={pinned ? "Unpin" : "Pin"}
+            className={cn("w-6 h-6 flex items-center justify-center rounded transition-colors",
+              pinned ? "text-[var(--highlight-text)]" : "text-[var(--text-3)] hover:text-[var(--highlight-text)]")}>
+            <Icon name={pinned ? "star" : "star_border"} size={15} />
           </button>
-          <button onClick={() => onEdit(link)}
-            title="Edit"
-            className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-3)] hover:text-[var(--text)] text-[0.72rem] transition-colors">
-            ✎
+          <button onClick={() => onEdit(link)} title="Edit"
+            className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-3)] hover:text-[var(--text)] transition-colors">
+            <Icon name="edit" size={14} />
           </button>
-          <button onClick={() => onDelete(link.id)}
-            className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-3)] hover:text-red-400 text-sm transition-colors">
-            ×
+          <button onClick={() => onDelete(link.id)} title="Delete"
+            className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-3)] hover:text-red-400 transition-colors">
+            <Icon name="close" size={14} />
           </button>
         </div>
       )}

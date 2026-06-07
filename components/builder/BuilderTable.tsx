@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useImperativeHandle, useRef } from "react"
+import React, { useImperativeHandle, useRef, useState } from "react"
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -13,16 +13,14 @@ import { CSS } from "@dnd-kit/utilities"
 import { parsePaste, applyTemplate } from "./templateUtils"
 import { handleTableKeyDown } from "./useTableNav"
 import { cn } from "@/lib/cn"
+import { Icon } from "@/components/Icon"
 import type { ColDef, Row } from "./types"
 
 const TABLE_ID = "builder-main"
-
 const MIN_COL_W = 80
 const DEFAULT_COL_W = 160
 
-// ── Computed cell value ──────────────────────────────────────────────────────
 function computeCell(formula: string, row: Row, cols: ColDef[]): string {
-  // Replace {{col_id}} and {{col_label}} both
   let result = formula
   cols.forEach(c => {
     const val = row[c.id] ?? ""
@@ -32,9 +30,8 @@ function computeCell(formula: string, row: Row, cols: ColDef[]): string {
   return result
 }
 
-// ── Sortable column header ───────────────────────────────────────────────────
 function ColHeader({
-  col, allCols, onFormulaChange, onRename, onDelete, onResizeStart, onCopyCol,
+  col, allCols, onFormulaChange, onRename, onDelete, onResizeStart, onCopyCol, onClearSel, selCount,
 }: {
   col: ColDef
   allCols: ColDef[]
@@ -43,6 +40,8 @@ function ColHeader({
   onDelete: (id: string) => void
   onResizeStart: (e: React.MouseEvent, id: string) => void
   onCopyCol: (id: string) => void
+  onClearSel: (id: string) => void
+  selCount: number
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: col.id })
@@ -52,24 +51,12 @@ function ColHeader({
   return (
     <th
       ref={setNodeRef}
-      style={{
-        width: col.width,
-        minWidth: col.width,
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.4 : 1,
-      }}
-      className={cn(
-        "relative border-r border-b border-[var(--border)] select-none",
-        col.computed
-          ? "bg-[var(--highlight)]/10"
-          : "bg-[var(--bg-2)]"
-      )}
+      style={{ width: col.width, minWidth: col.width, transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className={cn("relative border-r border-b border-[var(--border)] select-none", col.computed ? "bg-[var(--highlight)]/10" : "bg-[var(--bg-2)]")}
     >
       {col.computed ? (
-        /* Computed column header: formula input + copy button */
         <div className="flex flex-col h-auto min-h-8 px-2 py-1 gap-1">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <span className="text-[0.6rem] font-bold text-[var(--highlight-text)] uppercase tracking-wider shrink-0">fx</span>
             <input
               className="flex-1 bg-transparent text-[0.72rem] font-mono text-[var(--text)] outline-none min-w-0 placeholder:text-[var(--text-3)]"
@@ -80,15 +67,28 @@ function ColHeader({
             />
             <button
               onClick={() => onCopyCol(col.id)}
-              className="shrink-0 text-[0.6rem] text-[var(--text-3)] hover:text-[var(--highlight-text)] transition-colors"
-              title="Copy output column"
-            >⎘</button>
+              className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--highlight-text)] hover:border-[var(--highlight-text)] transition-colors"
+              title={selCount > 0 ? `Copy ${selCount} selected row(s)` : "Copy all rows"}
+            >
+              <Icon name="content_copy" size={13} />
+              {selCount > 0 && <span className="text-[0.6rem] font-medium">{selCount}</span>}
+            </button>
+            {selCount > 0 && (
+              <button
+                onClick={() => onClearSel(col.id)}
+                className="shrink-0 flex items-center justify-center w-4 h-4 rounded text-[var(--text-3)] hover:text-[var(--text-2)] transition-colors"
+                title="Clear selection"
+              >
+                <Icon name="close" size={11} />
+              </button>
+            )}
             <button
               onClick={() => onDelete(col.id)}
-              className="shrink-0 text-[var(--text-3)] hover:text-red-400 text-xs leading-none"
-            >×</button>
+              className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-[var(--text-3)] hover:text-red-400 hover:bg-red-400/10 transition-colors"
+            >
+              <Icon name="close" size={14} />
+            </button>
           </div>
-          {/* Show available column names as hints */}
           <div className="flex flex-wrap gap-1">
             {inputCols.map(c => (
               <button
@@ -103,13 +103,14 @@ function ColHeader({
           </div>
         </div>
       ) : (
-        /* Regular column header */
         <div className="flex items-center h-8 px-2 gap-1">
           <span
             {...attributes}
             {...listeners}
-            className="cursor-grab text-[var(--text-3)] hover:text-[var(--text-2)] text-xs shrink-0"
-          >⠿</span>
+            className="cursor-grab text-[var(--text-3)] hover:text-[var(--text-2)] shrink-0 flex items-center"
+          >
+            <Icon name="drag_indicator" size={15} />
+          </span>
           <input
             className="flex-1 bg-transparent text-[0.72rem] font-semibold uppercase tracking-wide text-[var(--text-2)] outline-none min-w-0"
             value={col.label}
@@ -117,12 +118,13 @@ function ColHeader({
           />
           <button
             onClick={() => onDelete(col.id)}
-            className="shrink-0 text-[var(--text-3)] hover:text-red-400 text-xs leading-none"
-          >×</button>
+            className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-[var(--text-3)] hover:text-red-400 hover:bg-red-400/10 transition-colors"
+          >
+            <Icon name="close" size={14} />
+          </button>
         </div>
       )}
 
-      {/* Resize handle */}
       <div
         onMouseDown={e => onResizeStart(e, col.id)}
         className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-[var(--highlight)] transition-colors"
@@ -131,7 +133,6 @@ function ColHeader({
   )
 }
 
-// ── Main table ───────────────────────────────────────────────────────────────
 type Props = {
   cols: ColDef[]
   rows: Row[]
@@ -146,6 +147,16 @@ export type BuilderTableHandle = {
 const BuilderTable = React.forwardRef<BuilderTableHandle, Props>(function BuilderTable({ cols, rows, onChange }, ref) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const resizeRef = useRef<{ id: string; startX: number; startW: number } | null>(null)
+  const [rowSel, setRowSel] = useState<Record<string, Set<number>>>({})
+
+  function toggleRowSel(colId: string, rowIdx: number) {
+    setRowSel(prev => {
+      const cur = new Set(prev[colId] ?? [])
+      if (cur.has(rowIdx)) cur.delete(rowIdx)
+      else cur.add(rowIdx)
+      return { ...prev, [colId]: new Set(cur) }
+    })
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -209,6 +220,7 @@ const BuilderTable = React.forwardRef<BuilderTableHandle, Props>(function Builde
 
   function deleteCol(id: string) {
     onChange(cols.filter(c => c.id !== id), rows.map(r => { const n = { ...r }; delete n[id]; return n }))
+    setRowSel(prev => { const n = { ...prev }; delete n[id]; return n })
   }
 
   function renameCol(id: string, label: string) {
@@ -219,19 +231,32 @@ const BuilderTable = React.forwardRef<BuilderTableHandle, Props>(function Builde
     onChange(cols.map(c => c.id === id ? { ...c, label: formula } : c), rows)
   }
 
-  function addRow() {
-    onChange(cols, [...rows, {}])
-  }
+  function addRow() { onChange(cols, [...rows, {}]) }
 
   function deleteRow(i: number) {
     onChange(cols, rows.filter((_, idx) => idx !== i))
+    setRowSel(prev => {
+      const next: Record<string, Set<number>> = {}
+      for (const [colId, sel] of Object.entries(prev)) {
+        const newSel = new Set<number>()
+        for (const idx of sel) { if (idx < i) newSel.add(idx); else if (idx > i) newSel.add(idx - 1) }
+        next[colId] = newSel
+      }
+      return next
+    })
+  }
+
+  function clearSel(id: string) {
+    setRowSel(prev => { const n = { ...prev }; delete n[id]; return n })
   }
 
   async function copyCol(id: string) {
     const col = cols.find(c => c.id === id)!
-    const values = rows.map(r =>
-      col.computed ? computeCell(col.label, r, cols) : (r[id] ?? "")
-    ).join("\n")
+    const sel = rowSel[id]
+    const values = rows
+      .filter((_, i) => !sel?.size || sel.has(i))
+      .map(r => col.computed ? computeCell(col.label, r, cols) : (r[id] ?? ""))
+      .join("\n")
     await navigator.clipboard.writeText(values)
   }
 
@@ -241,9 +266,8 @@ const BuilderTable = React.forwardRef<BuilderTableHandle, Props>(function Builde
 
   return (
     <div className="w-full overflow-x-auto" data-table-id={TABLE_ID}>
-
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <table className="border-collapse text-sm" style={{ tableLayout: "fixed" }}>
+        <table className="w-full border-collapse text-sm" style={{ tableLayout: "fixed" }}>
           <thead>
             <SortableContext items={cols.map(c => c.id)} strategy={horizontalListSortingStrategy}>
               <tr>
@@ -258,8 +282,12 @@ const BuilderTable = React.forwardRef<BuilderTableHandle, Props>(function Builde
                     onDelete={deleteCol}
                     onResizeStart={onResizeStart}
                     onCopyCol={copyCol}
+                    onClearSel={clearSel}
+                    selCount={rowSel[col.id]?.size ?? 0}
                   />
                 ))}
+                {/* Filler column — absorbs remaining width so the grid reaches the page edge */}
+                <th className="border-b border-[var(--border)] bg-[var(--bg-2)]" />
               </tr>
             </SortableContext>
           </thead>
@@ -271,23 +299,32 @@ const BuilderTable = React.forwardRef<BuilderTableHandle, Props>(function Builde
                     <span>{ri + 1}</span>
                     <button
                       onClick={() => deleteRow(ri)}
-                      className="opacity-0 group-hover:opacity-100 text-red-400 leading-none ml-0.5"
-                    >×</button>
+                      className="opacity-0 group-hover:opacity-100 text-red-400 leading-none ml-0.5 flex items-center"
+                    >
+                      <Icon name="close" size={11} />
+                    </button>
                   </div>
                 </td>
                 {cols.map((col, ci) => (
                   <td
                     key={col.id}
-                    className={cn(
-                      "border-r border-b border-[var(--border)] p-0",
-                      col.computed && "bg-[var(--highlight)]/5"
-                    )}
+                    className={cn("border-r border-b border-[var(--border)] p-0", col.computed && "bg-[var(--highlight)]/5")}
                     style={{ width: col.width, minWidth: col.width }}
                   >
                     {col.computed ? (
-                      /* Read-only computed cell */
-                      <div className="h-8 px-2 flex items-center text-sm text-[var(--text)] font-mono select-all">
-                        {col.label ? computeCell(col.label, row, cols) : ""}
+                      <div
+                        className={cn(
+                          "h-8 px-2 flex items-center cursor-pointer select-none transition-colors",
+                          rowSel[col.id]?.has(ri)
+                            ? "bg-[var(--highlight)]/25 text-[var(--highlight-text)]"
+                            : "hover:bg-[var(--bg-2)]"
+                        )}
+                        onClick={() => toggleRowSel(col.id, ri)}
+                        title="Click to toggle row for copy"
+                      >
+                        <div className="flex-1 text-sm font-mono truncate">
+                          {col.label ? computeCell(col.label, row, cols) : ""}
+                        </div>
                       </div>
                     ) : (
                       <input
@@ -302,14 +339,13 @@ const BuilderTable = React.forwardRef<BuilderTableHandle, Props>(function Builde
                     )}
                   </td>
                 ))}
+                {/* Filler cell — keeps row grid lines flush to the page edge */}
+                <td className="border-b border-[var(--border)]" />
               </tr>
             ))}
             <tr>
-              <td colSpan={cols.length + 1} className="border-b border-[var(--border)]">
-                <button
-                  onClick={addRow}
-                  className="w-full h-7 text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--bg-2)] transition-colors"
-                >
+              <td colSpan={cols.length + 2} className="border-b border-[var(--border)]">
+                <button onClick={addRow} className="w-full h-7 text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--bg-2)] transition-colors">
                   + Add row
                 </button>
               </td>

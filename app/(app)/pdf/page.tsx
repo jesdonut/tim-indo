@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import Script from "next/script"
 import { cn } from "@/lib/cn"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
+import { Icon } from "@/components/Icon"
+import { getWorkers, type Worker } from "@/app/actions/workers"
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -105,8 +107,8 @@ function CropModal({ imgSrc, onApply, onCancel, cropperReady }: {
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-black">
       <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-[var(--bg)] border-b border-[var(--border)]">
-        <p className="text-sm font-semibold text-[var(--text)]">✂ Crop &amp; Straighten</p>
-        <button onClick={cancel} className="w-8 h-8 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] text-lg">×</button>
+        <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text)]"><Icon name="content_cut" size={16} /> Crop &amp; Straighten</div>
+        <button onClick={cancel} className="w-8 h-8 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)]"><Icon name="close" size={18} /></button>
       </div>
       <div className="flex-1 min-h-0 overflow-hidden bg-[#111]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -267,7 +269,7 @@ function MergeTab({ cropperReady }: { cropperReady: boolean }) {
             dragOver ? "border-[var(--highlight)] bg-[var(--highlight)]/5" : "border-[var(--border)] hover:border-[var(--text-3)] hover:bg-[var(--bg-2)]"
           )}
         >
-          <p className="text-3xl mb-2">📄</p>
+          <div className="text-[var(--text-3)] mb-2"><Icon name="description" size={36} /></div>
           <p className="text-sm font-medium text-[var(--text)]">Drop files here</p>
           <p className="text-xs text-[var(--text-3)] mt-1">PDF · JPG · PNG &nbsp;·&nbsp; or paste (Ctrl+V)</p>
           <span className="mt-3 inline-block px-4 py-1.5 rounded border border-[var(--border)] text-xs text-[var(--text-2)]">Browse</span>
@@ -296,12 +298,12 @@ function MergeTab({ cropperReady }: { cropperReady: boolean }) {
                   }}
                   className={cn("flex items-center gap-3 bg-[var(--bg-2)] border border-[var(--border)] rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing", dragSrc === i && "opacity-30")}
                 >
-                  <span className="text-[var(--border)] text-lg select-none shrink-0">⠿</span>
+                  <span className="text-[var(--border)] select-none shrink-0 flex items-center"><Icon name="drag_indicator" size={18} /></span>
                   <div className="w-10 h-10 rounded bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center overflow-hidden shrink-0"
                     onMouseEnter={e => thumbSrc && setPreview({ src: thumbSrc, rot: entry.rotation, x: e.clientX, y: e.clientY })}
                     onMouseMove={e => thumbSrc && setPreview(p => p ? { ...p, x: e.clientX, y: e.clientY } : null)}
                     onMouseLeave={() => setPreview(null)}>
-                    {isPdf ? <span className="text-xl">📄</span> : <img src={thumbSrc!} className={cn("w-full h-full object-cover", rotClass(entry.rotation))} alt="" />}
+                    {isPdf ? <Icon name="description" size={22} className="text-[var(--text-3)]" /> : <img src={thumbSrc!} className={cn("w-full h-full object-cover", rotClass(entry.rotation))} alt="" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-[var(--text)] truncate">{entry.file.name}</p>
@@ -312,10 +314,10 @@ function MergeTab({ cropperReady }: { cropperReady: boolean }) {
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {!isPdf && <button onClick={() => openCrop(i)} title="Crop" className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] text-sm transition-colors">✂</button>}
+                    {!isPdf && <button onClick={() => openCrop(i)} title="Crop" className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors"><Icon name="content_cut" size={14} /></button>}
                     <button onClick={() => rotate(i, -1)} className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">↺</button>
                     <button onClick={() => rotate(i,  1)} className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">↻</button>
-                    <button onClick={() => setEntries(p => p.filter((_, idx) => idx !== i))} className="w-7 h-7 flex items-center justify-center rounded text-[var(--text-3)] hover:text-red-400 text-base transition-colors">×</button>
+                    <button onClick={() => setEntries(p => p.filter((_, idx) => idx !== i))} className="w-7 h-7 flex items-center justify-center rounded text-[var(--text-3)] hover:text-red-400 transition-colors"><Icon name="close" size={16} /></button>
                   </div>
                 </div>
               )
@@ -331,7 +333,7 @@ function MergeTab({ cropperReady }: { cropperReady: boolean }) {
             {saved.map(name => (
               <div key={name} className="flex items-center bg-[var(--bg-2)] border border-[var(--border)] rounded-md overflow-hidden">
                 <button onClick={() => setFilename(name)} className="px-2.5 py-1 text-[0.7rem] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">{name}</button>
-                <button onClick={() => deleteSaved(name)} className="px-1.5 py-1 text-[var(--border)] hover:text-red-400 text-xs transition-colors">×</button>
+                <button onClick={() => deleteSaved(name)} className="px-1.5 py-1 text-[var(--border)] hover:text-red-400 transition-colors flex items-center"><Icon name="close" size={12} /></button>
               </div>
             ))}
           </div>
@@ -341,7 +343,7 @@ function MergeTab({ cropperReady }: { cropperReady: boolean }) {
             <input value={filename} onChange={e => setFilename(e.target.value)}
               className="flex-1 bg-transparent px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-3)]" placeholder="Output filename" />
             <span className="pr-2 text-xs text-[var(--text-3)]">.pdf</span>
-            <button onClick={saveName} title="Save filename" className="border-l border-[var(--border)] px-3 py-2.5 text-[var(--text-3)] hover:text-[var(--highlight-text)] transition-colors">☆</button>
+            <button onClick={saveName} title="Save filename" className="border-l border-[var(--border)] px-3 py-2.5 text-[var(--text-3)] hover:text-[var(--highlight-text)] transition-colors flex items-center"><Icon name="star_border" size={16} /></button>
           </div>
           <button onClick={handleDownload} disabled={building}
             className={cn("px-5 py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] text-sm font-semibold whitespace-nowrap transition-all", building ? "opacity-50 cursor-not-allowed" : "hover:opacity-80")}>
@@ -449,7 +451,7 @@ function CompressTab({ pdfJsReady }: { pdfJsReady: boolean }) {
         onClick={() => document.getElementById("compressInput")?.click()}
         className={cn("border-2 border-dashed rounded-xl py-8 text-center cursor-pointer transition-all", dragOver ? "border-[var(--highlight)] bg-[var(--highlight)]/5" : "border-[var(--border)] hover:border-[var(--text-3)] hover:bg-[var(--bg-2)]")}
       >
-        <p className="text-2xl mb-2">🗜</p>
+        <div className="text-[var(--text-3)] mb-2"><Icon name="compress" size={36} /></div>
         <p className="text-sm font-medium text-[var(--text)]">Drop PDFs here</p>
         <p className="text-xs text-[var(--text-3)] mt-1">Multiple files supported</p>
         <input id="compressInput" type="file" multiple accept=".pdf,application/pdf" className="hidden"
@@ -490,13 +492,13 @@ function CompressTab({ pdfJsReady }: { pdfJsReady: boolean }) {
         {entries.map(entry => (
           <div key={entry.id} className={cn("border rounded-lg overflow-hidden bg-[var(--bg-2)]", entry.state === "done" ? "border-green-500/40" : entry.state === "error" ? "border-red-400/40" : "border-[var(--border)]")}>
             <div className="flex items-center gap-3 px-3 py-2.5">
-              <span className="text-xl shrink-0">📄</span>
+              <Icon name="description" size={22} className="text-[var(--text-3)] shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-[var(--text)] truncate">{entry.file.name}</p>
                 <p className="text-[0.65rem] text-[var(--text-3)]">{fmt(entry.file.size)}</p>
               </div>
               {entry.state === "compressing" && <span className="text-xs text-[var(--text-3)]">Compressing...</span>}
-              {entry.state === "pending"     && <button onClick={() => removeEntry(entry.id)} className="text-[var(--text-3)] hover:text-red-400 transition-colors">×</button>}
+              {entry.state === "pending"     && <button onClick={() => removeEntry(entry.id)} className="text-[var(--text-3)] hover:text-red-400 transition-colors flex items-center"><Icon name="close" size={16} /></button>}
             </div>
             {entry.state === "done" && entry.result && (
               <div className="flex items-center gap-3 px-3 py-2 border-t border-[var(--border)] bg-[var(--surface)]">
@@ -531,14 +533,132 @@ const DOC_SLOTS = [
   { label: "住民票" },
 ]
 
-type DocEntry = { file: File | null; editedBlob: Blob | null }
+type DocEntry = { file: File | null; editedBlob: Blob | null; rotation: number }
 type DocSlot  = { label: string }
 
-function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsReady: boolean }) {
-  const [serial, setSerial]       = useState("")
-  const [name, setName]           = useState("")
+function WorkerSearch({ onPickSerial, onPickName }: {
+  onPickSerial: (s: string) => void
+  onPickName:   (n: string) => void
+}) {
+  const [workers, setWorkers]       = useState<Worker[]>([])
+  const [q, setQ]                   = useState("")
+  const [open, setOpen]             = useState(false)
+  const [serialChosen, setSerialChosen] = useState(false)
+  const [nameChosen,   setNameChosen]   = useState(false)
+  const suppress                    = useRef(false)
+
+  useEffect(() => { getWorkers().then(setWorkers) }, [])
+
+  const results = q.trim().length > 0
+    ? workers.filter(w => {
+        const lq = q.toLowerCase()
+        return (
+          (w.worker_id ?? "").toLowerCase().includes(lq) ||
+          (w.payroll_post_id ?? "").includes(lq) ||
+          (w.name_latin ?? "").toLowerCase().includes(lq) ||
+          (w.name_kana ?? "").includes(q)
+        )
+      }).slice(0, 8)
+    : []
+
+  function close() { setOpen(false); setQ(""); setSerialChosen(false); setNameChosen(false) }
+
+  function pickSerial(serial: string, currentNameChosen: boolean) {
+    suppress.current = true
+    onPickSerial(serial)
+    setSerialChosen(true)
+    if (currentNameChosen) close()
+  }
+
+  function pickName(name: string, currentSerialChosen: boolean) {
+    suppress.current = true
+    onPickName(name)
+    setNameChosen(true)
+    if (currentSerialChosen) close()
+  }
+
+  function pickBoth(serial: string, name: string) {
+    onPickSerial(serial)
+    onPickName(name)
+    close()
+  }
+
+  const CHIP = "w-20 shrink-0 flex items-center justify-center py-2 text-[0.65rem] font-mono border-l border-[var(--border)] hover:bg-[var(--highlight)]/20 hover:text-[var(--highlight-text)] transition-colors"
+  const dim  = "text-[var(--border)] pointer-events-none"
+
+  return (
+    <div className="relative">
+      <input
+        className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] transition-colors"
+        placeholder={workers.length > 0 ? `Search from ${workers.length} workers…` : "Loading workers…"}
+        value={q}
+        onChange={e => { setQ(e.target.value); setOpen(true); setSerialChosen(false); setNameChosen(false) }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => {
+          if (suppress.current) { suppress.current = false; return }
+          setOpen(false); setSerialChosen(false); setNameChosen(false)
+        }, 150)}
+        autoComplete="off"
+      />
+      {open && q.trim().length > 0 && (
+        <div className="absolute z-20 top-full mt-1 w-full bg-[var(--bg)] border border-[var(--border)] rounded shadow-lg overflow-hidden">
+          {/* Column headers */}
+          <div className="flex border-b border-[var(--border)] bg-[var(--bg-2)]">
+            <div className="flex-1 px-3 py-1 text-[0.65rem] text-[var(--text-3)]" />
+            {(["Romaji","カナ","I番号","給与ID"] as const).map((h, i) => (
+              <div key={h} className={`w-20 shrink-0 text-center py-1 text-[0.65rem] border-l border-[var(--border)] ${i < 2 ? (nameChosen ? "text-[var(--highlight-text)]" : "text-[var(--text-3)]") : (serialChosen ? "text-[var(--highlight-text)]" : "text-[var(--text-3)]")}`}>{h}</div>
+            ))}
+          </div>
+          {results.length === 0
+            ? <p className="px-3 py-2 text-[0.75rem] text-[var(--text-3)]">No match for &ldquo;{q}&rdquo;</p>
+            : results.map(w => {
+                const latin = w.name_latin ?? ""
+                const kana  = w.name_kana  ?? ""
+                const id    = w.worker_id ?? ""
+                return (
+                  <div key={w.id} className="flex items-stretch border-b border-[var(--border)] last:border-0">
+                    {/* Worker info — not clickable */}
+                    <div className="flex-1 px-3 py-2 min-w-0">
+                      <div className="text-sm text-[var(--text)] truncate">{latin || kana || "—"}</div>
+                      {kana && latin && <div className="text-[0.65rem] text-[var(--text-3)] truncate">{kana}</div>}
+                    </div>
+                    {/* Romaji — picks name only */}
+                    <button onMouseDown={() => latin ? pickName(latin, serialChosen) : undefined}
+                      className={`${CHIP} ${!latin ? dim : ""}`}>
+                      {latin ? "Romaji" : "—"}
+                    </button>
+                    {/* カナ — picks name only */}
+                    <button onMouseDown={() => kana ? pickName(kana, serialChosen) : undefined}
+                      className={`${CHIP} ${!kana ? dim : ""}`}>
+                      {kana ? "カナ" : "—"}
+                    </button>
+                    {/* Worker ID — picks serial only */}
+                    <button onMouseDown={() => id ? pickSerial(id, nameChosen) : undefined}
+                      className={`${CHIP} ${!id ? dim : ""}`} style={{ color: id ? "var(--highlight-text)" : undefined }}>
+                      {id || "—"}
+                    </button>
+                    {/* Payroll ID — picks serial only */}
+                    <button onMouseDown={() => w.payroll_post_id ? pickSerial(w.payroll_post_id, nameChosen) : undefined}
+                      className={`${CHIP} ${!w.payroll_post_id ? dim : ""}`}>
+                      {w.payroll_post_id || "—"}
+                    </button>
+                  </div>
+                )
+              })
+          }
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }: {
+  cropperReady: boolean; pdfJsReady: boolean
+  serial: string; setSerial: (v: string) => void
+  name: string;   setName:   (v: string) => void
+}) {
   const [slots, setSlots]         = useState<DocSlot[]>(DOC_SLOTS)
-  const [docs, setDocs]           = useState<DocEntry[]>(DOC_SLOTS.map(() => ({ file: null, editedBlob: null })))
+  const [docs, setDocs]           = useState<DocEntry[]>(DOC_SLOTS.map(() => ({ file: null, editedBlob: null, rotation: 0 })))
   const [status, setStatus]       = useState<{ msg: string; type: "" | "error" | "success" }>({ msg: "", type: "" })
   const [progress, setProgress]   = useState(-1)
   const [building, setBuilding]   = useState(false)
@@ -556,7 +676,7 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
     const label = newSlotLabel.trim()
     if (!label) return
     setSlots(prev => [...prev, { label }])
-    setDocs(prev => [...prev, { file: null, editedBlob: null }])
+    setDocs(prev => [...prev, { file: null, editedBlob: null, rotation: 0 }])
     setChecked(prev => [...prev, false])
     setNewSlotLabel("")
     setAddingSlot(false)
@@ -586,11 +706,15 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
   }
 
   function setDoc(i: number, file: File) {
-    setDocs(prev => prev.map((d, idx) => idx === i ? { file, editedBlob: null } : d))
+    setDocs(prev => prev.map((d, idx) => idx === i ? { file, editedBlob: null, rotation: 0 } : d))
   }
 
   function clearDoc(i: number) {
-    setDocs(prev => prev.map((d, idx) => idx === i ? { file: null, editedBlob: null } : d))
+    setDocs(prev => prev.map((d, idx) => idx === i ? { file: null, editedBlob: null, rotation: 0 } : d))
+  }
+
+  function rotateDoc(i: number, dir: 1 | -1) {
+    setDocs(prev => prev.map((d, idx) => idx === i ? { ...d, rotation: (d.rotation + dir * 90 + 360) % 360 } : d))
   }
 
   function openCrop(i: number) {
@@ -655,7 +779,10 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
   async function downloadDoc(i: number) {
     const d = docs[i]
     if (!d.file) return
-    const bytes = d.file.type === "application/pdf" ? await pdfToBytes(d.file) : await imageToBytes(d.editedBlob ?? d.file)
+    let src: Blob = d.editedBlob ?? d.file
+    if (d.file.type !== "application/pdf" && d.rotation !== 0)
+      src = new Blob([await rotateImageToJpeg(src, d.rotation)], { type: "image/jpeg" })
+    const bytes = d.file.type === "application/pdf" ? await pdfToBytes(d.file) : await imageToBytes(src)
     triggerDownload(bytes, getFilename(i))
   }
 
@@ -670,7 +797,10 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
         const i = selected[n].i
         const d = docs[i]
         setProgress(Math.round((n / selected.length) * 90))
-        const bytes = d.file!.type === "application/pdf" ? await pdfToBytes(d.file!) : await imageToBytes(d.editedBlob ?? d.file!)
+        let imgSrc: Blob = d.editedBlob ?? d.file!
+        if (d.file!.type !== "application/pdf" && d.rotation !== 0)
+          imgSrc = new Blob([await rotateImageToJpeg(imgSrc, d.rotation)], { type: "image/jpeg" })
+        const bytes = d.file!.type === "application/pdf" ? await pdfToBytes(d.file!) : await imageToBytes(imgSrc)
         const srcDoc = await PDFDocument.load(bytes)
         const pages  = await outDoc.copyPages(srcDoc, srcDoc.getPageIndices())
         for (const p of pages) outDoc.addPage(p)
@@ -706,7 +836,10 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
         const { d, i } = loaded[n]
         setStatus({ msg: `Processing ${n + 1} of ${loaded.length}...`, type: "" })
         setProgress(Math.round((n / loaded.length) * 100))
-        const bytes = d.file!.type === "application/pdf" ? await pdfToBytes(d.file!) : await imageToBytes(d.editedBlob ?? d.file!)
+        let imgSrc2: Blob = d.editedBlob ?? d.file!
+        if (d.file!.type !== "application/pdf" && d.rotation !== 0)
+          imgSrc2 = new Blob([await rotateImageToJpeg(imgSrc2, d.rotation)], { type: "image/jpeg" })
+        const bytes = d.file!.type === "application/pdf" ? await pdfToBytes(d.file!) : await imageToBytes(imgSrc2)
         triggerDownload(bytes, getFilename(i))
       }
       setProgress(100)
@@ -720,13 +853,16 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
 
   return (
     <>
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-
-        {/* Sticky header */}
-        <div className="sticky top-0 z-10 bg-[var(--bg)] border-b border-[var(--border)] px-5 py-3 flex gap-3">
+      {/* Header — outside overflow-y-auto so the search dropdown is never clipped */}
+      <div className="shrink-0 px-5 py-4 border-b border-[var(--border)] flex flex-col gap-3">
+        <div>
+          <p className="label-xs mb-1.5">Search worker</p>
+          <WorkerSearch onPickSerial={setSerial} onPickName={setName} />
+        </div>
+        <div className="flex gap-3">
           <div className="flex flex-col gap-1 flex-1">
             <label className="label-xs">Serial No.</label>
-            <input value={serial} onChange={e => setSerial(e.target.value)} placeholder="e.g. 001"
+            <input value={serial} onChange={e => setSerial(e.target.value)} placeholder="e.g. I2"
               className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors placeholder:text-[var(--text-3)]" />
           </div>
           <div className="flex flex-col gap-1 flex-1">
@@ -735,6 +871,9 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
               className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors placeholder:text-[var(--text-3)]" />
           </div>
         </div>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
 
         {/* Slots */}
         <div className="px-5 py-4 flex flex-col gap-3">
@@ -750,7 +889,7 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
                   <span className="text-sm font-semibold text-[var(--text)] flex-1">{slot.label}</span>
                   <span className="text-[0.62rem] text-[var(--text-3)] font-mono truncate max-w-[120px]">{getFilename(i)}</span>
                   {isCustom && (
-                    <button onClick={() => removeSlot(i)} className="text-[var(--text-3)] hover:text-red-400 text-sm transition-colors shrink-0" title="Remove this slot">×</button>
+                    <button onClick={() => removeSlot(i)} className="text-[var(--text-3)] hover:text-red-400 transition-colors shrink-0 flex items-center" title="Remove this slot"><Icon name="close" size={14} /></button>
                   )}
                 </div>
 
@@ -758,17 +897,23 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
                   <div className="flex items-center gap-3 px-3 py-2.5">
                     <div className="w-10 h-10 rounded bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center overflow-hidden shrink-0">
                       {isImg
-                        ? <img src={URL.createObjectURL(d.editedBlob ?? d.file!)} className="w-full h-full object-cover" alt="" />
-                        : <span className="text-xl">📄</span>}
+                        ? <img src={URL.createObjectURL(d.editedBlob ?? d.file!)} className={cn("w-full h-full object-cover", rotClass(d.rotation))} alt="" />
+                        : <Icon name="description" size={22} className="text-[var(--text-3)]" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-[var(--text)] truncate">{d.file.name}</p>
-                      <p className="text-[0.65rem] text-[var(--text-3)]">{fmt(d.file.size)}{d.editedBlob ? " · cropped" : ""}</p>
+                      <p className="text-[0.65rem] text-[var(--text-3)]">
+                        {fmt(d.file.size)}
+                        {d.editedBlob ? " · cropped" : ""}
+                        {d.rotation ? ` · ${d.rotation}°` : ""}
+                      </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      {isImg && <button onClick={() => openCrop(i)} className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] text-sm transition-colors">✂</button>}
-                      <button onClick={() => downloadDoc(i)} className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] text-sm transition-colors">↓</button>
-                      <button onClick={() => clearDoc(i)} className="w-7 h-7 flex items-center justify-center rounded text-[var(--text-3)] hover:text-red-400 text-base transition-colors">×</button>
+                      {isImg && <button onClick={() => openCrop(i)} className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors"><Icon name="content_cut" size={14} /></button>}
+                      <button onClick={() => rotateDoc(i, -1)} title="Rotate left" className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">↺</button>
+                      <button onClick={() => rotateDoc(i,  1)} title="Rotate right" className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">↻</button>
+                      <button onClick={() => downloadDoc(i)} className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">↓</button>
+                      <button onClick={() => clearDoc(i)} className="w-7 h-7 flex items-center justify-center rounded text-[var(--text-3)] hover:text-red-400 transition-colors"><Icon name="close" size={16} /></button>
                     </div>
                   </div>
                 ) : (
@@ -817,14 +962,14 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
       {/* Bottom bar */}
       <div className="shrink-0 border-t border-[var(--border)] bg-[var(--bg)] px-5 py-3 flex flex-col gap-2">
         <div className="flex gap-2">
-          <button onClick={downloadAll} disabled={building || !pdfJsReady}
+          <button onClick={downloadAll} disabled={building || !pdfJsReady} suppressHydrationWarning
             className={cn("flex-1 py-2.5 rounded-lg border border-[var(--border)] text-sm font-semibold transition-all text-[var(--text-2)]", (building || !pdfJsReady) ? "opacity-50 cursor-not-allowed" : "hover:text-[var(--text)] hover:border-[var(--text-2)]")}>
             {building ? "Processing..." : "↓ Download All"}
           </button>
-          <button onClick={combineSelected} disabled={building || !pdfJsReady || !checked.some((c, i) => c && !!docs[i].file)}
+          <button onClick={combineSelected} suppressHydrationWarning disabled={building || !pdfJsReady || !checked.some((c, i) => c && !!docs[i].file)}
             className={cn("flex-1 py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] text-sm font-semibold transition-all",
               (building || !pdfJsReady || !checked.some((c, i) => c && !!docs[i].file)) ? "opacity-40 cursor-not-allowed" : "hover:opacity-80")}>
-            {building ? "Combining..." : `⊕ Combine${checked.filter((c, i) => c && !!docs[i].file).length > 0 ? ` (${checked.filter((c, i) => c && !!docs[i].file).length})` : ""}`}
+            {building ? "Combining..." : `Combine${checked.filter((c, i) => c && !!docs[i].file).length > 0 ? ` (${checked.filter((c, i) => c && !!docs[i].file).length})` : ""}`}
           </button>
         </div>
         {progress >= 0 && <div className="h-0.5 bg-[var(--border)] rounded overflow-hidden"><div className="h-full bg-[var(--highlight)] transition-all duration-300" style={{ width: `${progress}%` }} /></div>}
@@ -846,9 +991,11 @@ function DocsTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRea
 type Tab = "merge" | "compress" | "docs"
 
 export default function PDFPage() {
-  const [tab, setTab]           = useState<Tab>("docs")
+  const [tab, setTab]                   = useState<Tab>("docs")
   const [cropperReady, setCropperReady] = useState(false)
   const [pdfJsReady, setPdfJsReady]     = useState(false)
+  const [serial, setSerial]             = useState("")
+  const [name, setName]                 = useState("")
 
   return (
     <>
@@ -879,7 +1026,7 @@ export default function PDFPage() {
         <ToolContent>
           {tab === "merge"    && <MergeTab    cropperReady={cropperReady} />}
           {tab === "compress" && <CompressTab pdfJsReady={pdfJsReady} />}
-          {tab === "docs"     && <DocsTab     cropperReady={cropperReady} pdfJsReady={pdfJsReady} />}
+          {tab === "docs"     && <DocsTab     cropperReady={cropperReady} pdfJsReady={pdfJsReady} serial={serial} setSerial={setSerial} name={name} setName={setName} />}
         </ToolContent>
       </div>
     </>

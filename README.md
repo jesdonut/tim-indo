@@ -1,34 +1,46 @@
 # Tim Indo Serba Bisa
 
-Internal browser tools for the team. No install needed, everything runs client-side.
+Private internal tools for a small Indonesia-based team working in Japan. Requires an invite to sign up.
 
-## Pages
+## Tools
 
 | Page | What it does |
 |------|-------------|
-| **PDF** | Merge PDFs and images (JPG/PNG), rotate pages, reorder, download |
-| **Translate** | Japanese to EN/ID/etc. with romaji and kana |
-| **Postal** | Japan postal code lookup: code to address or address to code |
-| **Spell** | Type a katakana name, see how each character is said |
-| **Compress** | Compress PDFs in the browser |
-| **Station** | Find the nearest train station by postal code or address |
-| **Builder** | Paste Excel columns and stitch them into strings row by row |
+| **Database** | Shared team data viewer |
+| **Moodboard** | Team link board — draggable cards, pinnable, categorised |
+| **PDF** | Merge, compress, and package document sets (在留カード etc.) |
+| **Translate** | Japanese → EN / ID with romaji and furigana |
+| **Builder** | Paste Excel columns, stitch them into strings row by row with formula columns |
 | **Area** | Interactive Japan prefecture map — assign areas to staff, track worker rosters, CSV/JSON import-export |
+| **Extract** | Paste text to extract phone numbers and store context |
 
 ## Stack
 
-Plain HTML/CSS/JS. No build step, no backend.
+- **Framework:** Next.js 15 (App Router), TypeScript, Tailwind CSS
+- **Auth & DB:** Supabase (auth, realtime, row-level security)
+- **PDF:** [pdf-lib](https://pdf-lib.js.org/), [PDF.js](https://mozilla.github.io/pdf.js/)
+- **Map:** [D3](https://d3js.org/) + [topojson-client](https://github.com/topojson/topojson-client), map data from [dataofjapan/land](https://github.com/dataofjapan/land)
+- **Drag-and-drop:** [@dnd-kit](https://dndkit.com/)
+- **Hosting:** Vercel (auto-deploy on push to `main`)
 
-- PDF generation: [pdf-lib](https://pdf-lib.js.org/)
-- Romaji/translation: Google Translate public endpoint
-- Postal data: ken-all via numb86 CDN + geolonia addresses dataset
-- Station data: HeartRails Express API (build-time), served as static JSON
-- Map rendering: [D3](https://d3js.org/) + [topojson-client](https://github.com/topojson/topojson-client), map data from [dataofjapan/land](https://github.com/dataofjapan/land)
-- Hosting: Vercel (static)
+## Dev
+
+```bash
+npm install
+npm run dev
+```
+
+Requires `.env.local`:
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_SITE_URL=...
+INVITE_CODE=...
+```
 
 ## Deploy
 
-Push to `main` and Vercel auto-deploys. Config in `vercel.json`.
+Push to `main` → Vercel auto-deploys. No manual steps.
 
 ## Ownership & Usage
 

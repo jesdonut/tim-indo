@@ -16,7 +16,7 @@ const CONTAINER = "max-w-7xl mx-auto px-5 w-full"
 
 export function PageHeader({ title, right }: { title: string; right?: ReactNode }) {
   return (
-    <div className="border-b border-[var(--border)] bg-[var(--bg)] shrink-0">
+    <div className="sticky top-[48px] z-30 border-b border-[var(--border)] bg-[var(--bg)] shrink-0">
       <div className={cn(CONTAINER, "h-14 flex items-center justify-between gap-4")}>
         <h1 className="text-xl font-semibold tracking-tight text-[var(--text)] shrink-0">{title}</h1>
         {right && <div className="flex items-center gap-2 min-w-0 overflow-x-auto">{right}</div>}

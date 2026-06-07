@@ -3,14 +3,16 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "./ThemeProvider"
+import { Icon } from "./Icon"
 import { cn } from "@/lib/cn"
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/verify", "/join-team"]
 const AUTH_PATHS   = ["/login", "/signup", "/verify", "/join-team"]
 
 const NAV_ITEMS = [
-  { href: "/db",       label: "Database" },
-  { href: "/links",    label: "Links" },
+  { href: "/people",   label: "People" },
+  { href: "/maps",     label: "Maps" },
+  { href: "/links",    label: "Moodboard" },
   { href: "/pdf",      label: "PDF" },
   { href: "/translate",label: "Translate" },
   { href: "/builder",  label: "Builder" },
@@ -77,7 +79,7 @@ export default function Nav() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[var(--border)] text-[0.7rem] font-medium text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all"
             aria-label="Toggle theme"
           >
-            {theme === "dark" ? "☀︎" : "◑"}
+            <Icon name={theme === "dark" ? "light_mode" : "dark_mode"} size={14} />
             <span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
           </button>
 
