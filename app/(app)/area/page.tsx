@@ -10,7 +10,7 @@ import type { MapMode } from "@/components/area/types"
 import { MODE_LABELS, EXTRA_COLORS } from "@/components/area/types"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
-import { getTeamData } from "@/app/actions/teams"
+import { getTeamData, getAreaNameJa, setAreaNameJa } from "@/app/actions/teams"
 import { getWorkers, type Worker } from "@/app/actions/workers"
 
 const MODES: MapMode[] = ["staff", "count", "unassigned"]
@@ -36,6 +36,7 @@ export default function AreaPage() {
   const [selectedPref,setSelectedPref]= useState<string | null>(null)
   const [search,      setSearch]      = useState("")
   const [dbWorkers,   setDbWorkers]   = useState<Worker[]>([])
+  const [dbNameJa,    setDbNameJa]    = useState<Record<string, string>>({})
   const csvRef = useRef<HTMLInputElement>(null)
 
   // Seed all team members as staff if the list is empty
@@ -56,10 +57,17 @@ export default function AreaPage() {
     })
   }, [state.staff, addStaff])
 
-  // Fetch live worker counts from the People database
+  // Fetch live worker counts + Japanese name mappings from DB
   useEffect(() => {
     getWorkers().then(setDbWorkers)
-  }, [])
+    getAreaNameJa().then(mapping => {
+      setDbNameJa(mapping)
+      // Apply to area state so the inline display stays in sync
+      Object.entries(mapping).forEach(([profileId, nameJa]) => {
+        updateStaffNameJa(profileId, nameJa)
+      })
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Compute worker count per staff member from the DB (by support_staff name match)
   const dbCounts = useMemo(() => {
@@ -116,7 +124,12 @@ export default function AreaPage() {
 
   function handleAddStaff(name: string, color: string) {
     const id = `staff_${Date.now()}`
-    addStaff({ id, name, nameEn: name, color })
+    addStaff({ id, name, nameEn: name, nameJa: "", color })
+  }
+
+  function handleUpdateNameJa(profileId: string, nameJa: string) {
+    updateStaffNameJa(profileId, nameJa)
+    setAreaNameJa(profileId, nameJa)  // persist to DB for cross-device sync
   }
 
   return (
@@ -156,7 +169,7 @@ export default function AreaPage() {
             dbCounts={dbCounts}
             onAdd={handleAddStaff}
             onRemove={removeStaff}
-            onUpdateNameJa={updateStaffNameJa}
+            onUpdateNameJa={handleUpdateNameJa}
           />
         </div>
 

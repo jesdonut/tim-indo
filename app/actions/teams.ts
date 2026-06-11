@@ -203,6 +203,28 @@ export async function deletePhoneScript(id: string): Promise<{ error: string } |
   return { success: true }
 }
 
+// ─── Area name_ja mappings ────────────────────────────────────────────────────
+
+export async function getAreaNameJa(): Promise<Record<string, string>> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {}
+  const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
+  const { data } = await supabase.from("teams").select("area_name_ja").eq("id", teamId).maybeSingle()
+  return (data?.area_name_ja as Record<string, string>) ?? {}
+}
+
+export async function setAreaNameJa(profileId: string, nameJa: string): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
+  const { data } = await supabase.from("teams").select("area_name_ja").eq("id", teamId).maybeSingle()
+  const current = (data?.area_name_ja as Record<string, string>) ?? {}
+  const updated = { ...current, [profileId]: nameJa }
+  await supabase.from("teams").update({ area_name_ja: updated }).eq("id", teamId)
+}
+
 // ─── Multi-team actions ──────────────────────────────────────────────────────
 
 export type MyTeam = {
