@@ -21,6 +21,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
+import PixelLoader from "@/components/PixelLoader"
 import type { TeamLink } from "@/components/links/useLinks"
 
 const CATEGORY_ORDER = ["グラスプ", "データ", "コンパス社", "ライフライン"]
@@ -149,7 +150,7 @@ export default function MoodboardPage() {
   }, [confirmId])
 
   if (loading) return (
-    <div className="flex items-center justify-center h-[calc(100dvh-48px)] text-sm text-[var(--text-3)]">Loading...</div>
+    <div className="relative h-[calc(100dvh-48px)]"><PixelLoader /></div>
   )
 
   return (

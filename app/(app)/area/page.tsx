@@ -6,12 +6,13 @@ import JapanMap from "@/components/area/JapanMap"
 import StaffCards from "@/components/area/StaffCards"
 import PrefPanel from "@/components/area/PrefPanel"
 import { cn } from "@/lib/cn"
-import type { MapMode } from "@/components/area/types"
+import type { MapMode, AreaState, PrefData, Worker as AreaWorker } from "@/components/area/types"
 import { MODE_LABELS, EXTRA_COLORS } from "@/components/area/types"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
 import { getTeamData, getAreaNameJa, setAreaNameJa } from "@/app/actions/teams"
 import { getWorkers, type Worker } from "@/app/actions/workers"
+import PixelLoader from "@/components/PixelLoader"
 
 const MODES: MapMode[] = ["staff", "count", "unassigned"]
 
@@ -37,6 +38,7 @@ export default function AreaPage() {
   const [search,      setSearch]      = useState("")
   const [dbWorkers,   setDbWorkers]   = useState<Worker[]>([])
   const [dbNameJa,    setDbNameJa]    = useState<Record<string, string>>({})
+  const [loading,     setLoading]     = useState(true)
   const csvRef = useRef<HTMLInputElement>(null)
 
   // Seed team members + apply DB nameJa mappings on every load
@@ -62,7 +64,7 @@ export default function AreaPage() {
       Object.entries(nameJaMap).forEach(([profileId, nameJa]) => {
         updateStaffNameJa(profileId, nameJa)
       })
-    })
+    }).finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Compute worker count per staff member from the DB (by support_staff name match)
@@ -75,17 +77,60 @@ export default function AreaPage() {
     return counts
   }, [dbWorkers, state.staff])
 
+  // Build prefectures + rosters from DB workers so the map works without a CSV import.
+  // localStorage assignments take precedence (spread order: DB first, then state).
+  const effectiveState = useMemo<AreaState>(() => {
+    if (!dbWorkers.length) return state
+    const prefectures: Record<string, PrefData> = {}
+    const rosters: Record<string, AreaWorker[]> = {}
+    const votes: Record<string, Record<string, number>> = {}
+    for (const w of dbWorkers) {
+      const area = w.area?.trim().replace(/[都道府県]$/, "")
+      if (!area) continue
+      const staffId = matchStaffId(w.support_staff, state.staff) ?? "unassigned"
+      if (!votes[area]) votes[area] = {}
+      votes[area][staffId] = (votes[area][staffId] ?? 0) + 1
+      if (!rosters[area]) rosters[area] = []
+      rosters[area].push({
+        id: w.id,
+        name: w.name_kana ?? w.name_latin ?? w.id,
+        furigana: w.name_kana ?? undefined,
+        gender: w.gender ?? undefined,
+        birthdate: w.birth_date ?? undefined,
+        moveInDate: w.move_in_date ?? undefined,
+        firstWorkDate: w.first_work_date ?? undefined,
+        storeId: w.store_code ?? undefined,
+        storeName: w.store_name ?? undefined,
+        storeAddress: w.store_address ?? undefined,
+        homeAddress: w.housing_address ?? undefined,
+        apartment: w.housing_building ?? undefined,
+        phone: w.mobile_phone ?? undefined,
+        status: w.status ?? undefined,
+        assignedTo: staffId !== "unassigned" ? staffId : undefined,
+      })
+    }
+    for (const [area, areaVotes] of Object.entries(votes)) {
+      const dominant = Object.entries(areaVotes).sort((a, b) => b[1] - a[1])[0][0]
+      prefectures[area] = { assignedTo: dominant, count: rosters[area]?.length ?? 0 }
+    }
+    return {
+      ...state,
+      prefectures: { ...prefectures, ...state.prefectures },
+      rosters: { ...rosters, ...state.rosters },
+    }
+  }, [dbWorkers, state])
+
   const searchMatches = useMemo(() => {
     const q = search.trim()
     if (!q) return new Set<string>()
     const ql = q.toLowerCase()
     const hits = new Set<string>()
     // Match prefecture name
-    for (const [pref] of Object.entries(state.prefectures)) {
+    for (const [pref] of Object.entries(effectiveState.prefectures)) {
       if (pref.includes(q)) hits.add(pref)
     }
     // Match workers
-    for (const [pref, roster] of Object.entries(state.rosters)) {
+    for (const [pref, roster] of Object.entries(effectiveState.rosters)) {
       for (const w of roster) {
         if (
           w.name.toLowerCase().includes(ql) ||
@@ -127,6 +172,10 @@ export default function AreaPage() {
     updateStaffNameJa(profileId, nameJa)
     setAreaNameJa(profileId, nameJa)  // persist to DB for cross-device sync
   }
+
+  if (loading) return (
+    <div className="relative h-[calc(100dvh-48px)]"><PixelLoader /></div>
+  )
 
   return (
     <div className="flex flex-col h-[calc(100dvh-48px)]">
@@ -171,7 +220,7 @@ export default function AreaPage() {
 
         {/* Map */}
         <JapanMap
-          state={state}
+          state={effectiveState}
           mode={mode}
           selectedPref={selectedPref}
           searchMatches={searchMatches}
@@ -183,7 +232,7 @@ export default function AreaPage() {
           <div className="w-72 shrink-0 border-l border-[var(--border)] bg-[var(--surface)] overflow-hidden flex flex-col">
             <PrefPanel
               pref={selectedPref}
-              state={state}
+              state={effectiveState}
               onAssign={(pref, staffId) => assignPref(pref, staffId)}
               onClose={() => setSelectedPref(null)}
             />
