@@ -8,11 +8,12 @@ import { Icon } from "@/components/Icon"
 
 type Props = {
   state: AreaState
+  dbCounts?: Record<string, number>
   onAdd: (name: string, color: string) => void
   onRemove: (id: string) => void
 }
 
-export default function StaffCards({ state, onAdd, onRemove }: Props) {
+export default function StaffCards({ state, dbCounts, onAdd, onRemove }: Props) {
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState("")
 
@@ -53,7 +54,7 @@ export default function StaffCards({ state, onAdd, onRemove }: Props) {
   return (
     <div className="flex flex-col gap-2 overflow-y-auto">
       {staff.map(s => {
-        const count = countFor(s.id)
+        const count = dbCounts ? (dbCounts[s.id] ?? 0) : countFor(s.id)
         const prefs = prefsFor(s.id)
         const pct   = Math.min((count / MAX_CAPACITY) * 100, 100)
         const over  = count > MAX_CAPACITY

@@ -11,11 +11,29 @@ import { MODE_LABELS, EXTRA_COLORS } from "@/components/area/types"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
 import { getTeamData } from "@/app/actions/teams"
+import { getWorkers, type Worker } from "@/app/actions/workers"
 
 const MODES: MapMode[] = ["staff", "count", "unassigned"]
 
 // Stable colors per position in the team list
 const SEED_COLORS = ["#be185d", "#0891b2", "#65a30d", ...EXTRA_COLORS]
+
+// Match a support_staff string to a staff id by name (case-insensitive, first-name friendly)
+function matchStaffId(supportStaff: string | null | undefined, staffMap: Record<string, { name: string; nameEn: string }>): string | null {
+  if (!supportStaff) return null
+  const q = supportStaff.trim().toLowerCase()
+  for (const [id, s] of Object.entries(staffMap)) {
+    if (
+      s.name.toLowerCase() === q ||
+      s.nameEn.toLowerCase() === q ||
+      s.name.toLowerCase().startsWith(q) ||
+      s.nameEn.toLowerCase().startsWith(q) ||
+      q.startsWith(s.name.toLowerCase()) ||
+      q.startsWith(s.nameEn.toLowerCase())
+    ) return id
+  }
+  return null
+}
 
 export default function AreaPage() {
   const { state, assignPref, addStaff, removeStaff, importCSV, exportJSON, reset } = useAreaState()
@@ -23,6 +41,7 @@ export default function AreaPage() {
   const [mode,        setMode]        = useState<MapMode>("staff")
   const [selectedPref,setSelectedPref]= useState<string | null>(null)
   const [search,      setSearch]      = useState("")
+  const [dbWorkers,   setDbWorkers]   = useState<Worker[]>([])
   const csvRef = useRef<HTMLInputElement>(null)
 
   // Seed all team members as staff if the list is empty
@@ -41,6 +60,21 @@ export default function AreaPage() {
       })
     })
   }, [state.staff, addStaff])
+
+  // Fetch live worker counts from the People database
+  useEffect(() => {
+    getWorkers().then(setDbWorkers)
+  }, [])
+
+  // Compute worker count per staff member from the DB (by support_staff name match)
+  const dbCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const w of dbWorkers) {
+      const id = matchStaffId(w.support_staff, state.staff)
+      if (id) counts[id] = (counts[id] ?? 0) + 1
+    }
+    return counts
+  }, [dbWorkers, state.staff])
 
   const searchMatches = useMemo(() => {
     const q = search.trim()
@@ -124,6 +158,7 @@ export default function AreaPage() {
           <span className="label-xs">担当者</span>
           <StaffCards
             state={state}
+            dbCounts={dbCounts}
             onAdd={handleAddStaff}
             onRemove={removeStaff}
           />
