@@ -48,6 +48,15 @@ export function useAreaState() {
     })
   }, [save])
 
+  const updateStaffNameJa = useCallback((id: string, nameJa: string) => {
+    setState(prev => {
+      if (!prev.staff[id]) return prev
+      const next = { ...prev, staff: { ...prev.staff, [id]: { ...prev.staff[id], nameJa } } }
+      save(next)
+      return next
+    })
+  }, [save])
+
   const removeStaff = useCallback((id: string) => {
     setState(prev => {
       const staff = { ...prev.staff }
@@ -79,7 +88,7 @@ export function useAreaState() {
     save(next)
   }, [save])
 
-  return { state, assignPref, addStaff, removeStaff, importCSV, exportJSON, reset }
+  return { state, assignPref, addStaff, removeStaff, updateStaffNameJa, importCSV, exportJSON, reset }
 }
 
 // ── CSV parser (mirrors legacy format) ───────────────────────────────────────

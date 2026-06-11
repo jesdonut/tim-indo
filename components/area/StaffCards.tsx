@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import type { AreaState } from "./types"
+import type { AreaState, Staff } from "./types"
 import { EXTRA_COLORS, MAX_CAPACITY } from "./types"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
@@ -11,11 +11,14 @@ type Props = {
   dbCounts?: Record<string, number>
   onAdd: (name: string, color: string) => void
   onRemove: (id: string) => void
+  onUpdateNameJa: (id: string, nameJa: string) => void
 }
 
-export default function StaffCards({ state, dbCounts, onAdd, onRemove }: Props) {
+export default function StaffCards({ state, dbCounts, onAdd, onRemove, onUpdateNameJa }: Props) {
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState("")
+  const [editingJa, setEditingJa] = useState<string | null>(null)
+  const [jaValue, setJaValue] = useState("")
 
   function countFor(staffId: string): number {
     let total = 0
@@ -25,7 +28,6 @@ export default function StaffCards({ state, dbCounts, onAdd, onRemove }: Props) 
         if (wa === staffId) total++
       }
     }
-    // Fallback: count-only prefectures
     for (const [pref, data] of Object.entries(state.prefectures)) {
       if (data.assignedTo !== staffId) continue
       if (!(state.rosters[pref] ?? []).length && data.count > 0) total += data.count
@@ -37,6 +39,16 @@ export default function StaffCards({ state, dbCounts, onAdd, onRemove }: Props) 
     return Object.entries(state.prefectures)
       .filter(([, d]) => d.assignedTo === staffId)
       .map(([p]) => p)
+  }
+
+  function startEditJa(s: Staff) {
+    setEditingJa(s.id)
+    setJaValue(s.nameJa ?? "")
+  }
+
+  function commitJa(id: string) {
+    onUpdateNameJa(id, jaValue.trim())
+    setEditingJa(null)
   }
 
   function confirmAdd() {
@@ -58,18 +70,42 @@ export default function StaffCards({ state, dbCounts, onAdd, onRemove }: Props) 
         const prefs = prefsFor(s.id)
         const pct   = Math.min((count / MAX_CAPACITY) * 100, 100)
         const over  = count > MAX_CAPACITY
+        const isEditingJa = editingJa === s.id
 
         return (
           <div key={s.id} className="group border border-[var(--border)] rounded bg-[var(--surface)] px-3 py-2.5">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
               <span className="text-sm font-semibold text-[var(--text)] flex-1">{s.name}</span>
-              <span className="text-[0.65rem] text-[var(--text-3)]">{s.nameEn}</span>
               <button
                 onClick={() => onRemove(s.id)}
                 className="opacity-0 group-hover:opacity-100 text-[var(--text-3)] hover:text-red-400 transition-all flex items-center"
               ><Icon name="close" size={13} /></button>
             </div>
+
+            {/* Japanese name — editable, used to match support_staff field */}
+            <div className="mb-1.5">
+              {isEditingJa ? (
+                <input
+                  autoFocus
+                  className="w-full bg-[var(--bg-2)] border border-[var(--highlight-text)] rounded px-1.5 py-0.5 text-[0.68rem] text-[var(--text)] outline-none font-mono"
+                  placeholder="カタカナで入力…"
+                  value={jaValue}
+                  onChange={e => setJaValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") commitJa(s.id); if (e.key === "Escape") setEditingJa(null) }}
+                  onBlur={() => commitJa(s.id)}
+                />
+              ) : (
+                <button
+                  onClick={() => startEditJa(s)}
+                  className="text-[0.65rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors font-mono"
+                  title="Click to set Japanese name for matching"
+                >
+                  {s.nameJa ? s.nameJa : <span className="opacity-40">+ カタカナ名</span>}
+                </button>
+              )}
+            </div>
+
             <div className={cn("text-lg font-bold leading-none mb-1", over ? "text-red-400" : "text-[var(--text)]")}>
               {count}<span className="text-xs font-normal text-[var(--text-3)] ml-0.5">名</span>
             </div>

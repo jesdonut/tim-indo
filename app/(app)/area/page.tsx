@@ -30,7 +30,7 @@ function matchStaffId(supportStaff: string | null | undefined, staffMap: Record<
 }
 
 export default function AreaPage() {
-  const { state, assignPref, addStaff, removeStaff, importCSV, exportJSON, reset } = useAreaState()
+  const { state, assignPref, addStaff, removeStaff, updateStaffNameJa, importCSV, exportJSON, reset } = useAreaState()
 
   const [mode,        setMode]        = useState<MapMode>("staff")
   const [selectedPref,setSelectedPref]= useState<string | null>(null)
@@ -44,13 +44,12 @@ export default function AreaPage() {
     getTeamData().then(data => {
       if (!data?.profiles?.length) return
       data.profiles.forEach((profile, i) => {
-        const nameEn = (profile as { name?: string | null; name_ja?: string | null }).name ?? "Team member"
-        const nameJa = (profile as { name_ja?: string | null }).name_ja ?? ""
+        const name = profile.name ?? "Team member"
         addStaff({
           id: profile.id,
-          name: nameEn,
-          nameEn,
-          nameJa,
+          name,
+          nameEn: name,
+          nameJa: "",
           color: SEED_COLORS[i % SEED_COLORS.length],
         })
       })
@@ -157,6 +156,7 @@ export default function AreaPage() {
             dbCounts={dbCounts}
             onAdd={handleAddStaff}
             onRemove={removeStaff}
+            onUpdateNameJa={updateStaffNameJa}
           />
         </div>
 
