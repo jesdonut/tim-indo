@@ -10,8 +10,12 @@ import type { MapMode } from "@/components/area/types"
 import { MODE_LABELS, EXTRA_COLORS } from "@/components/area/types"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
+import { getTeamData } from "@/app/actions/teams"
 
 const MODES: MapMode[] = ["staff", "count", "unassigned"]
+
+// Stable colors per position in the team list
+const SEED_COLORS = ["#be185d", "#0891b2", "#65a30d", ...EXTRA_COLORS]
 
 export default function AreaPage() {
   const { state, assignPref, addStaff, removeStaff, importCSV, exportJSON, reset } = useAreaState()
@@ -21,15 +25,19 @@ export default function AreaPage() {
   const [search,      setSearch]      = useState("")
   const csvRef = useRef<HTMLInputElement>(null)
 
-  // Seed the current user as the first staff member if staff list is empty
+  // Seed all team members as staff if the list is empty
   useEffect(() => {
     if (Object.keys(state.staff).length > 0) return
-    import("@/lib/supabase/client").then(({ createClient }) => {
-      createClient().auth.getUser().then(({ data: { user } }) => {
-        if (!user) return
-        const name   = user.user_metadata?.name   ?? user.email ?? "Me"
-        const nameJa = user.user_metadata?.nameJa ?? name
-        addStaff({ id: user.id, name: nameJa, nameEn: name, color: "#be185d" })
+    getTeamData().then(data => {
+      if (!data?.profiles?.length) return
+      data.profiles.forEach((profile, i) => {
+        const name = profile.name ?? "Team member"
+        addStaff({
+          id: profile.id,
+          name,
+          nameEn: name,
+          color: SEED_COLORS[i % SEED_COLORS.length],
+        })
       })
     })
   }, [state.staff, addStaff])
