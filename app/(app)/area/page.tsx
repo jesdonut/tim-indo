@@ -39,31 +39,27 @@ export default function AreaPage() {
   const [dbNameJa,    setDbNameJa]    = useState<Record<string, string>>({})
   const csvRef = useRef<HTMLInputElement>(null)
 
-  // Seed all team members as staff if the list is empty
+  // Seed team members + apply DB nameJa mappings on every load
   useEffect(() => {
-    if (Object.keys(state.staff).length > 0) return
-    getTeamData().then(data => {
-      if (!data?.profiles?.length) return
-      data.profiles.forEach((profile, i) => {
-        const name = profile.name ?? "Team member"
-        addStaff({
-          id: profile.id,
-          name,
-          nameEn: name,
-          nameJa: "",
-          color: SEED_COLORS[i % SEED_COLORS.length],
-        })
-      })
-    })
-  }, [state.staff, addStaff])
+    Promise.all([getTeamData(), getAreaNameJa(), getWorkers()]).then(([teamData, nameJaMap, workers]) => {
+      setDbWorkers(workers)
+      setDbNameJa(nameJaMap)
 
-  // Fetch live worker counts + Japanese name mappings from DB
-  useEffect(() => {
-    getWorkers().then(setDbWorkers)
-    getAreaNameJa().then(mapping => {
-      setDbNameJa(mapping)
-      // Apply to area state so the inline display stays in sync
-      Object.entries(mapping).forEach(([profileId, nameJa]) => {
+      if (teamData?.profiles?.length) {
+        teamData.profiles.forEach((profile, i) => {
+          const name = profile.name ?? "Team member"
+          addStaff({
+            id: profile.id,
+            name,
+            nameEn: name,
+            nameJa: nameJaMap[profile.id] ?? "",
+            color: SEED_COLORS[i % SEED_COLORS.length],
+          })
+        })
+      }
+
+      // Apply nameJa to any staff already in state (e.g. loaded from localStorage)
+      Object.entries(nameJaMap).forEach(([profileId, nameJa]) => {
         updateStaffNameJa(profileId, nameJa)
       })
     })

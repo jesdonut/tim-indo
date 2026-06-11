@@ -42,7 +42,12 @@ export function useAreaState() {
 
   const addStaff = useCallback((staff: Staff) => {
     setState(prev => {
-      const next = { ...prev, staff: { ...prev.staff, [staff.id]: staff } }
+      const existing = prev.staff[staff.id]
+      // Preserve nameJa already set by user — never overwrite with empty
+      const merged: Staff = existing?.nameJa
+        ? { ...staff, nameJa: existing.nameJa }
+        : staff
+      const next = { ...prev, staff: { ...prev.staff, [staff.id]: merged } }
       save(next)
       return next
     })
