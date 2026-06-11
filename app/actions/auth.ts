@@ -48,7 +48,10 @@ export async function updateProfile(_: unknown, formData: FormData) {
   const name   = formData.get("name")   as string
   const nameJa = formData.get("nameJa") as string
   const supabase = await createClient()
-  const { error } = await supabase.auth.updateUser({ data: { name, nameJa } })
-  if (error) return { error: error.message }
+  const { data: { user }, error: authErr } = await supabase.auth.updateUser({ data: { name, nameJa } })
+  if (authErr) return { error: authErr.message }
+  if (user) {
+    await supabase.from("profiles").update({ name, name_ja: nameJa || null }).eq("id", user.id)
+  }
   return { success: true as const }
 }

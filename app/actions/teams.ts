@@ -31,7 +31,7 @@ export async function getTeamData() {
 
   const [{ data: team, error: teamErr }, { data: profiles, error: profErr }] = await Promise.all([
     supabase.from("teams").select("name, invite_code").eq("id", teamId).maybeSingle(),
-    supabase.from("profiles").select("id, name, created_at").eq("team_id", teamId).order("created_at", { ascending: true }),
+    supabase.from("profiles").select("id, name, name_ja, created_at").eq("team_id", teamId).order("created_at", { ascending: true }),
   ])
 
   console.log("[getTeamData] team:", team, "teamErr:", teamErr?.message ?? null)

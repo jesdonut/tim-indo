@@ -18,19 +18,13 @@ const MODES: MapMode[] = ["staff", "count", "unassigned"]
 // Stable colors per position in the team list
 const SEED_COLORS = ["#be185d", "#0891b2", "#65a30d", ...EXTRA_COLORS]
 
-// Match a support_staff string to a staff id by name (case-insensitive, first-name friendly)
-function matchStaffId(supportStaff: string | null | undefined, staffMap: Record<string, { name: string; nameEn: string }>): string | null {
+// Match a support_staff string to a staff id — checks English name, Japanese name, and first-name prefixes
+function matchStaffId(supportStaff: string | null | undefined, staffMap: Record<string, { name: string; nameEn: string; nameJa?: string }>): string | null {
   if (!supportStaff) return null
   const q = supportStaff.trim().toLowerCase()
   for (const [id, s] of Object.entries(staffMap)) {
-    if (
-      s.name.toLowerCase() === q ||
-      s.nameEn.toLowerCase() === q ||
-      s.name.toLowerCase().startsWith(q) ||
-      s.nameEn.toLowerCase().startsWith(q) ||
-      q.startsWith(s.name.toLowerCase()) ||
-      q.startsWith(s.nameEn.toLowerCase())
-    ) return id
+    const candidates = [s.name, s.nameEn, s.nameJa ?? ""].filter(Boolean).map(n => n.toLowerCase())
+    if (candidates.some(c => c === q || c.startsWith(q) || q.startsWith(c))) return id
   }
   return null
 }
@@ -50,11 +44,13 @@ export default function AreaPage() {
     getTeamData().then(data => {
       if (!data?.profiles?.length) return
       data.profiles.forEach((profile, i) => {
-        const name = profile.name ?? "Team member"
+        const nameEn = (profile as { name?: string | null; name_ja?: string | null }).name ?? "Team member"
+        const nameJa = (profile as { name_ja?: string | null }).name_ja ?? ""
         addStaff({
           id: profile.id,
-          name,
-          nameEn: name,
+          name: nameEn,
+          nameEn,
+          nameJa,
           color: SEED_COLORS[i % SEED_COLORS.length],
         })
       })

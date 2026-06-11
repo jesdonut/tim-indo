@@ -1,7 +1,8 @@
 export type Staff = {
   id: string
-  name: string       // Japanese / display name
+  name: string
   nameEn: string
+  nameJa?: string    // katakana name — used to match support_staff field in workers
   color: string
 }
 
