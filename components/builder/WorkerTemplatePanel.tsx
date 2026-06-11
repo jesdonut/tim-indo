@@ -1,12 +1,26 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { extractVars } from "./templateUtils"
 import { cn } from "@/lib/cn"
 import { getWorkers, type Worker } from "@/app/actions/workers"
+import { getWorkerTemplates, saveWorkerTemplate, deleteWorkerTemplate, type WorkerTemplate } from "@/app/actions/workerTemplates"
 import { Icon } from "@/components/Icon"
 
 const LS_TEMPLATE = "builder_worker_template"
+
+const HELP_GROUPS: { label: string; vars: string[] }[] = [
+  { label: "Identity",   vars: ["worker_id", "employee_no", "name_kana", "nickname", "name_latin", "gender", "nationality", "birth_date"] },
+  { label: "Contact",    vars: ["mobile_phone", "whatsapp", "email"] },
+  { label: "Assignment", vars: ["assignment_month", "batch_period", "first_work_date", "move_in_date", "business_unit", "division_name", "support_staff"] },
+  { label: "Store",      vars: ["store_code", "store_name", "store_postal_code", "store_address", "store_phone"] },
+  { label: "Housing",    vars: ["housing_postal_code", "housing_address", "housing_building", "housing_room", "housing_passcode", "rent"] },
+  { label: "Commute",    vars: ["commute_distance", "commute_route_url", "commute_method"] },
+  { label: "Arrival",    vars: ["departure_date", "japan_arrival_date", "arrival_airport", "flight_number", "arrival_time", "arrival_group"] },
+  { label: "Utilities",  vars: ["electricity_date", "water_date", "gas_appointment", "gas_deposit"] },
+  { label: "Payroll",    vars: ["payroll_pre_id", "payroll_post_id", "payroll_password"] },
+  { label: "Status",     vars: ["status", "signal_status", "mynumber_status", "pledge_done", "area", "notes"] },
+]
 
 const DEFAULT_TEMPLATE = `{{worker_id}}\t{{name_latin}}\t{{name_kana}}
 サポート担当：\t{{support_staff}}
@@ -48,11 +62,17 @@ export default function WorkerTemplatePanel() {
   const [search, setSearch] = useState("")
   const [justCopied, setJustCopied] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showHelp, setShowHelp] = useState(false)
+  const [showSaved, setShowSaved] = useState(false)
+  const [savedTemplates, setSavedTemplates] = useState<WorkerTemplate[]>([])
+  const [saveName, setSaveName] = useState("")
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem(LS_TEMPLATE)
     if (saved) setTemplate(saved)
     getWorkers().then(w => { setWorkers(w); setLoading(false) })
+    getWorkerTemplates().then(setSavedTemplates)
   }, [])
 
   function updateTemplate(t: string) {
@@ -60,14 +80,36 @@ export default function WorkerTemplatePanel() {
     localStorage.setItem(LS_TEMPLATE, t)
   }
 
+  async function saveTemplate() {
+    const name = saveName.trim()
+    if (!name || !template.trim() || saving) return
+    setSaving(true)
+    const res = await saveWorkerTemplate(name, template)
+    setSaving(false)
+    if ("error" in res) return
+    setSavedTemplates(prev => {
+      const exists = prev.find(s => s.name.toLowerCase() === name.toLowerCase())
+      return exists
+        ? prev.map(s => s.id === exists.id ? res.template : s)
+        : [...prev, res.template].sort((a, b) => a.name.localeCompare(b.name))
+    })
+    setSaveName("")
+  }
+
+  function loadTemplate(t: WorkerTemplate) {
+    updateTemplate(t.content)
+    setShowSaved(false)
+  }
+
+  async function deleteTemplate(id: string) {
+    await deleteWorkerTemplate(id)
+    setSavedTemplates(prev => prev.filter(s => s.id !== id))
+  }
+
   function toggleWorker(w: Worker) {
     setSelected(prev =>
       prev.some(s => s.id === w.id) ? prev.filter(s => s.id !== w.id) : [...prev, w]
     )
-  }
-
-  function removeSelected(id: string) {
-    setSelected(prev => prev.filter(s => s.id !== id))
   }
 
   const vars = extractVars(template)
@@ -106,18 +148,102 @@ export default function WorkerTemplatePanel() {
         <div className="flex flex-col gap-2 p-3 border-b border-[var(--border)]">
           <div className="flex items-center justify-between">
             <span className="label-xs">Template</span>
-            <button
-              onClick={() => { updateTemplate(DEFAULT_TEMPLATE) }}
-              className="text-[0.68rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
-            >
-              Reset to default
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { setShowSaved(h => !h); setShowHelp(false) }}
+                className={cn("text-[0.68rem] transition-colors", showSaved ? "text-[var(--highlight-text)]" : "text-[var(--text-3)] hover:text-[var(--text)]")}
+              >
+                Saved{savedTemplates.length > 0 ? ` (${savedTemplates.length})` : ""}
+              </button>
+              <button
+                onClick={() => { setShowHelp(h => !h); setShowSaved(false) }}
+                className={cn("text-[0.68rem] transition-colors", showHelp ? "text-[var(--highlight-text)]" : "text-[var(--text-3)] hover:text-[var(--text)]")}
+              >
+                {showHelp ? "Hide variables" : "? Variables"}
+              </button>
+              <button
+                onClick={() => { updateTemplate(DEFAULT_TEMPLATE) }}
+                className="text-[0.68rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
+              >
+                Reset
+              </button>
+            </div>
           </div>
           <textarea
             className="w-full min-h-[120px] bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 resize-y text-[var(--text)] text-sm font-mono placeholder:text-[var(--text-3)] outline-none focus:border-[var(--highlight-text)] transition-colors"
             value={template}
             onChange={e => updateTemplate(e.target.value)}
           />
+
+          {/* Saved templates panel */}
+          {showSaved && (
+            <div className="bg-[var(--bg-2)] rounded border border-[var(--border)] overflow-hidden">
+              {/* Save current */}
+              <div className="flex gap-2 p-2 border-b border-[var(--border)]">
+                <input
+                  className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-[0.72rem] text-[var(--text)] outline-none focus:border-[var(--highlight-text)] placeholder:text-[var(--text-3)] transition-colors"
+                  placeholder="Name this template…"
+                  value={saveName}
+                  onChange={e => setSaveName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") saveTemplate() }}
+                />
+                <button
+                  onClick={saveTemplate}
+                  disabled={!saveName.trim()}
+                  className="px-2.5 py-1 rounded bg-[var(--text)] text-[var(--bg)] text-[0.68rem] font-medium disabled:opacity-30 transition-opacity"
+                >
+                  Save
+                </button>
+              </div>
+              {/* Saved list */}
+              {savedTemplates.length === 0 ? (
+                <p className="px-3 py-2 text-[0.72rem] text-[var(--text-3)]">No saved templates yet.</p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto divide-y divide-[var(--border)]">
+                  {savedTemplates.map(s => (
+                    <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--bg)] transition-colors group">
+                      <button
+                        onClick={() => loadTemplate(s)}
+                        className="flex-1 text-left text-[0.72rem] text-[var(--text)] hover:text-[var(--highlight-text)] transition-colors truncate"
+                      >
+                        {s.name}
+                      </button>
+                      <button
+                        onClick={() => deleteTemplate(s.id)}
+                        className="shrink-0 text-[var(--text-3)] hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Icon name="close" size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Variables help panel */}
+          {showHelp && (
+            <div className="bg-[var(--bg-2)] rounded border border-[var(--border)] p-2.5 max-h-64 overflow-y-auto flex flex-col gap-2.5">
+              {HELP_GROUPS.map(group => (
+                <div key={group.label}>
+                  <p className="text-[0.58rem] uppercase tracking-wider text-[var(--text-3)] mb-1">{group.label}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {group.vars.map(v => (
+                      <button
+                        key={v}
+                        onClick={() => updateTemplate(template + `{{${v}}}`)}
+                        className="text-[0.6rem] font-mono px-1.5 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--highlight-text)] hover:border-[var(--highlight-text)] transition-colors"
+                        title={`Append {{${v}}}`}
+                      >
+                        {`{{${v}}}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {vars.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {vars.map(v => (

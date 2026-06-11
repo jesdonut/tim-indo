@@ -30,13 +30,13 @@
 
 .dark {
   --bg:          #0a0a0a;
-  --bg-2:        #111111;
-  --surface:     #161616;
-  --border:      #2a2a2a;
-  --border-soft: #1e1e1e;
+  --bg-2:        #161616;
+  --surface:     #1c1c1c;
+  --border:      #2e2e2e;
+  --border-soft: #222222;
   --text:        #f0efe8;
-  --text-2:      #888880;
-  --text-3:      #444440;
+  --text-2:      #9a9a94;
+  --text-3:      #636360;
   --accent:      #f0efe8;
   --accent-fg:   #0a0a0a;
   --highlight:   #e8ff47;

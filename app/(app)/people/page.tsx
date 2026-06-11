@@ -477,7 +477,8 @@ function TF({
   type?: string
 }) {
   const cls = "w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[0.8rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors resize-none"
-  const stopKeys = (e: React.KeyboardEvent) => e.stopPropagation()
+  // Only stop arrow keys from reaching the table — let Enter bubble up to WorkerPanel
+  const stopKeys = (e: React.KeyboardEvent) => { if (["ArrowUp","ArrowDown"].includes(e.key)) e.stopPropagation() }
   if (textarea) return <textarea className={cn(cls, "min-h-[60px]")} value={value ?? ""} onChange={e => onChange(e.target.value)} onKeyDown={stopKeys} />
   return <input className={cls} type={type ?? "text"} value={value ?? ""} onChange={e => onChange(e.target.value)} onKeyDown={stopKeys} />
 }
@@ -513,8 +514,8 @@ function EditableCell({
   async function commit(v: string) {
     const clean: string | null = isDate ? (normalizeDate(v) ?? (v || null)) : (v || null)
     const updated = { ...worker, [col.key]: clean }
-    await updateWorker(worker.id, { [col.key]: clean })
-    onSaved(updated as Worker)
+    onSaved(updated as Worker)  // optimistic — update UI immediately
+    updateWorker(worker.id, { [col.key]: clean })  // fire-and-forget
   }
 
   const cls = "absolute inset-0 w-full h-full bg-[var(--bg)] border border-[var(--highlight)] outline-none text-[0.78rem] text-[var(--text)] px-2 z-50"
@@ -619,7 +620,15 @@ function WorkerPanel({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className="flex flex-col h-full"
+      onKeyDown={e => {
+        if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLSelectElement)) {
+          e.preventDefault()
+          save()
+        }
+      }}
+    >
       {/* Header */}
       <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-[var(--border)] shrink-0">
         <div>
