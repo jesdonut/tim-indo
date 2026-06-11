@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
+import PixelLoader from "@/components/PixelLoader"
 import { getWorkers, upsertWorkers, updateWorker, deleteWorker, exportWorkersCsv, type Worker } from "@/app/actions/workers"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
@@ -1420,7 +1421,8 @@ export default function PeoplePage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-48px)]">
+    <div className="relative flex flex-col h-[calc(100dvh-48px)]">
+      {loading && <PixelLoader />}
       <PageHeader
         title="People"
         right={
