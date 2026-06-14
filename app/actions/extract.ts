@@ -104,17 +104,17 @@ export async function extractGuidebook(url: string): Promise<{ data?: GuidebookD
     const html = await res.text()
     const $ = cheerio.load(html)
 
-    // Apartment name + room from h4.heading11
-    // e.g. "アパート番号32570レオパレス髙田アパルトマン 101号室"
+    // h4.heading11: <span>アパート番号20396</span>レオパレスウエストリバーⅡ 309号室
+    // AP number lives in the span — extract it before removing spans
     const h4 = $("h4.heading11")
+    const spanText = h4.find("span").text().trim()
+    const apSpanMatch = spanText.match(/アパート番号(\d+)/)
+    const apNumber = apSpanMatch?.[1] ?? html.match(/アパート番号(\d+)/)?.[1] ?? ""
     h4.find("span").remove()
-    const fullTitle = h4.text().trim()
+    const fullTitle = h4.text().trim()  // "レオパレスウエストリバーⅡ 309号室"
     const roomMatch = fullTitle.match(/^(.+?)\s+(\d+号室)$/)
-    const rawName = roomMatch ? roomMatch[1] : fullTitle
+    const apartmentName = roomMatch ? roomMatch[1].trim() : fullTitle
     const roomNumber = roomMatch ? roomMatch[2] : ""
-    const apMatch = rawName.match(/^アパート番号(\d+)(.+)$/)
-    const apNumber     = apMatch ? apMatch[1] : ""
-    const apartmentName = apMatch ? apMatch[2].trim() : rawName
 
     // Address
     const address = $("dt").filter((_, el) => $(el).text().trim() === "所在地")
