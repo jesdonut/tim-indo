@@ -86,6 +86,13 @@ export default function Nav() {
           {/* Profile + Log out — only on app pages */}
           {!isPublic && (
             <>
+              <button
+                onClick={() => window.location.reload()}
+                className="flex items-center px-2 py-1.5 rounded border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all"
+                aria-label="Refresh"
+              >
+                <Icon name="refresh" size={14} />
+              </button>
               <Link
                 href="/profile"
                 className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.7rem] font-medium text-[var(--text-3)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all"
