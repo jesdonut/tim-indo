@@ -136,10 +136,11 @@ function UrlPanel({ label }: { label?: string }) {
   }
 
   const rows: { key: keyof GuidebookData; label: string; value: string; sub?: string; reading?: string }[] = data ? [
-    { key: "address",     label: "住所",  value: data.address, reading: data.addressRomaji, sub: data.postalCode ? `〒 ${data.postalCode}` : undefined },
-    { key: "electricity", label: "電気",  value: data.electricity },
-    { key: "gasPhone",    label: "ガス",  value: data.gasPhone, sub: data.gasCompany },
-    { key: "water",       label: "水道",  value: data.water },
+    { key: "apNumber",    label: "AP番号", value: data.apNumber },
+    { key: "address",     label: "住所",   value: data.address, reading: data.addressRomaji, sub: data.postalCode ? `〒 ${data.postalCode}` : undefined },
+    { key: "electricity", label: "電気",   value: data.electricity },
+    { key: "gasPhone",    label: "ガス",   value: data.gasPhone, sub: data.gasCompany },
+    { key: "water",       label: "水道",   value: data.water },
   ] : []
 
   return (
@@ -179,10 +180,7 @@ function UrlPanel({ label }: { label?: string }) {
           <div className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--border)]">
             <div>
               <p className="text-lg font-bold text-[var(--text)]">{data.apartmentName}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-sm text-[var(--text-2)]">{data.roomNumber}</p>
-                {data.apNumber && <p className="text-[0.72rem] font-mono text-[var(--text-3)]">AP {data.apNumber}</p>}
-              </div>
+              <p className="text-sm text-[var(--text-2)] mt-0.5">{data.roomNumber}</p>
             </div>
             <button onClick={copyAll}
               className={cn("shrink-0 text-[0.72rem] font-medium transition-all mt-1",
