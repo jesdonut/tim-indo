@@ -104,7 +104,7 @@ function UrlPanel({ label }: { label?: string }) {
   async function copyAll() {
     if (!data) return
     const text = [
-      `${data.apartmentName} ${data.roomNumber}`,
+      `${data.apartmentName} ${data.roomNumber}${data.apNumber ? ` (AP ${data.apNumber})` : ""}`,
       data.postalCode ? `〒 ${data.postalCode}` : null,
       `住所: ${data.address}`,
       data.addressRomaji ? `読み: ${data.addressRomaji}` : null,
@@ -179,7 +179,10 @@ function UrlPanel({ label }: { label?: string }) {
           <div className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--border)]">
             <div>
               <p className="text-lg font-bold text-[var(--text)]">{data.apartmentName}</p>
-              <p className="text-sm text-[var(--text-2)]">{data.roomNumber}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-sm text-[var(--text-2)]">{data.roomNumber}</p>
+                {data.apNumber && <p className="text-[0.72rem] font-mono text-[var(--text-3)]">AP {data.apNumber}</p>}
+              </div>
             </div>
             <button onClick={copyAll}
               className={cn("shrink-0 text-[0.72rem] font-medium transition-all mt-1",

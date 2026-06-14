@@ -3,6 +3,7 @@
 import * as cheerio from "cheerio"
 
 export type GuidebookData = {
+  apNumber: string
   apartmentName: string
   roomNumber: string
   address: string
@@ -104,12 +105,16 @@ export async function extractGuidebook(url: string): Promise<{ data?: GuidebookD
     const $ = cheerio.load(html)
 
     // Apartment name + room from h4.heading11
+    // e.g. "アパート番号32570レオパレス髙田アパルトマン 101号室"
     const h4 = $("h4.heading11")
     h4.find("span").remove()
     const fullTitle = h4.text().trim()
     const roomMatch = fullTitle.match(/^(.+?)\s+(\d+号室)$/)
-    const apartmentName = roomMatch ? roomMatch[1] : fullTitle
-    const roomNumber    = roomMatch ? roomMatch[2] : ""
+    const rawName = roomMatch ? roomMatch[1] : fullTitle
+    const roomNumber = roomMatch ? roomMatch[2] : ""
+    const apMatch = rawName.match(/^アパート番号(\d+)(.+)$/)
+    const apNumber     = apMatch ? apMatch[1] : ""
+    const apartmentName = apMatch ? apMatch[2].trim() : rawName
 
     // Address
     const address = $("dt").filter((_, el) => $(el).text().trim() === "所在地")
@@ -133,7 +138,7 @@ export async function extractGuidebook(url: string): Promise<{ data?: GuidebookD
     ])
 
     return {
-      data: { apartmentName, roomNumber, address, addressRomaji, postalCode, electricity, gasCompany, gasPhone, water },
+      data: { apNumber, apartmentName, roomNumber, address, addressRomaji, postalCode, electricity, gasCompany, gasPhone, water },
     }
   } catch (e) {
     return { error: String(e) }
