@@ -16,32 +16,19 @@ function yahooTransitUrl(origin: string, dest: string) {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type Station = {
-  name: string
-  line: string
-  distance: string
-  prev: string
-  next: string
-  x: string
-  y: string
-}
+type Station = { name: string; line: string; distance: string }
+type BusStop = { name: string; distanceM: number }
 
-type BusStop = {
-  name: string
-  distanceM: number
-}
-
-// ── Geocode address → {lat, lon} via Nominatim ───────────────────────────────
+// ── API helpers ──────────────────────────────────────────────────────────────
 
 async function geocode(address: string): Promise<{ lat: number; lon: number } | null> {
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`
-  const res = await fetch(url, { headers: { "Accept-Language": "ja" } })
+  const q = address.includes("日本") ? address : `${address} 日本`
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=jp`
+  const res = await fetch(url, { headers: { "Accept-Language": "ja", "User-Agent": "TimIndoApp/1.0" } })
   const data = await res.json()
   if (!data[0]) return null
   return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }
 }
-
-// ── Nearest train stations via HeartRails Express ────────────────────────────
 
 async function fetchStations(lat: number, lon: number): Promise<Station[]> {
   const url = `https://express.heartrails.com/api/json?method=getStations&x=${lon}&y=${lat}`
@@ -50,12 +37,14 @@ async function fetchStations(lat: number, lon: number): Promise<Station[]> {
   return (data?.response?.station ?? []) as Station[]
 }
 
-// ── Nearby bus stops via Overpass ────────────────────────────────────────────
-
 async function fetchBusStops(lat: number, lon: number): Promise<BusStop[]> {
-  const radius = 500
-  const query = `[out:json];node["highway"="bus_stop"](around:${radius},${lat},${lon});out body 8;`
-  const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
+  const radius = 600
+  const query = `[out:json][timeout:10];node["highway"="bus_stop"](around:${radius},${lat},${lon});out body 10;`
+  const res = await fetch("https://overpass-api.de/api/interpreter", {
+    method: "POST",
+    body: `data=${encodeURIComponent(query)}`,
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  })
   const data = await res.json()
   return (data?.elements ?? []).map((el: Record<string, unknown>) => {
     const tags = (el.tags ?? {}) as Record<string, string>
@@ -68,13 +57,7 @@ async function fetchBusStops(lat: number, lon: number): Promise<BusStop[]> {
 
 // ── Worker search dropdown ────────────────────────────────────────────────────
 
-function WorkerSearch({
-  workers,
-  onPick,
-}: {
-  workers: Worker[]
-  onPick: (w: Worker) => void
-}) {
+function WorkerSearch({ workers, onPick }: { workers: Worker[]; onPick: (w: Worker) => void }) {
   const [search, setSearch] = useState("")
   const [open, setOpen] = useState(false)
   const [picked, setPicked] = useState<Worker | null>(null)
@@ -134,95 +117,84 @@ function WorkerSearch({
   )
 }
 
-// ── Nearby lookup panel ───────────────────────────────────────────────────────
+// ── Nearby results for one address ───────────────────────────────────────────
 
-function NearbyPanel() {
-  const [address, setAddress] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [stations, setStations] = useState<Station[] | null>(null)
-  const [busStops, setBusStops] = useState<BusStop[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+type NearbyState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "done"; stations: Station[]; busStops: BusStop[] }
 
-  async function lookup() {
-    const q = address.trim()
-    if (!q) return
-    setLoading(true)
-    setError(null)
-    setStations(null)
-    setBusStops(null)
-    try {
-      const coords = await geocode(q)
-      if (!coords) { setError("Address not found. Try adding 日本 or a city name."); setLoading(false); return }
-      const [st, bs] = await Promise.all([
-        fetchStations(coords.lat, coords.lon),
-        fetchBusStops(coords.lat, coords.lon),
-      ])
-      setStations(st)
-      setBusStops(bs)
-    } catch {
-      setError("Lookup failed. Check your connection.")
+function NearbySection({ label, address }: { label: string; address: string }) {
+  const [state, setState] = useState<NearbyState>({ status: "idle" })
+
+  useEffect(() => {
+    if (!address.trim()) { setState({ status: "idle" }); return }
+    let cancelled = false
+    setState({ status: "loading" })
+
+    async function run() {
+      try {
+        const coords = await geocode(address)
+        if (!coords) {
+          if (!cancelled) setState({ status: "error", message: "Address not found" })
+          return
+        }
+        const [stations, busStops] = await Promise.all([
+          fetchStations(coords.lat, coords.lon),
+          fetchBusStops(coords.lat, coords.lon),
+        ])
+        if (!cancelled) setState({ status: "done", stations, busStops })
+      } catch {
+        if (!cancelled) setState({ status: "error", message: "Lookup failed" })
+      }
     }
-    setLoading(false)
-  }
+
+    run()
+    return () => { cancelled = true }
+  }, [address])
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
-        <input
-          className="flex-1 bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] transition-colors"
-          placeholder="住所または郵便番号…"
-          value={address}
-          onChange={e => setAddress(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && lookup()}
-        />
-        <button
-          onClick={lookup}
-          disabled={loading || !address.trim()}
-          className="px-4 py-2 rounded bg-[var(--text)] text-[var(--bg)] text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-40"
-        >
-          {loading ? "…" : "Look up"}
-        </button>
-      </div>
+    <div className="flex flex-col gap-3">
+      <p className="label-xs">{label}</p>
 
-      {error && <p className="text-[0.75rem] text-red-400">{error}</p>}
-
-      {stations !== null && (
-        <div>
-          <p className="label-xs mb-2">Nearest train stations</p>
-          {stations.length === 0 ? (
-            <p className="text-[0.75rem] text-[var(--text-3)]">No stations found nearby.</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {stations.slice(0, 6).map((s, i) => (
-                <div key={i} className="flex items-center justify-between px-3 py-2 rounded bg-[var(--bg-2)] gap-3">
-                  <div className="min-w-0">
-                    <span className="text-sm text-[var(--text)] font-medium">{s.name}駅</span>
-                    <span className="ml-2 text-[0.68rem] text-[var(--text-3)]">{s.line}</span>
-                  </div>
-                  <span className="text-[0.7rem] text-[var(--text-3)] shrink-0">{s.distance}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      {state.status === "idle" && (
+        <p className="text-[0.75rem] text-[var(--text-3)]">Load a worker to see nearby transit.</p>
       )}
-
-      {busStops !== null && (
-        <div>
-          <p className="label-xs mb-2">Nearby bus stops <span className="text-[var(--text-3)] font-normal normal-case">(within 500m)</span></p>
-          {busStops.length === 0 ? (
-            <p className="text-[0.75rem] text-[var(--text-3)]">No bus stops found nearby.</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {busStops.map((b, i) => (
-                <div key={i} className="flex items-center justify-between px-3 py-2 rounded bg-[var(--bg-2)]">
-                  <span className="text-sm text-[var(--text)]">{b.name}</span>
-                  <span className="text-[0.7rem] text-[var(--text-3)]">{b.distanceM}m</span>
+      {state.status === "loading" && (
+        <p className="text-[0.75rem] text-[var(--text-3)] animate-pulse">Looking up…</p>
+      )}
+      {state.status === "error" && (
+        <p className="text-[0.75rem] text-red-400">{state.message}</p>
+      )}
+      {state.status === "done" && (
+        <>
+          <div className="flex flex-col gap-1">
+            {state.stations.length === 0 ? (
+              <p className="text-[0.75rem] text-[var(--text-3)]">No stations found nearby.</p>
+            ) : state.stations.slice(0, 4).map((s, i) => (
+              <div key={i} className="flex items-center justify-between px-3 py-2 rounded bg-[var(--bg-2)] gap-3">
+                <div className="min-w-0">
+                  <span className="text-sm text-[var(--text)] font-medium">{s.name}駅</span>
+                  <span className="ml-2 text-[0.68rem] text-[var(--text-3)]">{s.line}</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <span className="text-[0.7rem] text-[var(--text-3)] shrink-0">{s.distance}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <p className="label-xs mt-1">Bus stops <span className="text-[var(--text-3)] font-normal normal-case">(600m)</span></p>
+            {state.busStops.length === 0 ? (
+              <p className="text-[0.75rem] text-[var(--text-3)]">None found nearby.</p>
+            ) : state.busStops.slice(0, 4).map((b, i) => (
+              <div key={i} className="flex items-center justify-between px-3 py-2 rounded bg-[var(--bg-2)]">
+                <span className="text-sm text-[var(--text)]">{b.name}</span>
+                <span className="text-[0.7rem] text-[var(--text-3)]">{b.distanceM}m</span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
@@ -309,10 +281,11 @@ export default function MapsPage() {
             </div>
           </div>
 
-          {/* RIGHT — nearest station + bus stops */}
-          <div className="md:border-l md:border-[var(--border)] md:pl-10">
-            <p className="label-xs mb-4">Nearest station &amp; bus stop</p>
-            <NearbyPanel />
+          {/* RIGHT — nearest transit (auto from worker) */}
+          <div className="md:border-l md:border-[var(--border)] md:pl-10 flex flex-col gap-7">
+            <NearbySection label="Nearest to home 自宅" address={origin} />
+            <div className="border-t border-[var(--border-soft)]" />
+            <NearbySection label="Nearest to workplace 職場" address={dest} />
           </div>
 
         </div>
