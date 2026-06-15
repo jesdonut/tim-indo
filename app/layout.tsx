@@ -14,7 +14,6 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "Tim Indo Serba Bisa",
   description: "Internal tools for the team",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icons/icon.svg",
     apple: "/icons/apple-touch-icon.png",
