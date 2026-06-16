@@ -16,8 +16,10 @@ const NAV_ITEMS = [
   { href: "/pdf",      label: "PDF" },
   { href: "/translate",label: "Translate" },
   { href: "/builder",  label: "Builder" },
-  { href: "/area",     label: "Area" },
-  { href: "/extract",  label: "Extract" },
+  { href: "/area",      label: "Area" },
+  { href: "/extract",   label: "Extract" },
+  { href: "/meetings",  label: "定期面談" },
+  { href: "/dispatch",  label: "送り込み" },
 ]
 
 export default function Nav() {
