@@ -34,38 +34,101 @@ const TENCHO_RESPONSE_LABEL = "店長様の反応"
 type SectionConfig = {
   key: string
   title: string
-  prompt?: string
+  hints?: string[]   // reference/script lines shown above the fields
   fields: FieldKey[]
   isTenchoResponse?: boolean
 }
+
+// Legal questions grouped by section header for display
+type LegalGroup = { header: string; questions: { id: string; text: string }[] }
+
+export const LEGAL_SECTION_GROUPS: LegalGroup[] = [
+  { header: "業務内容について", questions: [
+    { id: "dq-1", text: "仕事内容は変更ないか？" },
+    { id: "dq-2", text: "仕事場所は変更ないか？" },
+  ]},
+  { header: "待遇について", questions: [
+    { id: "dq-3", text: "お給料は変更ないか？" },
+    { id: "dq-4", text: "お休みは取れているか？" },
+    { id: "dq-5", text: "家は変わっていないか？" },
+  ]},
+  { header: "保護について", questions: [
+    { id: "dq-6", text: "会社や同僚から暴行・脅迫等の不法行為はないか？" },
+  ]},
+  { header: "生活について", questions: [
+    { id: "dq-7", text: "日常生活でトラブルはないか？" },
+    { id: "dq-8", text: "健康状態は問題ないか？" },
+  ]},
+]
 
 const TENCHO_SECTIONS: SectionConfig[] = [
   {
     key: "initial_meeting",
     title: "初回顔合わせ時",
-    prompt: "御礼（時間・受入れに関して）、店舗の食事提供方法、キッチンスペース確認、支援機関の役割説明",
+    hints: [
+      "御礼（時間・受入れに関して）",
+      "店舗の食事提供方法や提供数を聞く",
+      "キッチンスペースの数及び広さ、常時就労人数の確認",
+      "①支援機関普段の役割、②定期面談の意義説明",
+      "【①支援機関の役割】特定技能1号VISAの簡易説明、生活周りのサポート。行政機関提出書類作成、役所手続きサポート、ご本人の生活・就業相談、一般論による教育",
+      "【②定期面談の意義】入管へ雇用状況の報告がメイン。別途ご本人の課題感・良い点を店長様と確認しご本人へフィードバック。人財の成長を促し、活躍できる人財となるように確認させて頂く場にしたい旨お伝え",
+    ],
     fields: ["response", "discussion", "next_actions", "notes"],
     isTenchoResponse: true,
   },
   {
     key: "trust_building",
     title: "店長様と信頼関係構築",
-    prompt: "褒めるポイントを見つけて言葉にしてお伝えする",
+    hints: [
+      "褒めるポイントを見つけて、言葉にしてお伝えする",
+      "例①「私のような外部の人間にも丁寧なご挨拶頂きありがとうございます。従業員の方皆さん明るく活気あり、良い雰囲気が伝わってきますね」",
+      "例②「こちらに貼って頂いていつでも目に見えるところに掲示されているんですね。そのお気遣い誠にありがとうございます。ご本人も嬉しいと思います。」",
+    ],
     fields: ["response", "discussion", "next_actions", "notes"],
     isTenchoResponse: true,
   },
   {
     key: "worker_challenges",
     title: "ご本人の課題感確認",
-    prompt: "こちらの現場に配属されて○ヶ月ですが、率直に現場でのご活躍度はいかがでしょうか。",
+    hints: [
+      "こちらの現場に配属されて○ヶ月ですが、率直に現場でのご活躍度はいかがでしょうか。",
+    ],
+    fields: ["response", "discussion", "next_actions", "notes"],
+    isTenchoResponse: true,
+  },
+  {
+    key: "good_case",
+    title: "良い場合（頑張ってくれている等抽象表現の場合）",
+    hints: [
+      "①「そのようなご評価ありがとうございます。ちなみに現在どのような業務をメインにされていて業務面のどのあたりをご評価頂いているのか少し細かく聞いても良いでしょうか。」",
+      "②「そのようなご評価ありがとうございます。ちなみに取り組む姿勢を褒めて頂いているのでしょうか。最近あったご本人のエピソード教えてください。」",
+      "「ご本人に対してもう少し成長して欲しいなというポイントを教えてくれませんか？（日本語会話、理解力、意識等）」※理由も必ず聞く",
+    ],
     fields: ["response", "discussion", "next_actions", "notes"],
     isTenchoResponse: true,
   },
   {
     key: "bad_case",
-    title: "悪い場合・課題あり（5W1H）",
-    prompt: "ご共有ありがとうございます。ちなみにどのような場面でそう感じるのでしょうか。",
+    title: "悪い場合",
+    hints: [
+      "「ご共有ありがとうございます。ちなみにどのような場面でそう感じるのでしょうか。最近ご指摘頂いた際のエピソードをお聞かせ頂けますでしょうか。」",
+      "５W1H（When・Where・Who・What・Why・How）を意識してヒアリング",
+      "▶その場で解決策を持ち合わせない場合は持ち帰り、営業チームに報告する",
+    ],
     fields: ["when", "where", "who", "what", "why_how", "discussion", "next_actions"],
+  },
+  {
+    key: "compass_case",
+    title: "コンパス社の場合",
+    hints: ["コンパスナビを使って学習はされておりますか？"],
+    fields: ["response"],
+    isTenchoResponse: true,
+  },
+  {
+    key: "unclear_points",
+    title: "不明点を聞く",
+    hints: ["その他ご不明な点等御座いませんか。"],
+    fields: ["notes"],
   },
 ]
 
@@ -78,29 +141,29 @@ const WORKER_SECTION_GROUPS: WorkerSectionGroup[] = [
   {
     group: "業務面",
     items: [
-      { key: "career_plan",  title: "キャリア計画",   prompt: "自分のキャリアについてどういう計画を立てていますか？（5年後まで）", fields: ["response", "advice", "next_actions", "notes"] },
-      { key: "work_content", title: "仕事内容",       prompt: "今のお仕事内容を詳しく教えてください。（1日のスケジュールを聞く）",  fields: ["response", "next_actions", "notes"] },
-      { key: "new_skills",   title: "新しくできた仕事", prompt: "３ヶ月前と比べて新しく出来るようになったお仕事を教えてください。",    fields: ["response", "advice", "next_actions", "notes"] },
-      { key: "difficulties", title: "難しいこと",     prompt: "仕事において難しいと感じているところは何ですか？",                  fields: ["response", "advice", "next_actions", "notes"] },
-      { key: "improvements", title: "改善・意識",     prompt: "仕事において気を付けているところ、改善しているところは何ですか？",     fields: ["response", "advice", "next_actions", "notes"] },
+      { key: "career_plan",  title: "キャリア計画",    hints: ["自分のキャリアについてどういう計画を立てていますか？（5年後まで）"], fields: ["response", "advice", "next_actions", "notes"] },
+      { key: "work_content", title: "仕事内容",        hints: ["今のお仕事内容を詳しく教えてください。（1日のスケジュールを聞く）"], fields: ["response", "next_actions", "notes"] },
+      { key: "new_skills",   title: "新しくできた仕事", hints: ["３ヶ月前と比べて新しく出来るようになったお仕事を教えてください。"],  fields: ["response", "advice", "next_actions", "notes"] },
+      { key: "difficulties", title: "難しいこと",       hints: ["仕事において難しいと感じているところは何ですか？"],                 fields: ["response", "advice", "next_actions", "notes"] },
+      { key: "improvements", title: "改善・意識",       hints: ["仕事において気を付けているところ、改善しているところは何ですか？"],   fields: ["response", "advice", "next_actions", "notes"] },
     ],
   },
   {
     group: "人間関係（業務面において）",
     items: [
-      { key: "lunch_colleagues",      title: "お昼の同僚",   prompt: "お昼休憩でよく話す同僚を教えてください。",                               fields: ["response", "advice", "next_actions"] },
-      { key: "coworker_conversations", title: "会話・エピソード", prompt: "同僚・先輩・店長とは何の話をよくするのですか？最近のエピソードを教えてください。", fields: ["response", "advice", "next_actions", "notes"] },
-      { key: "learning_mindset",      title: "仕事を教わる時", prompt: "仕事を教えてもらっている時、気を付けていることは何ですか？",              fields: ["response", "advice", "next_actions", "notes"] },
+      { key: "lunch_colleagues",       title: "お昼の同僚",      hints: ["お昼休憩でよく話す同僚を教えてください。"],                                          fields: ["response", "advice", "next_actions"] },
+      { key: "coworker_conversations", title: "会話・エピソード", hints: ["同僚・先輩・店長とは何の話をよくするのですか？最近のエピソードを教えてください。"], fields: ["response", "advice", "next_actions", "notes"] },
+      { key: "learning_mindset",       title: "仕事を教わる時",  hints: ["仕事を教えてもらっている時、気を付けていることは何ですか？"],                       fields: ["response", "advice", "next_actions", "notes"] },
     ],
   },
   {
     group: "私生活面",
     items: [
-      { key: "japanese_study",  title: "日本語勉強",  prompt: "日本語の勉強は現在どのように進めていますか？",                         fields: ["response", "advice", "next_actions"] },
-      { key: "days_off",        title: "休日の過ごし方", prompt: "休みの日はどう過ごしていますか？",                                    fields: ["response", "advice", "next_actions"] },
-      { key: "outings",         title: "お出かけ",    prompt: "最近どこか出掛けたりしましたか？",                                      fields: ["response", "advice", "next_actions", "notes"] },
-      { key: "family_contact",  title: "母国の家族",  prompt: "母国にいる家族とはどのくらいの頻度で連絡を取っていますか？",              fields: ["response", "advice", "next_actions"] },
-      { key: "remittance",      title: "送金（ミャンマー）", prompt: "【ミャンマー人の場合】毎月給料の25%ミャンマーの家族に送金していますか？", fields: ["response", "advice", "next_actions", "notes"] },
+      { key: "japanese_study", title: "日本語勉強",       hints: ["日本語の勉強は現在どのように進めていますか？"],                               fields: ["response", "advice", "next_actions"] },
+      { key: "days_off",       title: "休日の過ごし方",   hints: ["休みの日はどう過ごしていますか？"],                                           fields: ["response", "advice", "next_actions"] },
+      { key: "outings",        title: "お出かけ",         hints: ["最近どこか出掛けたりしましたか？"],                                           fields: ["response", "advice", "next_actions", "notes"] },
+      { key: "family_contact", title: "母国の家族",       hints: ["母国にいる家族とはどのくらいの頻度で連絡を取っていますか？"],                 fields: ["response", "advice", "next_actions"] },
+      { key: "remittance",     title: "送金（ミャンマー）", hints: ["【ミャンマー人の場合】毎月給料の25%ミャンマーの家族に送金していますか？"], fields: ["response", "advice", "next_actions", "notes"] },
     ],
   },
 ]
@@ -178,8 +241,12 @@ function SectionCard({ config, area, formData, prevFormData, onChange, isTenchoR
 
       {open && (
         <div className="px-4 py-3 flex flex-col gap-3">
-          {config.prompt && (
-            <p className="text-[0.75rem] text-[var(--text-2)] bg-[var(--bg-2)] rounded px-3 py-2 italic">{config.prompt}</p>
+          {config.hints && config.hints.length > 0 && (
+            <div className="bg-[var(--bg-2)] rounded px-3 py-2 flex flex-col gap-1">
+              {config.hints.map((h, i) => (
+                <p key={i} className="text-[0.73rem] text-[var(--text-2)] italic leading-snug">{h}</p>
+              ))}
+            </div>
           )}
           {config.fields.map(field => (
             <FieldRow
@@ -197,18 +264,10 @@ function SectionCard({ config, area, formData, prevFormData, onChange, isTenchoR
   )
 }
 
-// ── Default legal questions (from official 就業者定期面談シート template) ─────
-
-const DEFAULT_QUESTIONS: Question[] = [
-  { id: "dq-1", text: "仕事内容は変更ないか？",              sort_order: 1, active: true },
-  { id: "dq-2", text: "仕事場所は変更ないか？",              sort_order: 2, active: true },
-  { id: "dq-3", text: "お給料は変更ないか？",                sort_order: 3, active: true },
-  { id: "dq-4", text: "お休みは取れているか？",              sort_order: 4, active: true },
-  { id: "dq-5", text: "家は変わっていないか？",              sort_order: 5, active: true },
-  { id: "dq-6", text: "会社や同僚から暴行・脅迫等の不法行為はないか？", sort_order: 6, active: true },
-  { id: "dq-7", text: "日常生活でトラブルはないか？",        sort_order: 7, active: true },
-  { id: "dq-8", text: "健康状態は問題ないか？",              sort_order: 8, active: true },
-]
+// Default questions derived from the grouped structure above
+const DEFAULT_QUESTIONS: Question[] = LEGAL_SECTION_GROUPS.flatMap((g, gi) =>
+  g.questions.map((q, qi) => ({ id: q.id, text: q.text, sort_order: gi * 10 + qi, active: true }))
+)
 
 // ── Main form ─────────────────────────────────────────────────────────────────
 
@@ -326,51 +385,83 @@ export default function InterviewFormFull({ worker, milestone, milestoneLabel, d
               </div>
 
               <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-                  {hasPrev && (
-                    <div className="grid grid-cols-[1fr_80px_80px] gap-3 px-4 py-2 bg-[var(--bg-2)] border-b border-[var(--border)]">
-                      <span className="text-[0.65rem] text-[var(--text-3)]">質問</span>
-                      <span className="text-[0.65rem] text-[var(--text-3)] text-center">前回</span>
-                      <span className="text-[0.65rem] text-[var(--text-3)] text-center">今回</span>
-                    </div>
-                  )}
-                  <div className="divide-y divide-[var(--border-soft)]">
-                    {questions.map(q => {
-                      const prevAns = hasPrev ? prev!.answers.find(a => a.question_id === q.id)?.answer ?? null : null
-                      const curr = answers[q.id] ?? null
-                      return (
-                        <div key={q.id} className={cn(
-                          "px-4 py-3",
-                          hasPrev ? "grid grid-cols-[1fr_80px_80px] gap-3 items-center" : "flex items-center justify-between gap-4"
-                        )}>
-                          <span className="text-sm text-[var(--text)]">{q.text}</span>
-                          {hasPrev && (
-                            <span className={cn(
-                              "text-center text-[0.75rem] font-medium",
-                              prevAns === true ? "text-green-500" : prevAns === false ? "text-red-400" : "text-[var(--text-3)]"
-                            )}>
-                              {prevAns === true ? "有" : prevAns === false ? "無" : "—"}
-                            </span>
-                          )}
-                          <div className="flex gap-1.5 justify-center">
-                            <button
-                              onClick={() => setAnswers(a => ({ ...a, [q.id]: curr === true ? null : true }))}
-                              className={cn(
-                                "px-2.5 py-1 rounded text-[0.72rem] font-medium transition-all",
-                                curr === true ? "bg-red-400/20 text-red-400 ring-1 ring-red-400/40" : "bg-[var(--bg-2)] text-[var(--text-3)] hover:text-red-400"
-                              )}
-                            >有</button>
-                            <button
-                              onClick={() => setAnswers(a => ({ ...a, [q.id]: curr === false ? null : false }))}
-                              className={cn(
-                                "px-2.5 py-1 rounded text-[0.72rem] font-medium transition-all",
-                                curr === false ? "bg-green-500/20 text-green-500 ring-1 ring-green-500/40" : "bg-[var(--bg-2)] text-[var(--text-3)] hover:text-green-500"
-                              )}
-                            >無</button>
-                          </div>
-                        </div>
-                      )
-                    })}
+                {hasPrev && (
+                  <div className="grid grid-cols-[1fr_80px_80px] gap-3 px-4 py-2 bg-[var(--bg-2)] border-b border-[var(--border)]">
+                    <span className="text-[0.65rem] text-[var(--text-3)]">質問</span>
+                    <span className="text-[0.65rem] text-[var(--text-3)] text-center">前回</span>
+                    <span className="text-[0.65rem] text-[var(--text-3)] text-center">今回</span>
                   </div>
+                )}
+                {LEGAL_SECTION_GROUPS.map(group => {
+                  const groupQs = group.questions.map(gq =>
+                    questions.find(q => q.id === gq.id || q.text === gq.text) ?? { ...gq, sort_order: 0, active: true }
+                  )
+                  return (
+                    <div key={group.header} className="divide-y divide-[var(--border-soft)]">
+                      <div className="px-4 py-2 bg-[var(--bg-2)] border-y border-[var(--border-soft)]">
+                        <span className="text-[0.7rem] font-bold text-[var(--text)]">{group.header}</span>
+                      </div>
+                      {groupQs.map(q => {
+                        const prevAns = hasPrev ? prev!.answers.find(a => a.question_id === q.id)?.answer ?? null : null
+                        const curr = answers[q.id] ?? null
+                        return (
+                          <div key={q.id} className={cn(
+                            "px-4 py-3",
+                            hasPrev ? "grid grid-cols-[1fr_80px_80px] gap-3 items-center" : "flex items-center justify-between gap-4"
+                          )}>
+                            <span className="text-sm text-[var(--text)]">{q.text}</span>
+                            {hasPrev && (
+                              <span className={cn(
+                                "text-center text-[0.75rem] font-medium",
+                                prevAns === true ? "text-green-500" : prevAns === false ? "text-red-400" : "text-[var(--text-3)]"
+                              )}>
+                                {prevAns === true ? "有" : prevAns === false ? "無" : "—"}
+                              </span>
+                            )}
+                            <div className="flex gap-1.5 justify-center">
+                              <button
+                                onClick={() => setAnswers(a => ({ ...a, [q.id]: curr === true ? null : true }))}
+                                className={cn(
+                                  "px-2.5 py-1 rounded text-[0.72rem] font-medium transition-all",
+                                  curr === true ? "bg-red-400/20 text-red-400 ring-1 ring-red-400/40" : "bg-[var(--bg-2)] text-[var(--text-3)] hover:text-red-400"
+                                )}
+                              >有</button>
+                              <button
+                                onClick={() => setAnswers(a => ({ ...a, [q.id]: curr === false ? null : false }))}
+                                className={cn(
+                                  "px-2.5 py-1 rounded text-[0.72rem] font-medium transition-all",
+                                  curr === false ? "bg-green-500/20 text-green-500 ring-1 ring-green-500/40" : "bg-[var(--bg-2)] text-[var(--text-3)] hover:text-green-500"
+                                )}
+                              >無</button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+                {/* Custom DB questions not in default groups */}
+                {questions.filter(q => !LEGAL_SECTION_GROUPS.flatMap(g => g.questions).some(gq => gq.id === q.id || gq.text === q.text)).map(q => {
+                  const prevAns = hasPrev ? prev!.answers.find(a => a.question_id === q.id)?.answer ?? null : null
+                  const curr = answers[q.id] ?? null
+                  return (
+                    <div key={q.id} className={cn(
+                      "px-4 py-3 border-t border-[var(--border-soft)]",
+                      hasPrev ? "grid grid-cols-[1fr_80px_80px] gap-3 items-center" : "flex items-center justify-between gap-4"
+                    )}>
+                      <span className="text-sm text-[var(--text)]">{q.text}</span>
+                      {hasPrev && (
+                        <span className={cn("text-center text-[0.75rem] font-medium", (prev!.answers.find(a => a.question_id === q.id)?.answer ?? null) === true ? "text-green-500" : "text-[var(--text-3)]")}>
+                          {(prev!.answers.find(a => a.question_id === q.id)?.answer ?? null) === true ? "有" : (prev!.answers.find(a => a.question_id === q.id)?.answer ?? null) === false ? "無" : "—"}
+                        </span>
+                      )}
+                      <div className="flex gap-1.5 justify-center">
+                        <button onClick={() => setAnswers(a => ({ ...a, [q.id]: curr === true ? null : true }))} className={cn("px-2.5 py-1 rounded text-[0.72rem] font-medium transition-all", curr === true ? "bg-red-400/20 text-red-400 ring-1 ring-red-400/40" : "bg-[var(--bg-2)] text-[var(--text-3)] hover:text-red-400")}>有</button>
+                        <button onClick={() => setAnswers(a => ({ ...a, [q.id]: curr === false ? null : false }))} className={cn("px-2.5 py-1 rounded text-[0.72rem] font-medium transition-all", curr === false ? "bg-green-500/20 text-green-500 ring-1 ring-green-500/40" : "bg-[var(--bg-2)] text-[var(--text-3)] hover:text-green-500")}>無</button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
 
               <FieldRow label="備考" value={notes} onChange={setNotes} rows={3} />
