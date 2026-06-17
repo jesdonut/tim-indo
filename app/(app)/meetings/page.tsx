@@ -5,12 +5,16 @@ import ExcelJS from "exceljs"
 import { getWorkers, type Worker } from "@/app/actions/workers"
 import {
   getQuestions, saveQuestion, deleteQuestion,
-  getAllInterviews, saveInterview, checkDoubleBook,
-  type Question, type Interview, type Answer,
+  getAllInterviews, saveInterview,
+  type Question, type Interview, type Answer, type FormData,
 } from "@/app/actions/interviews"
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent, PillTabs } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
+import InterviewFormFull, {
+  TENCHO_SECTIONS, WORKER_SECTION_GROUPS, FIELD_LABELS, TENCHO_RESPONSE_LABEL,
+  type WorkerAnswers,
+} from "@/components/meetings/InterviewFormFull"
 
 // ── Milestones ────────────────────────────────────────────────────────────────
 
@@ -54,187 +58,7 @@ type WorkerRow = {
   dueDate: Date
   status: MilestoneStatus
   completedInterview: Interview | null
-  prevInterview: Interview | null  // previous milestone's interview for comparison
-}
-
-type WorkerAnswers = Record<string, boolean | null>
-
-// ── Interview form (slide panel) ──────────────────────────────────────────────
-
-function InterviewForm({ row, questions, onSave, onClose }: {
-  row: WorkerRow
-  questions: Question[]
-  onSave: (answers: WorkerAnswers, notes: string, emailDraft: string, scheduledAt: string) => Promise<void>
-  onClose: () => void
-}) {
-  const [answers, setAnswers] = useState<WorkerAnswers>({})
-  const [notes, setNotes] = useState("")
-  const [emailDraft, setEmailDraft] = useState("")
-  const [scheduledAt, setScheduledAt] = useState("")
-  const [doubleBook, setDoubleBook] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-
-  const prev = row.prevInterview
-  const hasPrev = prev && prev.answers.length > 0
-
-  async function handleScheduleChange(val: string) {
-    setScheduledAt(val)
-    setDoubleBook(null)
-    if (val) {
-      const conflict = await checkDoubleBook(new Date(val).toISOString())
-      if (conflict) setDoubleBook(conflict)
-    }
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    await onSave(answers, notes, emailDraft, scheduledAt)
-    setSaving(false)
-  }
-
-  return (
-    <div className="fixed inset-0 z-40 flex">
-      <button className="flex-1 bg-black/30" onClick={onClose} />
-      <div className="w-full max-w-md bg-[var(--surface)] border-l border-[var(--border)] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-[var(--border)]">
-          <div>
-            <p className="text-base font-bold text-[var(--text)]">
-              {row.worker.name_latin ?? row.worker.name_kana}
-            </p>
-            <p className="text-[0.72rem] text-[var(--text-3)] mt-0.5">
-              {row.milestone.label} · 期限 {row.dueDate.toLocaleDateString("ja-JP")}
-              {row.worker.support_staff ? ` · ${row.worker.support_staff}` : ""}
-            </p>
-          </div>
-          <button onClick={onClose} className="text-[var(--text-3)] hover:text-[var(--text)] transition-colors mt-0.5">
-            <Icon name="close" size={18} />
-          </button>
-        </div>
-
-        {/* Questions */}
-        <div className="flex-1 overflow-y-auto">
-          {questions.length === 0 ? (
-            <p className="px-5 py-6 text-sm text-[var(--text-3)]">質問がまだ設定されていません。</p>
-          ) : (
-            <div className="divide-y divide-[var(--border-soft)]">
-              {hasPrev && (
-                <div className="grid grid-cols-[1fr_80px_80px] gap-3 px-5 py-2 bg-[var(--bg-2)]">
-                  <span className="text-[0.65rem] text-[var(--text-3)]">質問</span>
-                  <span className="text-[0.65rem] text-[var(--text-3)] text-center">前回</span>
-                  <span className="text-[0.65rem] text-[var(--text-3)] text-center">今回</span>
-                </div>
-              )}
-              {questions.map(q => {
-                const prevAns = hasPrev
-                  ? prev.answers.find(a => a.question_id === q.id)?.answer ?? null
-                  : null
-                const curr = answers[q.id] ?? null
-                return (
-                  <div key={q.id} className={cn(
-                    "px-5 py-3",
-                    hasPrev ? "grid grid-cols-[1fr_80px_80px] gap-3 items-center" : "flex items-center justify-between gap-4"
-                  )}>
-                    <span className="text-sm text-[var(--text)]">{q.text}</span>
-                    {hasPrev && (
-                      <span className={cn(
-                        "text-center text-[0.75rem] font-medium",
-                        prevAns === true ? "text-green-500" : prevAns === false ? "text-red-400" : "text-[var(--text-3)]"
-                      )}>
-                        {prevAns === true ? "はい" : prevAns === false ? "いいえ" : "—"}
-                      </span>
-                    )}
-                    <div className="flex gap-1.5 justify-center">
-                      <button
-                        onClick={() => setAnswers(a => ({ ...a, [q.id]: curr === true ? null : true }))}
-                        className={cn(
-                          "px-2.5 py-1 rounded text-[0.72rem] font-medium transition-all",
-                          curr === true
-                            ? "bg-green-500/20 text-green-500 ring-1 ring-green-500/40"
-                            : "bg-[var(--bg-2)] text-[var(--text-3)] hover:text-green-500"
-                        )}
-                      >はい</button>
-                      <button
-                        onClick={() => setAnswers(a => ({ ...a, [q.id]: curr === false ? null : false }))}
-                        className={cn(
-                          "px-2.5 py-1 rounded text-[0.72rem] font-medium transition-all",
-                          curr === false
-                            ? "bg-red-400/20 text-red-400 ring-1 ring-red-400/40"
-                            : "bg-[var(--bg-2)] text-[var(--text-3)] hover:text-red-400"
-                        )}
-                      >いいえ</button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {hasPrev && (
-            <div className="px-5 py-2 border-t border-[var(--border-soft)]">
-              <p className="text-[0.65rem] text-[var(--text-3)]">
-                前回: {new Date(prev.conducted_at).toLocaleDateString("ja-JP")} ({prev.milestone})
-                {prev.conducted_by ? ` · ${prev.conducted_by}` : ""}
-              </p>
-            </div>
-          )}
-
-          <div className="px-5 py-4 border-t border-[var(--border)] flex flex-col gap-4">
-            {/* Schedule date/time */}
-            <div>
-              <p className="label-xs mb-2">面談日時を設定</p>
-              <input
-                type="datetime-local"
-                className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors"
-                value={scheduledAt}
-                onChange={e => handleScheduleChange(e.target.value)}
-              />
-              {doubleBook && (
-                <p className="text-[0.72rem] text-red-400 mt-1">
-                  ⚠ この時間帯は {doubleBook} の面談と重なっています
-                </p>
-              )}
-            </div>
-
-            {/* Notes */}
-            <div>
-              <p className="label-xs mb-2">備考</p>
-              <textarea
-                className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-3)] outline-none focus:border-[var(--text-2)] resize-none transition-colors"
-                placeholder="気になること、フォロー事項…"
-                rows={2}
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-              />
-            </div>
-
-            {/* Email draft */}
-            <div>
-              <p className="label-xs mb-2">メール下書き</p>
-              <textarea
-                className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-3)] outline-none focus:border-[var(--text-2)] resize-none transition-colors font-mono"
-                placeholder="店長へのメール文をここに…"
-                rows={4}
-                value={emailDraft}
-                onChange={e => setEmailDraft(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-[var(--border)] flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-5 py-2 rounded bg-[var(--text)] text-[var(--bg)] text-sm font-semibold hover:opacity-80 disabled:opacity-50 transition-all"
-          >
-            {saving ? "保存中…" : "記録を保存"}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+  prevInterview: Interview | null
 }
 
 // ── Question manager ──────────────────────────────────────────────────────────
@@ -431,6 +255,65 @@ function addSheetForWorker(wb: ExcelJS.Workbook, r: WorkerRow, questions: Questi
     ws.mergeCells(`A${emailRow.number}:D${emailRow.number}`)
     emailRow.eachCell(c => { c.border = ALL_BORDERS })
   }
+
+  const fd = iv?.form_data
+
+  // ── 店長様 section ────────────────────────────────────────────────────────
+  if (fd?.tencho && Object.keys(fd.tencho).length > 0) {
+    ws.addRow([])
+    ws.columns = [{ width: 20 }, { width: 30 }, { width: 30 }, { width: 20 }]
+    styleHeader(ws.addRow(["店長様に対して", "内容", "次回確認事項", "備考"]))
+    for (const sec of TENCHO_SECTIONS) {
+      const fs = fd.tencho[sec.key]
+      if (!fs) continue
+      styleSection(ws.addRow([sec.title]))
+      ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
+      const fields: Array<{ label: string; key: keyof typeof fs }> = []
+      if (sec.isTenchoResponse && fs.response) fields.push({ label: TENCHO_RESPONSE_LABEL, key: "response" })
+      else if (!sec.isTenchoResponse && fs.response) fields.push({ label: FIELD_LABELS.response, key: "response" })
+      if (fs.discussion) fields.push({ label: FIELD_LABELS.discussion, key: "discussion" })
+      if (sec.key === "bad_case") {
+        for (const k of ["when","where","who","what","why_how"] as const) {
+          if (fs[k]) fields.push({ label: FIELD_LABELS[k], key: k })
+        }
+      }
+      if (fs.next_actions) fields.push({ label: FIELD_LABELS.next_actions, key: "next_actions" })
+      if (fs.notes) fields.push({ label: FIELD_LABELS.notes, key: "notes" })
+      for (const f of fields) {
+        const row = ws.addRow([f.label, fs[f.key] ?? ""])
+        row.getCell(2).alignment = { wrapText: true }
+        ws.mergeCells(`B${row.number}:D${row.number}`)
+        styleData(row)
+      }
+    }
+  }
+
+  // ── 人財 section ─────────────────────────────────────────────────────────
+  if (fd?.worker && Object.keys(fd.worker).length > 0) {
+    ws.addRow([])
+    styleHeader(ws.addRow(["人財に対して", "本人の反応", "アドバイス", "次回確認事項"]))
+    for (const group of WORKER_SECTION_GROUPS) {
+      styleSection(ws.addRow([group.group]))
+      ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
+      for (const sec of group.items) {
+        const fs = fd.worker[sec.key]
+        if (!fs) continue
+        const row = ws.addRow([
+          sec.title,
+          fs.response ?? "",
+          fs.advice ?? "",
+          fs.next_actions ?? "",
+        ])
+        row.eachCell(c => { c.alignment = { wrapText: true }; c.border = ALL_BORDERS })
+        if (fs.notes) {
+          const notesRow = ws.addRow(["", `備考: ${fs.notes}`])
+          notesRow.getCell(2).font = { italic: true, size: 9 }
+          ws.mergeCells(`B${notesRow.number}:D${notesRow.number}`)
+          notesRow.eachCell(c => { c.border = ALL_BORDERS })
+        }
+      }
+    }
+  }
 }
 
 async function exportToExcel(rows: WorkerRow[], questions: Question[], mode: "matome" | "single") {
@@ -549,15 +432,22 @@ export default function MeetingsPage() {
 
   const selectedRows = filteredRows.filter(r => selected.has(rowKey(r)))
 
-  async function handleSave(row: WorkerRow, answers: WorkerAnswers, notes: string, emailDraft: string, scheduledAt: string) {
+  async function handleSave(row: WorkerRow, args: {
+    answers: WorkerAnswers
+    notes: string
+    emailDraft: string
+    scheduledAt: string
+    formData: FormData
+  }) {
     await saveInterview(
       row.worker.worker_id ?? row.worker.id,
       row.milestone.key,
       null,
-      notes,
-      emailDraft,
-      Object.entries(answers).map(([question_id, answer]) => ({ question_id, answer })),
-      scheduledAt ? new Date(scheduledAt).toISOString() : null,
+      args.notes,
+      args.emailDraft,
+      Object.entries(args.answers).map(([question_id, answer]) => ({ question_id, answer })),
+      args.scheduledAt ? new Date(args.scheduledAt).toISOString() : null,
+      args.formData,
     )
     setActiveRow(null)
     await loadAll()
@@ -709,12 +599,16 @@ export default function MeetingsPage() {
         </div>
       </PageContent>
 
-      {/* Interview slide panel */}
+      {/* Full-screen interview form */}
       {activeRow && (
-        <InterviewForm
-          row={activeRow}
+        <InterviewFormFull
+          worker={activeRow.worker}
+          milestone={activeRow.milestone.key}
+          milestoneLabel={activeRow.milestone.label}
+          dueDate={activeRow.dueDate}
           questions={questions}
-          onSave={(answers, notes, emailDraft, scheduledAt) => handleSave(activeRow, answers, notes, emailDraft, scheduledAt)}
+          prevInterview={activeRow.prevInterview}
+          onSave={args => handleSave(activeRow, args)}
           onClose={() => setActiveRow(null)}
         />
       )}
