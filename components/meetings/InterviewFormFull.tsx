@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
-import type { Question, Interview, Answer, FormData, FieldSet } from "@/app/actions/interviews"
+import type { Question, Interview, InterviewFormData, FieldSet } from "@/app/actions/interviews"
 import { checkDoubleBook } from "@/app/actions/interviews"
 import type { Worker } from "@/app/actions/workers"
 
@@ -109,15 +109,15 @@ const WORKER_SECTION_GROUPS: WorkerSectionGroup[] = [
 
 type WorkerAnswers = Record<string, boolean | null>
 
-function emptyFormData(): FormData {
+function emptyFormData(): InterviewFormData {
   return { tencho: {}, worker: {} }
 }
 
-function getField(fd: FormData, area: "tencho" | "worker", key: string, field: FieldKey): string {
+function getField(fd: InterviewFormData, area: "tencho" | "worker", key: string, field: FieldKey): string {
   return fd[area]?.[key]?.[field] ?? ""
 }
 
-function setField(fd: FormData, area: "tencho" | "worker", key: string, field: FieldKey, val: string): FormData {
+function setField(fd: InterviewFormData, area: "tencho" | "worker", key: string, field: FieldKey, val: string): InterviewFormData {
   return {
     ...fd,
     [area]: {
@@ -129,30 +129,39 @@ function setField(fd: FormData, area: "tencho" | "worker", key: string, field: F
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function FieldRow({ label, value, onChange, rows = 2 }: {
+function FieldRow({ label, value, prevValue, onChange, rows = 2 }: {
   label: string
   value: string
+  prevValue?: string
   onChange: (v: string) => void
   rows?: number
 }) {
   return (
     <div className="flex flex-col gap-1">
       <label className="text-[0.65rem] text-[var(--text-3)] uppercase tracking-wide">{label}</label>
+      {prevValue && (
+        <div className="px-3 py-2 rounded bg-[var(--bg)] border border-[var(--border-soft)] text-[0.75rem] text-[var(--text-3)] whitespace-pre-wrap leading-relaxed">
+          <span className="text-[0.6rem] uppercase tracking-wider text-[var(--text-3)] opacity-60 mr-1.5">前回</span>
+          {prevValue}
+        </div>
+      )}
       <textarea
         rows={rows}
         value={value}
         onChange={e => onChange(e.target.value)}
+        placeholder={prevValue ? "今回の内容を入力…" : undefined}
         className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-3)] outline-none focus:border-[var(--text-2)] resize-none transition-colors"
       />
     </div>
   )
 }
 
-function SectionCard({ config, area, formData, onChange, isTenchoResp }: {
+function SectionCard({ config, area, formData, prevFormData, onChange, isTenchoResp }: {
   config: SectionConfig
   area: "tencho" | "worker"
-  formData: FormData
-  onChange: (fd: FormData) => void
+  formData: InterviewFormData
+  prevFormData: InterviewFormData | null
+  onChange: (fd: InterviewFormData) => void
   isTenchoResp?: boolean
 }) {
   const [open, setOpen] = useState(true)
@@ -177,6 +186,7 @@ function SectionCard({ config, area, formData, onChange, isTenchoResp }: {
               key={field}
               label={field === "response" && isTenchoResp ? TENCHO_RESPONSE_LABEL : FIELD_LABELS[field]}
               value={getField(formData, area, config.key, field)}
+              prevValue={prevFormData ? getField(prevFormData, area, config.key, field) : undefined}
               onChange={val => onChange(setField(formData, area, config.key, field, val))}
               rows={field === "why_how" || field === "response" ? 3 : 2}
             />
@@ -203,13 +213,14 @@ export default function InterviewFormFull({ worker, milestone, milestoneLabel, d
     notes: string
     emailDraft: string
     scheduledAt: string
-    formData: FormData
+    formData: InterviewFormData
   }) => Promise<void>
   onClose: () => void
 }) {
   const [tab, setTab] = useState<Tab>("legal")
   const [answers, setAnswers] = useState<WorkerAnswers>({})
-  const [formData, setFormData] = useState<FormData>(emptyFormData)
+  const [formData, setFormData] = useState<InterviewFormData>(emptyFormData)
+  const prevFormData = prevInterview?.form_data ?? null
   const [notes, setNotes] = useState("")
   const [emailDraft, setEmailDraft] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
@@ -355,12 +366,18 @@ export default function InterviewFormFull({ worker, milestone, milestoneLabel, d
           {/* ── Tab: 店長様 ── */}
           {tab === "tencho" && (
             <>
+              {prevFormData?.tencho && Object.keys(prevFormData.tencho).length > 0 && (
+                <p className="text-[0.72rem] text-[var(--text-3)] bg-[var(--bg-2)] rounded px-3 py-2">
+                  前回（{prevInterview?.milestone}）の回答を各フィールドの上に表示しています
+                </p>
+              )}
               {TENCHO_SECTIONS.map(sec => (
                 <SectionCard
                   key={sec.key}
                   config={sec}
                   area="tencho"
                   formData={formData}
+                  prevFormData={prevFormData}
                   onChange={setFormData}
                   isTenchoResp={sec.isTenchoResponse}
                 />
@@ -371,6 +388,11 @@ export default function InterviewFormFull({ worker, milestone, milestoneLabel, d
           {/* ── Tab: 人財 ── */}
           {tab === "worker" && (
             <>
+              {prevFormData?.worker && Object.keys(prevFormData.worker).length > 0 && (
+                <p className="text-[0.72rem] text-[var(--text-3)] bg-[var(--bg-2)] rounded px-3 py-2">
+                  前回（{prevInterview?.milestone}）の回答を各フィールドの上に表示しています
+                </p>
+              )}
               {WORKER_SECTION_GROUPS.map(group => (
                 <div key={group.group} className="flex flex-col gap-3">
                   <p className="label-xs">{group.group}</p>
@@ -380,6 +402,7 @@ export default function InterviewFormFull({ worker, milestone, milestoneLabel, d
                       config={sec}
                       area="worker"
                       formData={formData}
+                      prevFormData={prevFormData}
                       onChange={setFormData}
                     />
                   ))}

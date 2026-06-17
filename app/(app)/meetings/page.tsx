@@ -6,7 +6,7 @@ import { getWorkers, type Worker } from "@/app/actions/workers"
 import {
   getQuestions, saveQuestion, deleteQuestion,
   getAllInterviews, saveInterview,
-  type Question, type Interview, type Answer, type FormData,
+  type Question, type Interview, type InterviewFormData,
 } from "@/app/actions/interviews"
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent, PillTabs } from "@/components/PageHeader"
@@ -437,7 +437,7 @@ export default function MeetingsPage() {
     notes: string
     emailDraft: string
     scheduledAt: string
-    formData: FormData
+    formData: InterviewFormData
   }) {
     await saveInterview(
       row.worker.worker_id ?? row.worker.id,

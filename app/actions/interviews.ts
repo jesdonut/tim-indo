@@ -51,6 +51,24 @@ export async function deleteQuestion(id: string) {
 
 export type Answer = { question_id: string; answer: boolean | null }
 
+export type FieldSet = {
+  response?: string
+  discussion?: string
+  advice?: string
+  next_actions?: string
+  notes?: string
+  when?: string
+  where?: string
+  who?: string
+  what?: string
+  why_how?: string
+}
+
+export type InterviewFormData = {
+  tencho?: Record<string, FieldSet>
+  worker?: Record<string, FieldSet>
+}
+
 export type Interview = {
   id: string
   worker_id: string
@@ -60,6 +78,7 @@ export type Interview = {
   conducted_by: string | null
   notes: string | null
   email_draft: string | null
+  form_data: InterviewFormData | null
   answers: (Answer & { question_text: string })[]
 }
 
@@ -68,7 +87,7 @@ export async function getAllInterviews(): Promise<Interview[]> {
   const tid = await teamId()
   const { data: interviews } = await supabase
     .from("interviews")
-    .select("id, worker_id, milestone, scheduled_at, conducted_at, conducted_by, notes, email_draft")
+    .select("id, worker_id, milestone, scheduled_at, conducted_at, conducted_by, notes, email_draft, form_data")
     .eq("team_id", tid)
     .order("conducted_at", { ascending: false })
   if (!interviews?.length) return []
@@ -96,7 +115,7 @@ export async function getInterviewsForWorker(worker_id: string): Promise<Intervi
   const tid = await teamId()
   const { data: interviews } = await supabase
     .from("interviews")
-    .select("id, worker_id, milestone, scheduled_at, conducted_at, conducted_by, notes, email_draft")
+    .select("id, worker_id, milestone, scheduled_at, conducted_at, conducted_by, notes, email_draft, form_data")
     .eq("team_id", tid)
     .eq("worker_id", worker_id)
     .order("conducted_at", { ascending: false })
@@ -146,13 +165,14 @@ export async function saveInterview(
   email_draft: string,
   answers: Answer[],
   scheduled_at?: string | null,
+  form_data?: InterviewFormData | null,
 ): Promise<string | null> {
   const supabase = await createClient()
   const tid = await teamId()
 
   const { data: iv } = await supabase
     .from("interviews")
-    .insert({ team_id: tid, worker_id, milestone, conducted_by, notes, email_draft, scheduled_at: scheduled_at ?? null })
+    .insert({ team_id: tid, worker_id, milestone, conducted_by, notes, email_draft, scheduled_at: scheduled_at ?? null, form_data: form_data ?? null })
     .select("id")
     .single()
   if (!iv) return null
