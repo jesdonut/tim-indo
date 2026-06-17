@@ -5,7 +5,7 @@ import ExcelJS from "exceljs"
 import { getWorkers, type Worker } from "@/app/actions/workers"
 import {
   getQuestions, saveQuestion, deleteQuestion,
-  getAllInterviews, saveInterview,
+  getAllInterviews, saveInterview, skipMilestone,
   type Question, type Interview, type InterviewFormData,
 } from "@/app/actions/interviews"
 import { cn } from "@/lib/cn"
@@ -372,29 +372,45 @@ export default function MeetingsPage() {
 
   useEffect(() => { loadAll() }, [loadAll])
 
-  // Build milestone rows from workers + interviews
+  // One row per worker: their next relevant milestone.
+  // "Relevant" = not done AND due within the last 90 days or in the future.
+  // Very old unrecorded milestones (stale history) are skipped automatically.
+  // For the 完了 tab we instead show the most-recently-completed milestone.
   const allRows = useMemo<WorkerRow[]>(() => {
     const rows: WorkerRow[] = []
     for (const w of workers) {
       if (!w.first_work_date) continue
-      const workerIvs = interviews.filter(iv => iv.worker_id === (w.worker_id ?? w.id))
+      const wid = w.worker_id ?? w.id
+      const workerIvs = interviews.filter(iv => iv.worker_id === wid)
 
-      MILESTONES.forEach((ms, mi) => {
+      // Find the next actionable incomplete milestone
+      let actionRow: WorkerRow | null = null
+      for (let mi = 0; mi < MILESTONES.length; mi++) {
+        const ms = MILESTONES[mi]
         const dueDate = milestoneDate(w.first_work_date!, ms.days)
         const done = workerIvs.find(iv => iv.milestone === ms.key) ?? null
+        if (done) continue
+        const daysOverdue = -daysFromToday(dueDate) // positive = overdue
+        if (daysOverdue >= 90) continue // skip milestones that are stale history
         const prevMs = MILESTONES[mi - 1]
-        const prevInterview = prevMs
-          ? workerIvs.find(iv => iv.milestone === prevMs.key) ?? null
-          : null
-        rows.push({
-          worker: w,
-          milestone: ms,
-          dueDate,
-          status: getMilestoneStatus(dueDate, !!done),
-          completedInterview: done,
-          prevInterview,
-        })
-      })
+        const prevInterview = prevMs ? workerIvs.find(iv => iv.milestone === prevMs.key) ?? null : null
+        actionRow = { worker: w, milestone: ms, dueDate, status: getMilestoneStatus(dueDate, false), completedInterview: null, prevInterview }
+        break
+      }
+
+      // Most recently completed milestone (for 完了 tab)
+      const latestDone = MILESTONES.slice().reverse().find(ms => workerIvs.find(iv => iv.milestone === ms.key))
+      let doneRow: WorkerRow | null = null
+      if (latestDone) {
+        const iv = workerIvs.find(iv => iv.milestone === latestDone.key)!
+        const mi = MILESTONES.findIndex(m => m.key === latestDone.key)
+        const prevMs = MILESTONES[mi - 1]
+        const prevInterview = prevMs ? workerIvs.find(iv2 => iv2.milestone === prevMs.key) ?? null : null
+        doneRow = { worker: w, milestone: latestDone, dueDate: milestoneDate(w.first_work_date!, latestDone.days), status: "done", completedInterview: iv, prevInterview }
+      }
+
+      if (actionRow) rows.push(actionRow)
+      else if (doneRow) rows.push(doneRow) // all milestones done → show latest in 完了
     }
     return rows
   }, [workers, interviews])
@@ -404,19 +420,6 @@ export default function MeetingsPage() {
     const names = new Set(workers.map(w => w.support_staff).filter(Boolean) as string[])
     return ["全員", ...Array.from(names).sort()]
   }, [workers])
-
-  // Filtered rows
-  const filteredRows = useMemo(() => {
-    return allRows
-      .filter(r => staffFilter === "全員" || r.worker.support_staff === staffFilter)
-      .filter(r => {
-        if (tab === "overdue") return r.status === "overdue"
-        if (tab === "soon") return r.status === "soon" || r.status === "overdue"
-        if (tab === "done") return r.status === "done"
-        return r.status !== "done"
-      })
-      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
-  }, [allRows, staffFilter, tab])
 
   const rowKey = (r: WorkerRow) => `${r.worker.id}-${r.milestone.key}`
 
@@ -429,8 +432,6 @@ export default function MeetingsPage() {
       return next
     })
   }
-
-  const selectedRows = filteredRows.filter(r => selected.has(rowKey(r)))
 
   async function handleSave(row: WorkerRow, args: {
     answers: WorkerAnswers
@@ -453,16 +454,38 @@ export default function MeetingsPage() {
     await loadAll()
   }
 
+  async function handleSkip(row: WorkerRow) {
+    await skipMilestone(row.worker.worker_id ?? row.worker.id, row.milestone.key)
+    await loadAll()
+  }
+
   const loadQuestions = useCallback(async () => {
     setQuestions(await getQuestions())
   }, [])
 
+  const staffRows = useMemo(() =>
+    allRows.filter(r => staffFilter === "全員" || r.worker.support_staff === staffFilter)
+  , [allRows, staffFilter])
+
   const counts = useMemo(() => ({
-    overdue: allRows.filter(r => (staffFilter === "全員" || r.worker.support_staff === staffFilter) && r.status === "overdue").length,
-    soon:    allRows.filter(r => (staffFilter === "全員" || r.worker.support_staff === staffFilter) && r.status === "soon").length,
-    all:     allRows.filter(r => (staffFilter === "全員" || r.worker.support_staff === staffFilter) && r.status !== "done").length,
-    done:    allRows.filter(r => (staffFilter === "全員" || r.worker.support_staff === staffFilter) && r.status === "done").length,
-  }), [allRows, staffFilter])
+    overdue: staffRows.filter(r => r.status === "overdue").length,
+    soon:    staffRows.filter(r => r.status === "soon").length,
+    all:     staffRows.filter(r => r.status !== "done").length,
+    done:    staffRows.filter(r => r.status === "done").length,
+  }), [staffRows])
+
+  const filteredRows = useMemo(() => {
+    return staffRows
+      .filter(r => {
+        if (tab === "soon") return r.status === "soon" || r.status === "overdue"
+        if (tab === "all") return r.status !== "done"
+        if (tab === "done") return r.status === "done"
+        return true
+      })
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+  }, [staffRows, tab])
+
+  const selectedRows = filteredRows.filter(r => selected.has(rowKey(r)))
 
   return (
     <>
@@ -568,7 +591,7 @@ export default function MeetingsPage() {
                       onChange={() => toggleSelect(row)}
                       className="shrink-0 accent-[var(--highlight)]"
                     />
-                    <div className="flex-1 min-w-0 grid grid-cols-[1fr_60px_90px_70px_80px] gap-3 items-center">
+                    <div className="flex-1 min-w-0 grid grid-cols-[1fr_60px_90px_70px_auto] gap-3 items-center">
                       <div className="min-w-0">
                         <p className="text-sm text-[var(--text)] truncate">
                           {row.worker.name_latin ?? row.worker.name_kana ?? row.worker.worker_id}
@@ -585,10 +608,17 @@ export default function MeetingsPage() {
                           {new Date(row.completedInterview!.conducted_at).toLocaleDateString("ja-JP")}
                         </span>
                       ) : (
-                        <button
-                          onClick={() => setActiveRow(row)}
-                          className="text-[0.72rem] px-2.5 py-1 rounded bg-[var(--bg-2)] text-[var(--text-2)] hover:bg-[var(--text)] hover:text-[var(--bg)] transition-all font-medium"
-                        >面談する</button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => setActiveRow(row)}
+                            className="text-[0.72rem] px-2.5 py-1 rounded bg-[var(--bg-2)] text-[var(--text-2)] hover:bg-[var(--text)] hover:text-[var(--bg)] transition-all font-medium whitespace-nowrap"
+                          >面談する</button>
+                          <button
+                            onClick={() => void handleSkip(row)}
+                            title="実施済みとしてスキップ"
+                            className="text-[0.65rem] px-2 py-1 rounded border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all whitespace-nowrap"
+                          >スキップ</button>
+                        </div>
                       )}
                     </div>
                   </div>

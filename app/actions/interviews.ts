@@ -157,6 +157,19 @@ export async function checkDoubleBook(scheduled_at: string, excludeId?: string):
   return null
 }
 
+export async function skipMilestone(worker_id: string, milestone: string): Promise<void> {
+  const supabase = await createClient()
+  const tid = await teamId()
+  await supabase.from("interviews").insert({
+    team_id: tid,
+    worker_id,
+    milestone,
+    notes: "スキップ（実施済み）",
+    email_draft: "",
+    conducted_at: new Date().toISOString(),
+  })
+}
+
 export async function saveInterview(
   worker_id: string,
   milestone: string | null,
