@@ -197,11 +197,24 @@ function SectionCard({ config, area, formData, prevFormData, onChange, isTenchoR
   )
 }
 
+// ── Default legal questions (from official 就業者定期面談シート template) ─────
+
+const DEFAULT_QUESTIONS: Question[] = [
+  { id: "dq-1", text: "仕事内容は変更ないか？",              sort_order: 1, active: true },
+  { id: "dq-2", text: "仕事場所は変更ないか？",              sort_order: 2, active: true },
+  { id: "dq-3", text: "お給料は変更ないか？",                sort_order: 3, active: true },
+  { id: "dq-4", text: "お休みは取れているか？",              sort_order: 4, active: true },
+  { id: "dq-5", text: "家は変わっていないか？",              sort_order: 5, active: true },
+  { id: "dq-6", text: "会社や同僚から暴行・脅迫等の不法行為はないか？", sort_order: 6, active: true },
+  { id: "dq-7", text: "日常生活でトラブルはないか？",        sort_order: 7, active: true },
+  { id: "dq-8", text: "健康状態は問題ないか？",              sort_order: 8, active: true },
+]
+
 // ── Main form ─────────────────────────────────────────────────────────────────
 
 type Tab = "legal" | "tencho" | "worker"
 
-export default function InterviewFormFull({ worker, milestone, milestoneLabel, dueDate, questions, prevInterview, onSave, onClose }: {
+export default function InterviewFormFull({ worker, milestone, milestoneLabel, dueDate, questions: dbQuestions, prevInterview, onSave, onClose }: {
   worker: Worker
   milestone: string
   milestoneLabel: string
@@ -217,6 +230,12 @@ export default function InterviewFormFull({ worker, milestone, milestoneLabel, d
   }) => Promise<void>
   onClose: () => void
 }) {
+  // Merge default questions with any custom DB questions (DB ones appended after)
+  const questions = [
+    ...DEFAULT_QUESTIONS,
+    ...dbQuestions.filter(q => !DEFAULT_QUESTIONS.some(d => d.text === q.text)),
+  ]
+
   const [tab, setTab] = useState<Tab>("legal")
   const [answers, setAnswers] = useState<WorkerAnswers>({})
   const [formData, setFormData] = useState<InterviewFormData>(emptyFormData)
@@ -306,10 +325,7 @@ export default function InterviewFormFull({ worker, milestone, milestoneLabel, d
                 )}
               </div>
 
-              {questions.length === 0 ? (
-                <p className="text-sm text-[var(--text-3)]">質問がまだ設定されていません。「質問管理」から追加してください。</p>
-              ) : (
-                <div className="border border-[var(--border)] rounded-lg overflow-hidden">
+              <div className="border border-[var(--border)] rounded-lg overflow-hidden">
                   {hasPrev && (
                     <div className="grid grid-cols-[1fr_80px_80px] gap-3 px-4 py-2 bg-[var(--bg-2)] border-b border-[var(--border)]">
                       <span className="text-[0.65rem] text-[var(--text-3)]">質問</span>
@@ -355,8 +371,7 @@ export default function InterviewFormFull({ worker, milestone, milestoneLabel, d
                       )
                     })}
                   </div>
-                </div>
-              )}
+              </div>
 
               <FieldRow label="備考" value={notes} onChange={setNotes} rows={3} />
               <FieldRow label="メール下書き（店長様へ）" value={emailDraft} onChange={setEmailDraft} rows={5} />
