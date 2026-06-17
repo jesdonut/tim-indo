@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 import { getWorkers, type Worker } from "@/app/actions/workers"
 import {
   getQuestions, saveQuestion, deleteQuestion,
@@ -299,62 +299,169 @@ function StatusBadge({ status, dueDate }: { status: MilestoneStatus; dueDate: Da
 
 // ── Export ────────────────────────────────────────────────────────────────────
 
-function exportToExcel(rows: WorkerRow[], questions: Question[], mode: "matome" | "single") {
-  const wb = XLSX.utils.book_new()
-  const today = new Date().toLocaleDateString("ja-JP").replace(/\//g, "-")
+const THIN: ExcelJS.Border = { style: "thin", color: { argb: "FF000000" } }
+const ALL_BORDERS: Partial<ExcelJS.Borders> = { top: THIN, bottom: THIN, left: THIN, right: THIN }
+const HEADER_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1a1a1a" } }
+const SECTION_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFe5e4df" } }
 
-  function makeRows(r: WorkerRow) {
-    const out: (string | number)[][] = []
-    const name = r.worker.name_latin ?? r.worker.name_kana ?? r.worker.worker_id ?? "—"
-    const iv = r.completedInterview
-    const prev = r.prevInterview
+function styleHeader(row: ExcelJS.Row) {
+  row.font = { bold: true, color: { argb: "FFffffff" }, size: 10 }
+  row.fill = HEADER_FILL
+  row.eachCell(c => { c.border = ALL_BORDERS })
+}
 
-    out.push(["氏名", name])
-    out.push(["サポート担当", r.worker.support_staff ?? "—"])
-    out.push(["面談種別", r.milestone.label])
-    out.push(["期限", r.dueDate.toLocaleDateString("ja-JP")])
-    out.push(["実施日", iv ? new Date(iv.conducted_at).toLocaleDateString("ja-JP") : "未実施"])
-    out.push([])
+function styleSection(row: ExcelJS.Row) {
+  row.font = { bold: true, size: 10 }
+  row.fill = SECTION_FILL
+  row.eachCell(c => { c.border = ALL_BORDERS })
+}
 
-    if (questions.length > 0) {
-      const hasPrev = prev && prev.answers.length > 0
-      out.push(hasPrev ? ["質問", "今回", `前回 (${prev.milestone})`] : ["質問", "回答"])
-      for (const q of questions) {
+function styleData(row: ExcelJS.Row) {
+  row.font = { size: 10 }
+  row.eachCell(c => { c.border = ALL_BORDERS })
+}
+
+function addSheetForWorker(wb: ExcelJS.Workbook, r: WorkerRow, questions: Question[], sheetName: string) {
+  const ws = wb.addWorksheet(sheetName)
+  ws.columns = [
+    { width: 42 },
+    { width: 10 },
+    { width: 10 },
+    { width: 10 },
+  ]
+
+  const name     = r.worker.name_latin ?? r.worker.name_kana ?? r.worker.worker_id ?? "—"
+  const staff    = r.worker.support_staff ?? "—"
+  const iv       = r.completedInterview
+  const prev     = r.prevInterview
+  const hasPrev  = !!(prev && prev.answers.length > 0)
+  const dateStr  = iv ? new Date(iv.conducted_at).toLocaleDateString("ja-JP") : ""
+  const today    = new Date().toLocaleDateString("ja-JP")
+
+  // ── Title header ─────────────────────────────────────────────────────────
+  const titleRow = ws.addRow(["就業者定期面談シート", "", "担当者氏名：", staff])
+  ws.mergeCells(`A${titleRow.number}:B${titleRow.number}`)
+  titleRow.getCell(1).font = { bold: true, size: 13 }
+  titleRow.getCell(1).alignment = { horizontal: "center" }
+  titleRow.eachCell(c => { c.border = ALL_BORDERS })
+
+  const dateRow = ws.addRow([`日付：${dateStr || today}`, "", "就業場所：", r.worker.store_name ?? ""])
+  ws.mergeCells(`A${dateRow.number}:B${dateRow.number}`)
+  dateRow.eachCell(c => { c.border = ALL_BORDERS })
+
+  const nameRow = ws.addRow([`面談種別：${r.milestone.label}`, "", "人財氏名：", name])
+  ws.mergeCells(`A${nameRow.number}:B${nameRow.number}`)
+  nameRow.eachCell(c => { c.border = ALL_BORDERS })
+
+  ws.addRow([])
+
+  // ── Legal section ─────────────────────────────────────────────────────────
+  styleHeader(ws.addRow(["ヒアリング内容（法律範囲）", "", "問題の有無", hasPrev ? `前回(${prev?.milestone})` : ""]))
+  ws.mergeCells(`A${ws.lastRow!.number}:B${ws.lastRow!.number}`)
+
+  const LEGAL_SECTIONS: ({ section: string; question?: never } | { question: string; section?: never })[] = [
+    { section: "業務内容について" },
+    { question: "仕事内容は変更ないか？" },
+    { question: "仕事場所は変更ないか？" },
+    { section: "待遇について" },
+    { question: "お給料は変更ないか？" },
+    { question: "お休みは取れているか？" },
+    { question: "家は変わっていないか？" },
+    { section: "保護について" },
+    { question: "会社や同僚から暴行・脅迫等の不法行為はないか？" },
+    { section: "生活について" },
+    { question: "日常生活でトラブルはないか？" },
+    { question: "健康状態は問題ないか？" },
+  ]
+
+  for (const item of LEGAL_SECTIONS) {
+    if (item.section) {
+      styleSection(ws.addRow([item.section, "", "", ""]))
+      ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
+    } else {
+      const q = questions.find(qq => qq.text === item.question)
+      const curr = q ? (iv?.answers.find(a => a.question_id === q.id)?.answer ?? null) : null
+      const currLabel = curr === true ? "有" : curr === false ? "無" : ""
+      const prevLabel = q && hasPrev
+        ? (prev?.answers.find(a => a.question_id === q.id)?.answer === false ? "無" : prev?.answers.find(a => a.question_id === q.id)?.answer === true ? "有" : "")
+        : ""
+      styleData(ws.addRow([item.question, "", currLabel, prevLabel]))
+      ws.mergeCells(`A${ws.lastRow!.number}:B${ws.lastRow!.number}`)
+    }
+  }
+
+  ws.addRow([])
+
+  // ── Notes & extra questions ───────────────────────────────────────────────
+  if (questions.length > 0) {
+    const extraQuestions = questions.filter(q =>
+      !LEGAL_SECTIONS.find(l => l.question === q.text)
+    )
+    if (extraQuestions.length > 0) {
+      styleHeader(ws.addRow(["その他のヒアリング内容", "", "今回", hasPrev ? `前回(${prev?.milestone})` : ""]))
+      ws.mergeCells(`A${ws.lastRow!.number}:B${ws.lastRow!.number}`)
+      for (const q of extraQuestions) {
         const curr = iv?.answers.find(a => a.question_id === q.id)?.answer ?? null
         const currLabel = curr === true ? "はい" : curr === false ? "いいえ" : "—"
-        if (hasPrev) {
-          const p = prev.answers.find(a => a.question_id === q.id)?.answer ?? null
-          out.push([q.text, currLabel, p === true ? "はい" : p === false ? "いいえ" : "—"])
-        } else {
-          out.push([q.text, currLabel])
-        }
+        const prevAns = hasPrev ? prev?.answers.find(a => a.question_id === q.id)?.answer ?? null : null
+        const prevLabel = prevAns === true ? "はい" : prevAns === false ? "いいえ" : ""
+        styleData(ws.addRow([q.text, "", currLabel, prevLabel]))
+        ws.mergeCells(`A${ws.lastRow!.number}:B${ws.lastRow!.number}`)
       }
-      out.push([])
+      ws.addRow([])
     }
-
-    out.push(["備考", iv?.notes ?? ""])
-    return out
   }
+
+  // ── Memo / notes ─────────────────────────────────────────────────────────
+  styleSection(ws.addRow(["備考"]))
+  ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
+  const notesRow = ws.addRow([iv?.notes ?? ""])
+  notesRow.getCell(1).alignment = { wrapText: true }
+  notesRow.height = 60
+  ws.mergeCells(`A${notesRow.number}:D${notesRow.number}`)
+  notesRow.eachCell(c => { c.border = ALL_BORDERS })
+
+  if (iv?.email_draft) {
+    ws.addRow([])
+    styleSection(ws.addRow(["メール下書き"]))
+    ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
+    const emailRow = ws.addRow([iv.email_draft])
+    emailRow.getCell(1).alignment = { wrapText: true }
+    emailRow.height = 80
+    ws.mergeCells(`A${emailRow.number}:D${emailRow.number}`)
+    emailRow.eachCell(c => { c.border = ALL_BORDERS })
+  }
+}
+
+async function exportToExcel(rows: WorkerRow[], questions: Question[], mode: "matome" | "single") {
+  const wb = new ExcelJS.Workbook()
+  wb.creator = "Tim Indo Serba Bisa"
+  const today = new Date().toLocaleDateString("ja-JP").replace(/\//g, "-")
 
   if (mode === "matome") {
-    const all: (string | number)[][] = []
-    rows.forEach((r, i) => {
-      if (i > 0) all.push([], ["─────────────────"])
-      all.push(...makeRows(r))
+    rows.forEach(r => {
+      const name = (r.worker.name_latin ?? r.worker.name_kana ?? r.worker.worker_id ?? "worker").slice(0, 28)
+      addSheetForWorker(wb, r, questions, name)
     })
-    const ws = XLSX.utils.aoa_to_sheet(all)
-    ws["!cols"] = [{ wch: 30 }, { wch: 14 }, { wch: 14 }]
-    XLSX.utils.book_append_sheet(wb, ws, "定期面談")
-    XLSX.writeFile(wb, `定期面談_${today}.xlsx`)
+    const buf = await wb.xlsx.writeBuffer()
+    download(buf, `定期面談_${today}.xlsx`)
   } else {
     rows.forEach(r => {
-      const ws = XLSX.utils.aoa_to_sheet(makeRows(r))
-      ws["!cols"] = [{ wch: 30 }, { wch: 14 }, { wch: 14 }]
-      const sheetName = (r.worker.name_latin ?? r.worker.name_kana ?? r.worker.worker_id ?? "worker").slice(0, 28)
-      XLSX.utils.book_append_sheet(wb, ws, sheetName)
+      const name = (r.worker.name_latin ?? r.worker.name_kana ?? r.worker.worker_id ?? "worker").slice(0, 28)
+      const singleWb = new ExcelJS.Workbook()
+      singleWb.creator = "Tim Indo Serba Bisa"
+      addSheetForWorker(singleWb, r, questions, name)
+      singleWb.xlsx.writeBuffer().then(buf => download(buf, `定期面談_${name}_${today}.xlsx`))
     })
-    XLSX.writeFile(wb, `定期面談_個別_${today}.xlsx`)
   }
+}
+
+function download(buf: ExcelJS.Buffer, filename: string) {
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url; a.download = filename; a.click()
+  URL.revokeObjectURL(url)
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -533,11 +640,11 @@ export default function MeetingsPage() {
               <span className="text-sm text-[var(--text-2)]">{selectedRows.length}件選択</span>
               <div className="flex gap-2 ml-auto">
                 <button
-                  onClick={() => exportToExcel(selectedRows, questions, "matome")}
+                  onClick={() => void exportToExcel(selectedRows, questions, "matome")}
                   className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.75rem] text-[var(--text-2)] hover:text-[var(--text)] transition-all"
                 >まとめてExcel</button>
                 <button
-                  onClick={() => exportToExcel(selectedRows, questions, "single")}
+                  onClick={() => void exportToExcel(selectedRows, questions, "single")}
                   className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.75rem] text-[var(--text-2)] hover:text-[var(--text)] transition-all"
                 >個別Excel</button>
                 <button onClick={() => setSelected(new Set())} className="text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors ml-1">
