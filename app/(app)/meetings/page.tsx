@@ -202,14 +202,29 @@ function addSheetForWorker(wb: ExcelJS.Workbook, r: WorkerRow, questions: Questi
 
   ws.addRow([])
 
+  // helper: add a full-width row (merges A:C), with optional styling
+  function addWideRow(text: string, opts?: { bold?: boolean; italic?: boolean; size?: number; color?: string; height?: number; fill?: ExcelJS.Fill }) {
+    const row = ws.addRow([text, "", ""])
+    ws.mergeCells(`A${row.number}:C${row.number}`)
+    if (opts?.fill) row.fill = opts.fill
+    row.getCell(1).font = {
+      bold: opts?.bold,
+      italic: opts?.italic,
+      size: opts?.size ?? 10,
+      color: opts?.color ? { argb: opts.color } : undefined,
+    }
+    row.getCell(1).alignment = { wrapText: true }
+    if (opts?.height) row.height = opts.height
+    row.getCell(1).border = ALL_BORDERS
+    return row
+  }
+
   // ── 法律範囲 ──────────────────────────────────────────────────────────────
   const legalHeaderRow = ws.addRow(["ヒアリング内容（法律範囲）", "有", "無"])
   styleHeader(legalHeaderRow)
 
   for (const group of LEGAL_SECTION_GROUPS) {
-    const sh = ws.addRow([group.header, "", ""])
-    styleSection(sh)
-    mergeAC(lastRowNum())
+    addWideRow(group.header, { bold: true, fill: SECTION_FILL })
 
     for (const gq of group.questions) {
       const ans = getAnswerForLegal(gq.text)
@@ -220,104 +235,58 @@ function addSheetForWorker(wb: ExcelJS.Workbook, r: WorkerRow, questions: Questi
     }
   }
 
-  // Notes (legal section memo)
-  ws.addRow([])
-  const lNotesLabel = ws.addRow(["備考"])
-  mergeAC(lastRowNum())
-  styleSection(lNotesLabel)
-  const lNotesRow = ws.addRow([iv?.notes ?? ""])
-  mergeAC(lastRowNum())
-  lNotesRow.getCell(1).alignment = { wrapText: true }
-  lNotesRow.height = 50
-  lNotesRow.eachCell(c => { c.border = ALL_BORDERS })
+  // Notes after legal section
+  ws.addRow(["", "", ""])
+  addWideRow("備考", { bold: true, fill: SECTION_FILL })
+  addWideRow(iv?.notes ?? "", { height: 50 })
 
   if (iv?.email_draft) {
-    const elLabel = ws.addRow(["メール下書き"])
-    mergeAC(lastRowNum()); styleSection(elLabel)
-    const elRow = ws.addRow([iv.email_draft])
-    mergeAC(lastRowNum())
-    elRow.getCell(1).alignment = { wrapText: true }
-    elRow.height = 70
-    elRow.eachCell(c => { c.border = ALL_BORDERS })
+    addWideRow("メール下書き", { bold: true, fill: SECTION_FILL })
+    addWideRow(iv.email_draft, { height: 70 })
   }
 
-  ws.addRow([])
+  ws.addRow(["", "", ""])
 
   // ── 店長様 ────────────────────────────────────────────────────────────────
-  const tHeader = ws.addRow(["ヒアリング内容（付加価値範囲）店舗店長様に対して", "", ""])
-  styleHeader(tHeader); mergeAC(lastRowNum())
+  addWideRow("ヒアリング内容（付加価値範囲）店舗店長様に対して", { bold: true, fill: HEADER_FILL, color: "FFffffff" })
 
   for (const sec of TENCHO_SECTIONS) {
-    const secRow = ws.addRow([sec.title, "", ""])
-    styleSection(secRow); mergeAC(lastRowNum())
+    addWideRow(sec.title, { bold: true, fill: SECTION_FILL })
 
-    // Hints as light reference lines
-    if (sec.hints?.length) {
-      for (const hint of sec.hints) {
-        const hRow = ws.addRow([hint])
-        mergeAC(lastRowNum())
-        hRow.getCell(1).font = { italic: true, size: 9, color: { argb: "FF666666" } }
-        hRow.getCell(1).alignment = { wrapText: true }
-        hRow.height = 25
-        hRow.eachCell(c => { c.border = ALL_BORDERS })
-      }
+    for (const hint of (sec.hints ?? [])) {
+      addWideRow(hint, { italic: true, size: 9, color: "FF666666", height: 25 })
     }
 
-    // Fill-in fields — always rendered, with saved content or blank
     for (const fieldKey of sec.fields) {
-      const label = fieldKey === "response" && sec.isTenchoResponse ? TENCHO_RESPONSE_LABEL : FIELD_LABELS[fieldKey as keyof typeof FIELD_LABELS] ?? fieldKey
+      const label = fieldKey === "response" && sec.isTenchoResponse
+        ? TENCHO_RESPONSE_LABEL
+        : FIELD_LABELS[fieldKey as keyof typeof FIELD_LABELS] ?? fieldKey
       const value = getFormField("tencho", sec.key, fieldKey)
-
-      const labelRow = ws.addRow([label])
-      mergeAC(lastRowNum())
-      labelRow.getCell(1).font = { size: 9, color: { argb: "FF444444" } }
-      labelRow.eachCell(c => { c.border = ALL_BORDERS })
-
-      const valueRow = ws.addRow([value])
-      mergeAC(lastRowNum())
-      valueRow.getCell(1).alignment = { wrapText: true }
-      valueRow.height = value ? Math.max(35, Math.ceil(value.length / 55) * 15) : 40
-      valueRow.eachCell(c => { c.border = ALL_BORDERS })
+      addWideRow(label, { size: 9, color: "FF444444" })
+      addWideRow(value, { height: value ? Math.max(35, Math.ceil(value.length / 55) * 15) : 40 })
     }
 
-    ws.addRow([])
+    ws.addRow(["", "", ""])
   }
 
   // ── 人財 ──────────────────────────────────────────────────────────────────
-  const wHeader = ws.addRow(["ヒアリング内容（付加価値範囲）人財に対して", "", ""])
-  styleHeader(wHeader); mergeAC(lastRowNum())
+  addWideRow("ヒアリング内容（付加価値範囲）人財に対して", { bold: true, fill: HEADER_FILL, color: "FFffffff" })
 
   for (const grp of WORKER_SECTION_GROUPS) {
-    const grpRow = ws.addRow([grp.group, "", ""])
-    styleSection(grpRow); mergeAC(lastRowNum())
+    addWideRow(grp.group, { bold: true, fill: SECTION_FILL })
 
     for (const sec of grp.items) {
-      // Prompt/question hint
-      const promptRow = ws.addRow([sec.hints?.[0] ?? sec.title])
-      mergeAC(lastRowNum())
-      promptRow.getCell(1).font = { size: 10 }
-      promptRow.getCell(1).alignment = { wrapText: true }
-      promptRow.height = 25
-      promptRow.eachCell(c => { c.border = ALL_BORDERS })
+      addWideRow(sec.hints?.[0] ?? sec.title, { size: 10, height: 25 })
 
       for (const fieldKey of sec.fields) {
         const label = FIELD_LABELS[fieldKey as keyof typeof FIELD_LABELS] ?? fieldKey
         const value = getFormField("worker", sec.key, fieldKey)
-
-        const labelRow = ws.addRow([label])
-        mergeAC(lastRowNum())
-        labelRow.getCell(1).font = { size: 9, color: { argb: "FF444444" } }
-        labelRow.eachCell(c => { c.border = ALL_BORDERS })
-
-        const valueRow = ws.addRow([value])
-        mergeAC(lastRowNum())
-        valueRow.getCell(1).alignment = { wrapText: true }
-        valueRow.height = value ? Math.max(35, Math.ceil(value.length / 55) * 15) : 40
-        valueRow.eachCell(c => { c.border = ALL_BORDERS })
+        addWideRow(label, { size: 9, color: "FF444444" })
+        addWideRow(value, { height: value ? Math.max(35, Math.ceil(value.length / 55) * 15) : 40 })
       }
     }
 
-    ws.addRow([])
+    ws.addRow(["", "", ""])
   }
 }
 
