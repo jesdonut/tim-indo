@@ -163,7 +163,7 @@ const WORKER_SECTION_GROUPS: WorkerSectionGroup[] = [
       { key: "days_off",       title: "休日の過ごし方",   hints: ["休みの日はどう過ごしていますか？"],                                           fields: ["response", "advice", "next_actions"] },
       { key: "outings",        title: "お出かけ",         hints: ["最近どこか出掛けたりしましたか？"],                                           fields: ["response", "advice", "next_actions", "notes"] },
       { key: "family_contact", title: "母国の家族",       hints: ["母国にいる家族とはどのくらいの頻度で連絡を取っていますか？"],                 fields: ["response", "advice", "next_actions"] },
-      { key: "remittance",     title: "送金（ミャンマー）", hints: ["【ミャンマー人の場合】毎月給料の25%ミャンマーの家族に送金していますか？"], fields: ["response", "advice", "next_actions", "notes"] },
+      { key: "remittance",     title: "送金（インドネシア）", hints: ["毎月インドネシアの家族に送金していますか？（金額・頻度など）"], fields: ["response", "advice", "next_actions", "notes"] },
     ],
   },
 ]

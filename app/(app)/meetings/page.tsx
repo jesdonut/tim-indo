@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn"
 import { PageHeader, PageContent, PillTabs } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
 import InterviewFormFull, {
-  TENCHO_SECTIONS, WORKER_SECTION_GROUPS, FIELD_LABELS, TENCHO_RESPONSE_LABEL,
+  TENCHO_SECTIONS, WORKER_SECTION_GROUPS, LEGAL_SECTION_GROUPS, FIELD_LABELS, TENCHO_RESPONSE_LABEL,
   type WorkerAnswers,
 } from "@/components/meetings/InterviewFormFull"
 
@@ -147,172 +147,177 @@ function styleData(row: ExcelJS.Row) {
 
 function addSheetForWorker(wb: ExcelJS.Workbook, r: WorkerRow, questions: Question[], sheetName: string) {
   const ws = wb.addWorksheet(sheetName)
-  ws.columns = [
-    { width: 42 },
-    { width: 10 },
-    { width: 10 },
-    { width: 10 },
-  ]
+  // 3-column layout: content | 有 | 無
+  ws.columns = [{ width: 56 }, { width: 6 }, { width: 6 }]
 
-  const name     = r.worker.name_latin ?? r.worker.name_kana ?? r.worker.worker_id ?? "—"
-  const staff    = r.worker.support_staff ?? "—"
-  const iv       = r.completedInterview
-  const prev     = r.prevInterview
-  const hasPrev  = !!(prev && prev.answers.length > 0)
-  const dateStr  = iv ? new Date(iv.conducted_at).toLocaleDateString("ja-JP") : ""
-  const today    = new Date().toLocaleDateString("ja-JP")
+  const name    = r.worker.name_latin ?? r.worker.name_kana ?? r.worker.worker_id ?? "—"
+  const staff   = r.worker.support_staff ?? "—"
+  const iv      = r.completedInterview
+  const prev    = r.prevInterview
+  const hasPrev = !!(prev && prev.answers.length > 0)
+  const dateStr = iv ? new Date(iv.conducted_at).toLocaleDateString("ja-JP") : new Date().toLocaleDateString("ja-JP")
+  const fd      = iv?.form_data ?? null
 
-  // ── Title header ─────────────────────────────────────────────────────────
-  const titleRow = ws.addRow(["就業者定期面談シート", "", "担当者氏名：", staff])
-  ws.mergeCells(`A${titleRow.number}:B${titleRow.number}`)
-  titleRow.getCell(1).font = { bold: true, size: 13 }
-  titleRow.getCell(1).alignment = { horizontal: "center" }
-  titleRow.eachCell(c => { c.border = ALL_BORDERS })
+  function mergeAC(rowNum: number) { ws.mergeCells(`A${rowNum}:C${rowNum}`) }
+  function lastRowNum() { return ws.lastRow!.number }
 
-  const dateRow = ws.addRow([`日付：${dateStr || today}`, "", "就業場所：", r.worker.store_name ?? ""])
-  ws.mergeCells(`A${dateRow.number}:B${dateRow.number}`)
-  dateRow.eachCell(c => { c.border = ALL_BORDERS })
+  function addTextRow(text: string, height = 0) {
+    const row = ws.addRow([text])
+    mergeAC(lastRowNum())
+    row.getCell(1).alignment = { wrapText: true }
+    if (height) row.height = height
+    row.eachCell(c => { c.border = ALL_BORDERS })
+    return row
+  }
 
-  const nameRow = ws.addRow([`面談種別：${r.milestone.label}`, "", "人財氏名：", name])
-  ws.mergeCells(`A${nameRow.number}:B${nameRow.number}`)
-  nameRow.eachCell(c => { c.border = ALL_BORDERS })
+  function getFormField(area: "tencho" | "worker", key: string, field: string): string {
+    return (fd?.[area] as Record<string, Record<string, string>> | undefined)?.[key]?.[field] ?? ""
+  }
+
+  function getAnswer(questionId: string): boolean | null {
+    // try by id first, then match by text against default question ids
+    const byId = iv?.answers.find(a => a.question_id === questionId)
+    if (byId !== undefined) return byId.answer
+    return null
+  }
+
+  // For default questions (dq-1 … dq-8), match them against real DB question ids via text
+  function getAnswerForLegal(text: string): boolean | null {
+    const q = questions.find(qq => qq.text === text)
+    if (!q) return null
+    return iv?.answers.find(a => a.question_id === q.id)?.answer ?? null
+  }
+
+  // ── Title ─────────────────────────────────────────────────────────────────
+  const r1 = ws.addRow(["就業者定期面談シート", "担当者：", staff])
+  r1.getCell(1).font = { bold: true, size: 13 }
+  r1.getCell(1).alignment = { horizontal: "center" }
+  r1.eachCell(c => { c.border = ALL_BORDERS })
+
+  const r2 = ws.addRow([`日付：${dateStr}`, "就業場所：", r.worker.store_name ?? ""])
+  r2.eachCell(c => { c.border = ALL_BORDERS })
+
+  const r3 = ws.addRow([`面談種別：${r.milestone.label}`, "人財氏名：", name])
+  r3.eachCell(c => { c.border = ALL_BORDERS })
 
   ws.addRow([])
 
-  // ── Legal section ─────────────────────────────────────────────────────────
-  styleHeader(ws.addRow(["ヒアリング内容（法律範囲）", "", "問題の有無", hasPrev ? `前回(${prev?.milestone})` : ""]))
-  ws.mergeCells(`A${ws.lastRow!.number}:B${ws.lastRow!.number}`)
+  // ── 法律範囲 ──────────────────────────────────────────────────────────────
+  const legalHeaderRow = ws.addRow(["ヒアリング内容（法律範囲）", "有", "無"])
+  styleHeader(legalHeaderRow)
 
-  const LEGAL_SECTIONS: ({ section: string; question?: never } | { question: string; section?: never })[] = [
-    { section: "業務内容について" },
-    { question: "仕事内容は変更ないか？" },
-    { question: "仕事場所は変更ないか？" },
-    { section: "待遇について" },
-    { question: "お給料は変更ないか？" },
-    { question: "お休みは取れているか？" },
-    { question: "家は変わっていないか？" },
-    { section: "保護について" },
-    { question: "会社や同僚から暴行・脅迫等の不法行為はないか？" },
-    { section: "生活について" },
-    { question: "日常生活でトラブルはないか？" },
-    { question: "健康状態は問題ないか？" },
-  ]
+  for (const group of LEGAL_SECTION_GROUPS) {
+    const sh = ws.addRow([group.header, "", ""])
+    styleSection(sh)
+    mergeAC(lastRowNum())
 
-  for (const item of LEGAL_SECTIONS) {
-    if (item.section) {
-      styleSection(ws.addRow([item.section, "", "", ""]))
-      ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
-    } else {
-      const q = questions.find(qq => qq.text === item.question)
-      const curr = q ? (iv?.answers.find(a => a.question_id === q.id)?.answer ?? null) : null
-      const currLabel = curr === true ? "有" : curr === false ? "無" : ""
-      const prevLabel = q && hasPrev
-        ? (prev?.answers.find(a => a.question_id === q.id)?.answer === false ? "無" : prev?.answers.find(a => a.question_id === q.id)?.answer === true ? "有" : "")
-        : ""
-      styleData(ws.addRow([item.question, "", currLabel, prevLabel]))
-      ws.mergeCells(`A${ws.lastRow!.number}:B${ws.lastRow!.number}`)
+    for (const gq of group.questions) {
+      const ans = getAnswerForLegal(gq.text)
+      const row = ws.addRow([gq.text, ans === true ? "●" : "", ans === false ? "●" : ""])
+      styleData(row)
+      if (ans === true)  row.getCell(2).font = { bold: true, size: 11 }
+      if (ans === false) row.getCell(3).font = { bold: true, size: 11 }
     }
   }
 
+  // Notes (legal section memo)
   ws.addRow([])
-
-  // ── Notes & extra questions ───────────────────────────────────────────────
-  if (questions.length > 0) {
-    const extraQuestions = questions.filter(q =>
-      !LEGAL_SECTIONS.find(l => l.question === q.text)
-    )
-    if (extraQuestions.length > 0) {
-      styleHeader(ws.addRow(["その他のヒアリング内容", "", "今回", hasPrev ? `前回(${prev?.milestone})` : ""]))
-      ws.mergeCells(`A${ws.lastRow!.number}:B${ws.lastRow!.number}`)
-      for (const q of extraQuestions) {
-        const curr = iv?.answers.find(a => a.question_id === q.id)?.answer ?? null
-        const currLabel = curr === true ? "はい" : curr === false ? "いいえ" : "—"
-        const prevAns = hasPrev ? prev?.answers.find(a => a.question_id === q.id)?.answer ?? null : null
-        const prevLabel = prevAns === true ? "はい" : prevAns === false ? "いいえ" : ""
-        styleData(ws.addRow([q.text, "", currLabel, prevLabel]))
-        ws.mergeCells(`A${ws.lastRow!.number}:B${ws.lastRow!.number}`)
-      }
-      ws.addRow([])
-    }
-  }
-
-  // ── Memo / notes ─────────────────────────────────────────────────────────
-  styleSection(ws.addRow(["備考"]))
-  ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
-  const notesRow = ws.addRow([iv?.notes ?? ""])
-  notesRow.getCell(1).alignment = { wrapText: true }
-  notesRow.height = 60
-  ws.mergeCells(`A${notesRow.number}:D${notesRow.number}`)
-  notesRow.eachCell(c => { c.border = ALL_BORDERS })
+  const lNotesLabel = ws.addRow(["備考"])
+  mergeAC(lastRowNum())
+  styleSection(lNotesLabel)
+  const lNotesRow = ws.addRow([iv?.notes ?? ""])
+  mergeAC(lastRowNum())
+  lNotesRow.getCell(1).alignment = { wrapText: true }
+  lNotesRow.height = 50
+  lNotesRow.eachCell(c => { c.border = ALL_BORDERS })
 
   if (iv?.email_draft) {
-    ws.addRow([])
-    styleSection(ws.addRow(["メール下書き"]))
-    ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
-    const emailRow = ws.addRow([iv.email_draft])
-    emailRow.getCell(1).alignment = { wrapText: true }
-    emailRow.height = 80
-    ws.mergeCells(`A${emailRow.number}:D${emailRow.number}`)
-    emailRow.eachCell(c => { c.border = ALL_BORDERS })
+    const elLabel = ws.addRow(["メール下書き"])
+    mergeAC(lastRowNum()); styleSection(elLabel)
+    const elRow = ws.addRow([iv.email_draft])
+    mergeAC(lastRowNum())
+    elRow.getCell(1).alignment = { wrapText: true }
+    elRow.height = 70
+    elRow.eachCell(c => { c.border = ALL_BORDERS })
   }
 
-  const fd = iv?.form_data
+  ws.addRow([])
 
-  // ── 店長様 section ────────────────────────────────────────────────────────
-  if (fd?.tencho && Object.keys(fd.tencho).length > 0) {
-    ws.addRow([])
-    ws.columns = [{ width: 20 }, { width: 30 }, { width: 30 }, { width: 20 }]
-    styleHeader(ws.addRow(["店長様に対して", "内容", "次回確認事項", "備考"]))
-    for (const sec of TENCHO_SECTIONS) {
-      const fs = fd.tencho[sec.key]
-      if (!fs) continue
-      styleSection(ws.addRow([sec.title]))
-      ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
-      const fields: Array<{ label: string; key: keyof typeof fs }> = []
-      if (sec.isTenchoResponse && fs.response) fields.push({ label: TENCHO_RESPONSE_LABEL, key: "response" })
-      else if (!sec.isTenchoResponse && fs.response) fields.push({ label: FIELD_LABELS.response, key: "response" })
-      if (fs.discussion) fields.push({ label: FIELD_LABELS.discussion, key: "discussion" })
-      if (sec.key === "bad_case") {
-        for (const k of ["when","where","who","what","why_how"] as const) {
-          if (fs[k]) fields.push({ label: FIELD_LABELS[k], key: k })
-        }
-      }
-      if (fs.next_actions) fields.push({ label: FIELD_LABELS.next_actions, key: "next_actions" })
-      if (fs.notes) fields.push({ label: FIELD_LABELS.notes, key: "notes" })
-      for (const f of fields) {
-        const row = ws.addRow([f.label, fs[f.key] ?? ""])
-        row.getCell(2).alignment = { wrapText: true }
-        ws.mergeCells(`B${row.number}:D${row.number}`)
-        styleData(row)
+  // ── 店長様 ────────────────────────────────────────────────────────────────
+  const tHeader = ws.addRow(["ヒアリング内容（付加価値範囲）店舗店長様に対して", "", ""])
+  styleHeader(tHeader); mergeAC(lastRowNum())
+
+  for (const sec of TENCHO_SECTIONS) {
+    const secRow = ws.addRow([sec.title, "", ""])
+    styleSection(secRow); mergeAC(lastRowNum())
+
+    // Hints as light reference lines
+    if (sec.hints?.length) {
+      for (const hint of sec.hints) {
+        const hRow = ws.addRow([hint])
+        mergeAC(lastRowNum())
+        hRow.getCell(1).font = { italic: true, size: 9, color: { argb: "FF666666" } }
+        hRow.getCell(1).alignment = { wrapText: true }
+        hRow.height = 25
+        hRow.eachCell(c => { c.border = ALL_BORDERS })
       }
     }
+
+    // Fill-in fields — always rendered, with saved content or blank
+    for (const fieldKey of sec.fields) {
+      const label = fieldKey === "response" && sec.isTenchoResponse ? TENCHO_RESPONSE_LABEL : FIELD_LABELS[fieldKey as keyof typeof FIELD_LABELS] ?? fieldKey
+      const value = getFormField("tencho", sec.key, fieldKey)
+
+      const labelRow = ws.addRow([label])
+      mergeAC(lastRowNum())
+      labelRow.getCell(1).font = { size: 9, color: { argb: "FF444444" } }
+      labelRow.eachCell(c => { c.border = ALL_BORDERS })
+
+      const valueRow = ws.addRow([value])
+      mergeAC(lastRowNum())
+      valueRow.getCell(1).alignment = { wrapText: true }
+      valueRow.height = value ? Math.max(35, Math.ceil(value.length / 55) * 15) : 40
+      valueRow.eachCell(c => { c.border = ALL_BORDERS })
+    }
+
+    ws.addRow([])
   }
 
-  // ── 人財 section ─────────────────────────────────────────────────────────
-  if (fd?.worker && Object.keys(fd.worker).length > 0) {
-    ws.addRow([])
-    styleHeader(ws.addRow(["人財に対して", "本人の反応", "アドバイス", "次回確認事項"]))
-    for (const group of WORKER_SECTION_GROUPS) {
-      styleSection(ws.addRow([group.group]))
-      ws.mergeCells(`A${ws.lastRow!.number}:D${ws.lastRow!.number}`)
-      for (const sec of group.items) {
-        const fs = fd.worker[sec.key]
-        if (!fs) continue
-        const row = ws.addRow([
-          sec.title,
-          fs.response ?? "",
-          fs.advice ?? "",
-          fs.next_actions ?? "",
-        ])
-        row.eachCell(c => { c.alignment = { wrapText: true }; c.border = ALL_BORDERS })
-        if (fs.notes) {
-          const notesRow = ws.addRow(["", `備考: ${fs.notes}`])
-          notesRow.getCell(2).font = { italic: true, size: 9 }
-          ws.mergeCells(`B${notesRow.number}:D${notesRow.number}`)
-          notesRow.eachCell(c => { c.border = ALL_BORDERS })
-        }
+  // ── 人財 ──────────────────────────────────────────────────────────────────
+  const wHeader = ws.addRow(["ヒアリング内容（付加価値範囲）人財に対して", "", ""])
+  styleHeader(wHeader); mergeAC(lastRowNum())
+
+  for (const grp of WORKER_SECTION_GROUPS) {
+    const grpRow = ws.addRow([grp.group, "", ""])
+    styleSection(grpRow); mergeAC(lastRowNum())
+
+    for (const sec of grp.items) {
+      // Prompt/question hint
+      const promptRow = ws.addRow([sec.hints?.[0] ?? sec.title])
+      mergeAC(lastRowNum())
+      promptRow.getCell(1).font = { size: 10 }
+      promptRow.getCell(1).alignment = { wrapText: true }
+      promptRow.height = 25
+      promptRow.eachCell(c => { c.border = ALL_BORDERS })
+
+      for (const fieldKey of sec.fields) {
+        const label = FIELD_LABELS[fieldKey as keyof typeof FIELD_LABELS] ?? fieldKey
+        const value = getFormField("worker", sec.key, fieldKey)
+
+        const labelRow = ws.addRow([label])
+        mergeAC(lastRowNum())
+        labelRow.getCell(1).font = { size: 9, color: { argb: "FF444444" } }
+        labelRow.eachCell(c => { c.border = ALL_BORDERS })
+
+        const valueRow = ws.addRow([value])
+        mergeAC(lastRowNum())
+        valueRow.getCell(1).alignment = { wrapText: true }
+        valueRow.height = value ? Math.max(35, Math.ceil(value.length / 55) * 15) : 40
+        valueRow.eachCell(c => { c.border = ALL_BORDERS })
       }
     }
+
+    ws.addRow([])
   }
 }
 
