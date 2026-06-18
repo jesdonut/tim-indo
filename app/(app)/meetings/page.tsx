@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent, PillTabs } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
+import PixelLoader from "@/components/PixelLoader"
 import InterviewFormFull, {
   TENCHO_SECTIONS, WORKER_SECTION_GROUPS, LEGAL_SECTION_GROUPS, FIELD_LABELS, TENCHO_RESPONSE_LABEL,
   type WorkerAnswers,
@@ -462,7 +463,8 @@ export default function MeetingsPage() {
   const selectedRows = filteredRows.filter(r => selected.has(rowKey(r)))
 
   return (
-    <>
+    <div className="relative flex flex-col h-[calc(100dvh-48px)]">
+      {loading && <PixelLoader />}
       <PageHeader
         title="定期面談"
         right={
@@ -616,6 +618,6 @@ export default function MeetingsPage() {
           onClose={() => setActiveRow(null)}
         />
       )}
-    </>
+    </div>
   )
 }
