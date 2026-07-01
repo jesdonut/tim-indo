@@ -193,3 +193,268 @@ export async function fetchLeopalacePhone(
     return { error: "取得失敗" }
   }
 }
+
+// ─── 送り込みスケジュール CSV import ──────────────────────────────────────────
+
+export type ParsedMoveRow = {
+  employee_no: string
+  name: string
+  store_code: string
+  ido_group: string
+  move_in_date: string
+  first_work_date: string
+  housing_postal_code: string
+  housing_address: string
+  housing_building: string
+  housing_room: string
+  housing_passcode: string
+  leopalace_url: string
+  commute_distance: string
+  rent: number | null
+  gas_deposit: string
+  gas_tachiai_datetime: string
+  electricity_start_date: string
+  water_start_date: string
+  // matching result, filled in server-side
+  matched_worker_id: string | null
+  matched_worker_name: string | null
+  match_confidence: "exact" | "name_only" | "unmatched"
+}
+
+// Quote-aware CSV parser (handles embedded commas / newlines / "" escapes).
+function parseCsv(text: string): string[][] {
+  const s = (text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ""
+  let inQuotes = false
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (inQuotes) {
+      if (c === '"') {
+        if (s[i + 1] === '"') { field += '"'; i++ } else inQuotes = false
+      } else field += c
+    } else {
+      if (c === '"') inQuotes = true
+      else if (c === ",") { row.push(field); field = "" }
+      else if (c === "\n") { row.push(field); rows.push(row); row = []; field = "" }
+      else field += c
+    }
+  }
+  row.push(field)
+  rows.push(row)
+  return rows
+}
+
+const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase()
+const stripSpaces = (s: string | undefined) => (s ?? "").replace(/[\s　]/g, "")
+
+// Find the index of the nth header cell whose text contains `needle`.
+function findCol(header: string[], needle: string, occurrence = 1): number {
+  const n = norm(needle)
+  let count = 0
+  for (let i = 0; i < header.length; i++) {
+    if (norm(header[i]).includes(n)) { count++; if (count === occurrence) return i }
+  }
+  return -1
+}
+
+function normalizeDate(s: string): string | null {
+  const t = (s ?? "").trim()
+  const m = t.match(/^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})/)
+  if (!m) return null
+  return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`
+}
+
+// Header keywords that must never appear in a real 配属者名 (catches merged /
+// continuation header rows that Excel leaves behind).
+const HEADER_TOKENS = ["郵便番号", "部屋番号", "配属者", "従業員", "国籍", "店舗", "住所"]
+
+// Locate the header row by content, not position — the number of junk /
+// instruction rows above it varies month to month. A real header row contains
+// several of these signature labels.
+function findHeaderRow(grid: string[][]): number {
+  const signature = ["配属者名", "国籍", "店舗CD", "従業員番号", "社宅住所"]
+  for (let i = 0; i < grid.length; i++) {
+    const cells = grid[i].map(norm)
+    const hits = signature.filter(sig => cells.some(c => c.includes(norm(sig)))).length
+    if (hits >= 3) return i
+  }
+  return -1
+}
+
+export async function parseOkurikomiCsv(csvText: string): Promise<ParsedMoveRow[]> {
+  const grid = parseCsv(csvText)
+  const headerIdx = findHeaderRow(grid)
+  if (headerIdx === -1) return []
+
+  const header = grid[headerIdx] // detected header row
+  const col = {
+    employee_no: findCol(header, "従業員番号"),
+    name: findCol(header, "配属者名"),
+    nationality: findCol(header, "国籍"),
+    store_code: findCol(header, "店舗CD"),
+    ido_group: findCol(header, "入国グループ"),
+    move_in_date: findCol(header, "入居日"),
+    first_work_date: findCol(header, "入社日") !== -1 ? findCol(header, "入社日") : findCol(header, "初出社日"),
+    housing_postal_code: findCol(header, "郵便番号", 2), // 1st = store's, 2nd = housing
+    housing_address: findCol(header, "社宅住所"),
+    housing_building: findCol(header, "物件名"),
+    housing_room: findCol(header, "部屋番号"),
+    housing_passcode: findCol(header, "パスコード"),
+    leopalace_url: findCol(header, "入居ガイド"),
+    commute_distance: findCol(header, "通勤距離"),
+    rent: findCol(header, "家賃"),
+    gas_deposit: findCol(header, "ガス保証金"),
+    gas_tachiai_datetime: findCol(header, "ガス立会時間"),
+    electricity_start_date: findCol(header, "電気"),
+    water_start_date: findCol(header, "水道"),
+  }
+
+  const cell = (row: string[], idx: number) => (idx >= 0 ? (row[idx] ?? "").trim() : "")
+
+  const parsed: Omit<ParsedMoveRow, "matched_worker_id" | "matched_worker_name" | "match_confidence">[] = []
+  for (let r = headerIdx + 1; r < grid.length; r++) {
+    const row = grid[r]
+    if (!row || row.every(c => !c || !c.trim())) continue // entirely empty
+
+    const nationality = cell(row, col.nationality)
+    if (!nationality.includes("インドネシア")) continue // drop Myanmar / others
+
+    const name = cell(row, col.name)
+    if (!name) continue
+    if (HEADER_TOKENS.some(tok => name.includes(tok))) continue // continuation header row
+
+    const rentStr = cell(row, col.rent).replace(/[^0-9]/g, "")
+    parsed.push({
+      employee_no: cell(row, col.employee_no),
+      name,
+      store_code: cell(row, col.store_code),
+      ido_group: cell(row, col.ido_group),
+      move_in_date: cell(row, col.move_in_date),
+      first_work_date: cell(row, col.first_work_date),
+      housing_postal_code: cell(row, col.housing_postal_code),
+      housing_address: cell(row, col.housing_address),
+      housing_building: cell(row, col.housing_building),
+      housing_room: cell(row, col.housing_room),
+      housing_passcode: cell(row, col.housing_passcode),
+      leopalace_url: cell(row, col.leopalace_url),
+      commute_distance: cell(row, col.commute_distance),
+      rent: rentStr ? parseInt(rentStr) : null,
+      gas_deposit: cell(row, col.gas_deposit),
+      gas_tachiai_datetime: cell(row, col.gas_tachiai_datetime),
+      electricity_start_date: cell(row, col.electricity_start_date),
+      water_start_date: cell(row, col.water_start_date),
+    })
+  }
+
+  // Match against existing workers (server-side).
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const teamId: string = user?.user_metadata?.team_id ?? TEAM_ID
+  const { data: workers } = await supabase
+    .from("workers")
+    .select("id, employee_no, name_kana")
+    .eq("team_id", teamId)
+
+  const byEmp = new Map<string, { id: string; name_kana: string | null }>()
+  const byName = new Map<string, { id: string; name_kana: string | null }>()
+  for (const w of workers ?? []) {
+    if (w.employee_no) byEmp.set(norm(w.employee_no), { id: w.id, name_kana: w.name_kana })
+    if (w.name_kana) byName.set(stripSpaces(w.name_kana), { id: w.id, name_kana: w.name_kana })
+  }
+
+  return parsed.map(p => {
+    let matched_worker_id: string | null = null
+    let matched_worker_name: string | null = null
+    let match_confidence: ParsedMoveRow["match_confidence"] = "unmatched"
+
+    const byEmpHit = p.employee_no ? byEmp.get(norm(p.employee_no)) : undefined
+    if (byEmpHit) {
+      matched_worker_id = byEmpHit.id
+      matched_worker_name = byEmpHit.name_kana
+      match_confidence = "exact"
+    } else {
+      const byNameHit = byName.get(stripSpaces(p.name))
+      if (byNameHit) {
+        matched_worker_id = byNameHit.id
+        matched_worker_name = byNameHit.name_kana
+        match_confidence = "name_only"
+      }
+    }
+    return { ...p, matched_worker_id, matched_worker_name, match_confidence }
+  })
+}
+
+export async function applyParsedMoveRows(
+  rows: ParsedMoveRow[]
+): Promise<{ created: number; skipped: number; errors: string[] }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { created: 0, skipped: 0, errors: ["Not logged in."] }
+  const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
+
+  const errors: string[] = []
+  let created = 0
+  let skipped = 0
+
+  const workerIds = [...new Set(rows.filter(r => r.matched_worker_id).map(r => r.matched_worker_id!))]
+  const existingByWorker = new Map<string, { max: number; active: boolean }>()
+  if (workerIds.length > 0) {
+    const { data: existing } = await supabase
+      .from("worker_locations")
+      .select("worker_id, move_number, is_archived")
+      .in("worker_id", workerIds)
+    for (const e of existing ?? []) {
+      const cur = existingByWorker.get(e.worker_id) ?? { max: 0, active: false }
+      existingByWorker.set(e.worker_id, {
+        max: Math.max(cur.max, e.move_number ?? 0),
+        active: cur.active || !e.is_archived,
+      })
+    }
+  }
+
+  for (const r of rows) {
+    if (!r.matched_worker_id) { skipped++; continue }
+    const info = existingByWorker.get(r.matched_worker_id) ?? { max: 0, active: false }
+    if (info.active) { skipped++; continue } // don't overwrite an active move
+
+    const moveNumber = info.max + 1
+    const { error } = await supabase.from("worker_locations").insert({
+      worker_id: r.matched_worker_id,
+      team_id: teamId,
+      move_number: moveNumber,
+      ido_group: r.ido_group || null,
+      first_work_date: normalizeDate(r.first_work_date),
+      move_in_date: normalizeDate(r.move_in_date),
+      store_code: r.store_code || null,
+      housing_postal_code: r.housing_postal_code || null,
+      housing_address: r.housing_address || null,
+      housing_building: r.housing_building || null,
+      housing_room: r.housing_room || null,
+      housing_passcode: r.housing_passcode || null,
+      leopalace_url: r.leopalace_url || null,
+      commute_distance: r.commute_distance || null,
+      rent: r.rent,
+      gas_deposit: r.gas_deposit ? parseInt(r.gas_deposit.replace(/[^0-9]/g, "")) || null : null,
+      gas_tachiai_datetime: r.gas_tachiai_datetime || null,
+      electricity_start_date: r.electricity_start_date || null,
+      water_start_date: r.water_start_date || null,
+      gas_tachiai_unnecessary: false,
+      luggage_received: false,
+      electricity_done: false,
+      water_done: false,
+      gas_done: false,
+      tenshutsu_done: false,
+      tennyu_done: false,
+      tenkyo_done: false,
+      is_archived: false,
+    })
+    if (error) { errors.push(`${r.name}: ${error.message}`); continue }
+    created++
+    // reflect the new max so a duplicate row in the same file bumps move_number
+    existingByWorker.set(r.matched_worker_id, { max: moveNumber, active: true })
+  }
+
+  return { created, skipped, errors }
+}

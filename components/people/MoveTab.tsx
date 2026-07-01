@@ -309,6 +309,8 @@ export default function MoveTab({ worker }: { worker: Worker }) {
               <div className="col-span-2">{Furi("住所 読み仮名（保存されません）", "furi_housing_address")}</div>
               {T("物件名", "housing_building")}
               {Furi("物件名 読み仮名（保存されません）", "furi_housing_building")}
+              {T("パスコード", "housing_passcode")}
+              <div />
               <div className="col-span-2">
                 <label className="flex flex-col gap-0.5">
                   <span className="label-xs">Leopalace URL</span>
@@ -424,22 +426,54 @@ export default function MoveTab({ worker }: { worker: Worker }) {
           </section>
 
           {/* ⑦ 行政手続き */}
-          <section className="flex flex-col gap-3">
+          <section className="flex flex-col gap-2">
             {title("⑦ 行政手続き")}
-            {([
-              ["転出届", "tenshutsu_date", "tenshutsu_done", "tantou_tenshutsu"],
-              ["転入届", "tennyu_date", "tennyu_done", "tantou_tennyu"],
-              ["転居届", "tenkyo_date", "tenkyo_done", "tantou_tenkyo"],
-            ] as const).map(([label, dateK, doneK, tantouK]) => (
-              <div key={label} className="flex flex-col gap-2 p-3 rounded bg-[var(--bg-2)] border border-[var(--border)]">
-                <p className="text-[0.78rem] font-medium text-[var(--text-2)]">{label}</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {T("完了日", dateK, "date")}
-                  {Furi("担当（保存されません）", tantouK)}
-                </div>
-                {Chk("完了", doneK)}
-              </div>
-            ))}
+            <p className="text-[0.68rem] text-[var(--text-3)]">担当メモは保存されません</p>
+            <table className="w-full text-[0.78rem] border-collapse">
+              <thead>
+                <tr className="text-left text-[var(--text-3)]">
+                  <th className="label-xs font-normal pb-1 pr-2">手続き</th>
+                  <th className="label-xs font-normal pb-1 pr-2">完了日</th>
+                  <th className="label-xs font-normal pb-1 pr-2">担当メモ</th>
+                  <th className="label-xs font-normal pb-1 text-center">完了</th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  ["転出届", "tenshutsu_date", "tenshutsu_done", "tantou_tenshutsu"],
+                  ["転入届", "tennyu_date", "tennyu_done", "tantou_tennyu"],
+                  ["転居届", "tenkyo_date", "tenkyo_done", "tantou_tenkyo"],
+                ] as const).map(([label, dateK, doneK, tantouK]) => (
+                  <tr key={label}>
+                    <td className="py-1 pr-2 whitespace-nowrap text-[var(--text)]">{label}</td>
+                    <td className="py-1 pr-2">
+                      <input
+                        type="date"
+                        className={inputCls}
+                        value={(draft?.[dateK] as string | null | undefined) ?? ""}
+                        onChange={e => upd(dateK, e.target.value || null)}
+                        onBlur={blurCommit}
+                      />
+                    </td>
+                    <td className="py-1 pr-2">
+                      <input
+                        className={inputCls}
+                        value={local[tantouK]}
+                        onChange={e => setLocal(l => ({ ...l, [tantouK]: e.target.value }))}
+                      />
+                    </td>
+                    <td className="py-1 text-center">
+                      <input
+                        type="checkbox"
+                        className="accent-[var(--text)]"
+                        checked={!!draft?.[doneK]}
+                        onChange={e => toggle(doneK, e.target.checked)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
 
           {/* Manual archive (if not auto-done) */}

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS interviews (
   conducted_by  text,
   notes         text,
   email_draft   text,
+  form_data     jsonb,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 

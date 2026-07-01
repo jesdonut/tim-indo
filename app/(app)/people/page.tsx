@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
 import { createClient } from "@/lib/supabase/client"
 import MoveTab from "@/components/people/MoveTab"
+import MoveImport from "@/components/people/MoveImport"
 
 // ─── CSV Parsing ──────────────────────────────────────────────────────────────
 
@@ -1789,6 +1790,8 @@ export default function PeoplePage() {
   const [workers, setWorkers] = useState<Worker[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>("workers")
+  const [showMoveImport, setShowMoveImport] = useState(false)
+  const [movesKey, setMovesKey] = useState(0)
   const [search, setSearch] = useState("")
   const [filterStaff, setFilterStaff] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
@@ -2070,7 +2073,16 @@ export default function PeoplePage() {
           </div>
         ) : tab === "moves" ? (
           <div className="overflow-y-auto py-6">
-            <MovesTab workers={workers} />
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={() => setShowMoveImport(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[0.78rem] bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-opacity font-medium"
+              >
+                <Icon name="upload_file" size={14} />
+                CSVインポート
+              </button>
+            </div>
+            <MovesTab key={movesKey} workers={workers} />
           </div>
         ) : (
           <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -2353,6 +2365,13 @@ export default function PeoplePage() {
           </div>
         )}
       </ToolContent>
+
+      {showMoveImport && (
+        <MoveImport
+          onClose={() => setShowMoveImport(false)}
+          onImported={() => setMovesKey(k => k + 1)}
+        />
+      )}
     </div>
   )
 }
