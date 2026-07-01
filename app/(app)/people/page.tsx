@@ -497,12 +497,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ─── Inline cell editor ───────────────────────────────────────────────────────
 
 function EditableCell({
-  worker, col, onSaved, onEscape,
+  worker, col, onSaved, onEscape, onNavigate,
 }: {
   worker: Worker
   col: ColDef
   onSaved: (updated: Worker) => void
   onEscape: () => void
+  onNavigate?: (dir: "next" | "prev" | "down") => void
 }) {
   const isDate = DATE_FIELDS.has(col.key as WKey)
   const [val, setVal] = useState(worker[col.key] != null ? String(worker[col.key]) : "")
@@ -522,6 +523,20 @@ function EditableCell({
 
   const cls = "absolute inset-0 w-full h-full bg-[var(--bg)] border border-[var(--highlight)] outline-none text-[0.78rem] text-[var(--text)] px-2 z-50"
 
+  function handleNavKey(e: React.KeyboardEvent, currentVal: string) {
+    if (e.key === "Tab") {
+      e.preventDefault()
+      commit(currentVal).then(() => onNavigate?.(e.shiftKey ? "prev" : "next"))
+    } else if (e.key === "Enter") {
+      e.preventDefault()
+      commit(currentVal).then(() => onNavigate?.("down"))
+    } else if (e.key === "Escape") {
+      e.preventDefault()
+      onEscape()
+    }
+    e.stopPropagation()
+  }
+
   if (col.key === "status") {
     return (
       <select
@@ -529,7 +544,7 @@ function EditableCell({
         value={val}
         onChange={e => { setVal(e.target.value); commit(e.target.value) }}
         onBlur={onEscape}
-        onKeyDown={e => e.key === "Escape" && onEscape()}
+        onKeyDown={e => handleNavKey(e, val)}
         className={cls}
       >
         {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -544,7 +559,7 @@ function EditableCell({
         value={val}
         onChange={e => { setVal(e.target.value); commit(e.target.value) }}
         onBlur={onEscape}
-        onKeyDown={e => e.key === "Escape" && onEscape()}
+        onKeyDown={e => handleNavKey(e, val)}
         className={cls}
       >
         <option value="">—</option>
@@ -561,11 +576,7 @@ function EditableCell({
       value={val}
       onChange={e => setVal(e.target.value)}
       onBlur={() => commit(val)}
-      onKeyDown={e => {
-        if (e.key === "Enter") { e.preventDefault(); commit(val) }
-        if (e.key === "Escape") { e.preventDefault(); onEscape() }
-        e.stopPropagation()
-      }}
+      onKeyDown={e => handleNavKey(e, val)}
       className={cls}
     />
   )
@@ -1738,6 +1749,26 @@ export default function PeoplePage() {
     )
   }).sort(sortByWorkerId)
 
+  function navigateCell(dir: "next" | "prev" | "down") {
+    if (!editingCell) return
+    const editableCols = activeCols.filter(c => c.key !== "pledge_done")
+    const ri = filtered.findIndex(w => w.id === editingCell.id)
+    const ci = editableCols.findIndex(c => c.key === editingCell.key)
+    if (ri < 0 || ci < 0) { setEditingCell(null); return }
+    if (dir === "next") {
+      if (ci + 1 < editableCols.length) setEditingCell({ id: filtered[ri].id, key: editableCols[ci + 1].key })
+      else if (ri + 1 < filtered.length) setEditingCell({ id: filtered[ri + 1].id, key: editableCols[0].key })
+      else setEditingCell(null)
+    } else if (dir === "prev") {
+      if (ci - 1 >= 0) setEditingCell({ id: filtered[ri].id, key: editableCols[ci - 1].key })
+      else if (ri - 1 >= 0) setEditingCell({ id: filtered[ri - 1].id, key: editableCols[editableCols.length - 1].key })
+      else setEditingCell(null)
+    } else {
+      if (ri + 1 < filtered.length) setEditingCell({ id: filtered[ri + 1].id, key: editableCols[ci].key })
+      else setEditingCell(null)
+    }
+  }
+
   // Ctrl+C / Cmd+C copies checked rows as TSV (Google Sheets compatible)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -2059,6 +2090,7 @@ export default function PeoplePage() {
                                       worker={w} col={col}
                                       onSaved={updated => { applyWorkerUpdate(updated); setEditingCell(null) }}
                                       onEscape={() => setEditingCell(null)}
+                                      onNavigate={navigateCell}
                                     />
                                   ) : col.render ? col.render(w) : (
                                     <span className={cn("text-[var(--text-2)]", col.key === "name_latin" && "text-[var(--text)] font-medium")}>
