@@ -1710,6 +1710,8 @@ export default function PeoplePage() {
   const [visibleCols, setVisibleCols] = useState<Set<keyof Worker>>(MASTER_COLS)
   const [colWidths, setColWidths] = useState<Record<string, number>>({})
   const [editingCell, setEditingCell] = useState<{ id: string; key: keyof Worker } | null>(null)
+  const [cellSel, setCellSel] = useState<{ r1: number; c1: number; r2: number; c2: number } | null>(null)
+  const cellAnchor = useRef<{ ri: number; ci: number } | null>(null)
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
@@ -1754,6 +1756,7 @@ export default function PeoplePage() {
     const editableCols = activeCols.filter(c => c.key !== "pledge_done")
     const ri = filtered.findIndex(w => w.id === editingCell.id)
     const ci = editableCols.findIndex(c => c.key === editingCell.key)
+    setCellSel(null)
     if (ri < 0 || ci < 0) { setEditingCell(null); return }
     if (dir === "next") {
       if (ci + 1 < editableCols.length) setEditingCell({ id: filtered[ri].id, key: editableCols[ci + 1].key })
@@ -1769,14 +1772,46 @@ export default function PeoplePage() {
     }
   }
 
-  // Ctrl+C / Cmd+C copies checked rows as TSV (Google Sheets compatible)
+  function selectCell(ri: number, ci: number) {
+    cellAnchor.current = { ri, ci }
+    setCellSel({ r1: ri, c1: ci, r2: ri, c2: ci })
+    setEditingCell(null)
+  }
+
+  function extendSel(ri: number, ci: number) {
+    if (!cellAnchor.current) { selectCell(ri, ci); return }
+    const { ri: ar, ci: ac } = cellAnchor.current
+    setCellSel({ r1: Math.min(ar, ri), c1: Math.min(ac, ci), r2: Math.max(ar, ri), c2: Math.max(ac, ci) })
+    setEditingCell(null)
+  }
+
+  // Ctrl+C / Cmd+C: copies cell selection as TSV, or checked rows as fallback
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (!(e.ctrlKey || e.metaKey) || (e.key !== "c" && e.key !== "C")) return
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
       if (tag === "input" || tag === "textarea" || tag === "select") return
-      if (checkedIds.size === 0) return
       e.preventDefault()
+
+      if (cellSel) {
+        const selCols = activeCols.slice(cellSel.c1, cellSel.c2 + 1)
+        const selRows = filtered.slice(cellSel.r1, cellSel.r2 + 1)
+        const tsv = selRows.map(w =>
+          selCols.map(c => {
+            const v = w[c.key]
+            if (v === null || v === undefined) return ""
+            if (typeof v === "boolean") return v ? "Y" : ""
+            return String(v)
+          }).join("\t")
+        ).join("\n")
+        navigator.clipboard.writeText(tsv)
+        const cells = (cellSel.r2 - cellSel.r1 + 1) * (cellSel.c2 - cellSel.c1 + 1)
+        setCopyFeedback(`Copied ${cells} cell${cells > 1 ? "s" : ""}`)
+        setTimeout(() => setCopyFeedback(null), 2000)
+        return
+      }
+
+      if (checkedIds.size === 0) return
       const checkedWorkers = filtered.filter(w => checkedIds.has(w.id))
       const headers = activeCols.map(c => c.label)
       const rows = checkedWorkers.map(w =>
@@ -1795,7 +1830,36 @@ export default function PeoplePage() {
     }
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [checkedIds, filtered, activeCols])
+  }, [cellSel, checkedIds, filtered, activeCols])
+
+  // Arrow keys / Enter / Escape for cell selection navigation
+  useEffect(() => {
+    function handleNav(e: KeyboardEvent) {
+      if (editingCell) return
+      if (!cellSel) return
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === "input" || tag === "textarea" || tag === "select") return
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape"].includes(e.key)) return
+      e.preventDefault()
+      if (e.key === "Escape") { setCellSel(null); cellAnchor.current = null; return }
+      if (e.key === "Enter") {
+        const col = activeCols[cellSel.c1]
+        if (col && col.key !== "pledge_done" && filtered[cellSel.r1]) {
+          setEditingCell({ id: filtered[cellSel.r1].id, key: col.key })
+        }
+        return
+      }
+      let nr = cellSel.r1, nc = cellSel.c1
+      if (e.key === "ArrowDown")  nr = Math.min(nr + 1, filtered.length - 1)
+      if (e.key === "ArrowUp")    nr = Math.max(nr - 1, 0)
+      if (e.key === "ArrowRight") nc = Math.min(nc + 1, activeCols.length - 1)
+      if (e.key === "ArrowLeft")  nc = Math.max(nc - 1, 0)
+      cellAnchor.current = { ri: nr, ci: nc }
+      setCellSel({ r1: nr, c1: nc, r2: nr, c2: nc })
+    }
+    document.addEventListener("keydown", handleNav)
+    return () => document.removeEventListener("keydown", handleNav)
+  }, [cellSel, editingCell, filtered, activeCols])
 
   function applyWorkerUpdate(updated: Worker) {
     setWorkers(ws => ws.map(w => w.id === updated.id ? updated : w))
@@ -2056,22 +2120,27 @@ export default function PeoplePage() {
                             >
                               {ri + 1}
                             </td>
-                            {activeCols.map(col => {
+                            {activeCols.map((col, ci) => {
                               const frozen = FROZEN_KEYS.has(col.key)
                               const cw = colWidths[col.key as string] ?? DEFAULT_COL_WIDTH
                               const isEditing = editingCell?.id === w.id && editingCell?.key === col.key
-                              const cellBg = isSelected ? rowBg : frozen ? "var(--bg)" : undefined
+                              const isInSel = cellSel ? (ri >= cellSel.r1 && ri <= cellSel.r2 && ci >= cellSel.c1 && ci <= cellSel.c2) : false
+                              const cellBg = isInSel
+                                ? "color-mix(in srgb, var(--highlight) 22%, var(--bg))"
+                                : isSelected ? rowBg : frozen ? "var(--bg)" : undefined
 
-                              // pledge_done: toggle on click
+                              // pledge_done: click selects; double-click toggles
                               if (col.key === "pledge_done") {
                                 return (
-                                  <td key={col.key} onClick={async () => {
-                                    const updated = { ...w, pledge_done: !w.pledge_done }
-                                    await updateWorker(w.id, { pledge_done: !w.pledge_done })
-                                    applyWorkerUpdate(updated)
-                                  }}
-                                  className="border-r border-b border-[var(--border)] px-2 py-1.5 cursor-pointer"
-                                  style={{ width: cw, maxWidth: cw, backgroundColor: cellBg, position: frozen ? "sticky" : undefined, left: frozen ? stickyLeft(col.key, visibleCols, colWidths) : undefined }}
+                                  <td key={col.key}
+                                    onClick={(e) => { if (e.shiftKey) extendSel(ri, ci); else selectCell(ri, ci) }}
+                                    onDoubleClick={async () => {
+                                      const updated = { ...w, pledge_done: !w.pledge_done }
+                                      await updateWorker(w.id, { pledge_done: !w.pledge_done })
+                                      applyWorkerUpdate(updated)
+                                    }}
+                                    className="border-r border-b border-[var(--border)] px-2 py-1.5 cursor-pointer select-none"
+                                    style={{ width: cw, maxWidth: cw, backgroundColor: cellBg, position: frozen ? "sticky" : undefined, left: frozen ? stickyLeft(col.key, visibleCols, colWidths) : undefined }}
                                   >
                                     {col.render!(w)}
                                   </td>
@@ -2081,8 +2150,9 @@ export default function PeoplePage() {
                               return (
                                 <td
                                   key={col.key}
-                                  onClick={() => setEditingCell({ id: w.id, key: col.key })}
-                                  className={cn("border-r border-b border-[var(--border)] whitespace-nowrap overflow-hidden text-ellipsis cursor-text relative", !isEditing && "px-2 py-1.5", frozen && "z-10")}
+                                  onClick={(e) => { if (e.shiftKey) extendSel(ri, ci); else selectCell(ri, ci) }}
+                                  onDoubleClick={() => setEditingCell({ id: w.id, key: col.key })}
+                                  className={cn("border-r border-b border-[var(--border)] whitespace-nowrap overflow-hidden text-ellipsis cursor-default select-none relative", !isEditing && "px-2 py-1.5", frozen && "z-10")}
                                   style={{ width: cw, maxWidth: cw, backgroundColor: cellBg, position: frozen ? "sticky" : undefined, left: frozen ? stickyLeft(col.key, visibleCols, colWidths) : undefined }}
                                 >
                                   {isEditing ? (
