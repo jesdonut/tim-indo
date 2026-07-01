@@ -203,7 +203,7 @@ const LINE_MAP: Record<string, { operator: string; operatorEn: string; type: str
   "仙台市地下鉄南北線": { operator: "仙台市交通局", operatorEn: "Sendai City Subway", type: "地下鉄" },
 }
 
-export function lookupTrainLine(query: string): LineInfo[] {
+export async function lookupTrainLine(query: string): Promise<LineInfo[]> {
   const q = query.trim().toLowerCase()
   if (!q) return []
 
