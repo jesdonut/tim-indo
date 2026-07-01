@@ -1861,6 +1861,63 @@ export default function PeoplePage() {
     return () => document.removeEventListener("keydown", handleNav)
   }, [cellSel, editingCell, filtered, activeCols])
 
+  // Ctrl+V pastes TSV from clipboard into table starting at selection anchor
+  useEffect(() => {
+    async function handlePaste(e: ClipboardEvent) {
+      if (editingCell) return
+      if (!cellSel) return
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === "input" || tag === "textarea" || tag === "select") return
+      const text = e.clipboardData?.getData("text/plain")
+      if (!text?.trim()) return
+      e.preventDefault()
+
+      const pasteRows = text.trimEnd().split(/\r?\n/).map(r => r.split("\t"))
+      const startRi = cellSel.r1
+      const startCi = cellSel.c1
+
+      const rowUpdates: Map<string, Partial<Worker>> = new Map()
+      let endRi = startRi, endCi = startCi
+
+      for (let dr = 0; dr < pasteRows.length; dr++) {
+        const ri = startRi + dr
+        if (ri >= filtered.length) break
+        const worker = filtered[ri]
+        const patch: Partial<Worker> = {}
+        for (let dc = 0; dc < pasteRows[dr].length; dc++) {
+          const ci = startCi + dc
+          if (ci >= activeCols.length) break
+          const col = activeCols[ci]
+          if (col.key === "pledge_done") continue
+          const raw = pasteRows[dr][dc]
+          const key = col.key as WKey
+          const isDate = DATE_FIELDS.has(key)
+          const clean: string | null = isDate ? (normalizeDate(raw) ?? (raw || null)) : (raw || null)
+          patch[key] = clean as never
+          endCi = Math.max(endCi, ci)
+        }
+        if (Object.keys(patch).length > 0) rowUpdates.set(worker.id, patch)
+        endRi = Math.max(endRi, ri)
+      }
+
+      // Optimistic update + fire-and-forget saves
+      setWorkers(ws => ws.map(w => {
+        const patch = rowUpdates.get(w.id)
+        return patch ? { ...w, ...patch } : w
+      }))
+      for (const [id, patch] of rowUpdates) updateWorker(id, patch)
+
+      // Highlight the pasted range
+      cellAnchor.current = { ri: startRi, ci: startCi }
+      setCellSel({ r1: startRi, c1: startCi, r2: endRi, c2: endCi })
+      const cells = (endRi - startRi + 1) * (endCi - startCi + 1)
+      setCopyFeedback(`Pasted ${cells} cell${cells > 1 ? "s" : ""}`)
+      setTimeout(() => setCopyFeedback(null), 2000)
+    }
+    document.addEventListener("paste", handlePaste)
+    return () => document.removeEventListener("paste", handlePaste)
+  }, [cellSel, editingCell, filtered, activeCols])
+
   function applyWorkerUpdate(updated: Worker) {
     setWorkers(ws => ws.map(w => w.id === updated.id ? updated : w))
     if (selected?.id === updated.id) setSelected(updated)
