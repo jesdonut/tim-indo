@@ -4,11 +4,19 @@ import { useEffect, useRef, useState } from "react"
 import { getTeamData } from "@/app/actions/teams"
 
 const FALLBACK_NAMES = ["Jessica", "Ben", "Dimas"]
+const CACHE_KEY = "pixelloader_names"
 
 const CHAR_MS   = 80
 const CHAR_FAST = 18   // speed used when data is already ready
 const PAUSE_MS  = 300
 const FADE_WAIT = 400
+
+function readCache(): string[] | null {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null") } catch { return null }
+}
+function writeCache(names: string[]) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(names)) } catch {}
+}
 
 // ready = data has finished loading. When false, the loader waits after
 // the animation completes. When it flips to true mid-animation, the
@@ -23,12 +31,20 @@ export default function PixelLoader({ ready = true }: { ready?: boolean }) {
   const timersRef   = useRef<ReturnType<typeof setTimeout>[]>([])
 
   useEffect(() => {
+    // Start animation immediately with cached names (instant on repeat visits)
+    const cached = readCache()
+    if (cached) setNames(cached)
+
+    // Fetch fresh in background; update + re-cache if the list changed
     getTeamData().then(data => {
-      const firstNames = data?.profiles?.length
+      const fresh = data?.profiles?.length
         ? data.profiles.map(p => (p.name ?? "").split(/\s+/)[0] || p.name || "?")
         : FALLBACK_NAMES
-      setNames(firstNames)
-    }).catch(() => setNames(FALLBACK_NAMES))
+      writeCache(fresh)
+      setNames(prev =>
+        JSON.stringify(prev) === JSON.stringify(fresh) ? prev : fresh
+      )
+    }).catch(() => setNames(prev => prev ?? FALLBACK_NAMES))
   }, [])
 
   // Kick off (or redo) the typing animation whenever names load or speedup toggles
