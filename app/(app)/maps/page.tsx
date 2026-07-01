@@ -89,15 +89,15 @@ type NearbyState =
   | { status: "error"; message: string }
   | { status: "done"; stations: Station[]; busStops: BusStop[] }
 
-function NearbySection({ label, address }: { label: string; address: string }) {
+function NearbySection({ label, address, postalCode }: { label: string; address: string; postalCode?: string }) {
   const [state, setState] = useState<NearbyState>({ status: "idle" })
   const [, startTransition] = useTransition()
 
   useEffect(() => {
-    if (!address.trim()) { setState({ status: "idle" }); return }
+    if (!address.trim() && !postalCode?.trim()) { setState({ status: "idle" }); return }
     setState({ status: "loading" })
     startTransition(async () => {
-      const coords = await geocodeAddress(address)
+      const coords = await geocodeAddress(address, postalCode)
       if (!coords) {
         setState({ status: "error", message: "Address not found — try adding the full address with prefecture" })
         return
@@ -106,7 +106,7 @@ function NearbySection({ label, address }: { label: string; address: string }) {
       setState({ status: "done", stations, busStops })
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address])
+  }, [address, postalCode])
 
   return (
     <div className="flex flex-col gap-3">
@@ -160,12 +160,16 @@ export default function MapsPage() {
   const [workers, setWorkers] = useState<Worker[]>([])
   const [origin, setOrigin] = useState("")
   const [dest, setDest] = useState("")
+  const [originPostal, setOriginPostal] = useState("")
+  const [destPostal, setDestPostal] = useState("")
 
   useEffect(() => { getWorkers().then(setWorkers) }, [])
 
   function handleWorkerPick(w: Worker) {
     setOrigin(w.housing_address ?? "")
     setDest(w.store_address ?? "")
+    setOriginPostal(w.housing_postal_code ?? "")
+    setDestPostal(w.store_postal_code ?? "")
   }
 
   const routeReady = origin.trim() && dest.trim()
@@ -238,9 +242,9 @@ export default function MapsPage() {
 
           {/* RIGHT — nearest transit (auto from worker) */}
           <div className="md:border-l md:border-[var(--border)] md:pl-10 flex flex-col gap-7">
-            <NearbySection label="Nearest to home 自宅" address={origin} />
+            <NearbySection label="Nearest to home 自宅" address={origin} postalCode={originPostal} />
             <div className="border-t border-[var(--border-soft)]" />
-            <NearbySection label="Nearest to workplace 職場" address={dest} />
+            <NearbySection label="Nearest to workplace 職場" address={dest} postalCode={destPostal} />
           </div>
 
         </div>

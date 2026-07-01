@@ -3,12 +3,39 @@
 export type Station = { name: string; line: string; distance: string }
 export type BusStop = { name: string; distanceM: number }
 
+// Strip apartment/building name from Japanese address.
+// Keeps everything up to the house number (e.g. "1-2-3", "1丁目2番3号", "1番地").
+function stripBuildingName(addr: string): string {
+  const m = addr.match(/^(.+?(?:\d+丁目\d+番\d+号|\d+番地\d+号|\d+番\d+号|\d+番地|\d+-\d+-\d+|\d+-\d+))/)
+  return m ? m[1].trim() : addr
+}
+
 export async function geocodeAddress(
-  address: string
+  address: string,
+  postalCode?: string | null,
 ): Promise<{ lat: number; lon: number } | null> {
+  if (!address.trim() && !postalCode?.trim()) return null
+
+  // 1. Postal code → HeartRails Geo API (most reliable for Japan)
+  const pc = postalCode?.replace(/[^0-9]/g, "")
+  if (pc && pc.length === 7) {
+    try {
+      const res = await fetch(`https://geoapi.heartrails.com/api/json?method=getCoordinates&zipcode=${pc}`)
+      if (res.ok) {
+        const data = await res.json()
+        const loc = data?.response?.location?.[0]
+        if (loc?.y && loc?.x) {
+          return { lat: parseFloat(loc.y), lon: parseFloat(loc.x) }
+        }
+      }
+    } catch { /* fall through */ }
+  }
+
+  // 2. Nominatim with cleaned address (strip building name/room)
   if (!address.trim()) return null
   try {
-    const q = address.includes("日本") ? address : `${address} 日本`
+    const cleaned = stripBuildingName(address)
+    const q = cleaned.includes("日本") ? cleaned : `${cleaned} 日本`
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=jp`
     const res = await fetch(url, {
       headers: { "Accept-Language": "ja", "User-Agent": "TimIndoApp/1.0" },
