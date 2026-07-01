@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { lookupTrainLine, type LineInfo } from "@/app/actions/maps"
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent } from "@/components/PageHeader"
+import PixelLoader from "@/components/PixelLoader"
 
 // ── Train company lookup ──────────────────────────────────────────────────────
 
@@ -97,11 +98,12 @@ function TrainLookup() {
 
 export default function DispatchPage() {
   return (
-    <>
+    <div className="relative flex flex-col h-[calc(100dvh-48px)]">
+      <PixelLoader />
       <PageHeader title="送り込みシート" />
       <PageContent>
         <TrainLookup />
       </PageContent>
-    </>
+    </div>
   )
 }
