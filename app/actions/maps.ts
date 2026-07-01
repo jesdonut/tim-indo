@@ -10,40 +10,46 @@ function stripBuildingName(addr: string): string {
   return m ? m[1].trim() : addr
 }
 
+async function nominatimSearch(q: string): Promise<{ lat: number; lon: number } | null> {
+  const query = q.includes("日本") ? q : `${q} 日本`
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=jp`
+  const res = await fetch(url, { headers: { "Accept-Language": "ja", "User-Agent": "TimIndoApp/1.0" } })
+  if (!res.ok) return null
+  const data = await res.json()
+  if (!data?.[0]) return null
+  return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }
+}
+
 export async function geocodeAddress(
   address: string,
   postalCode?: string | null,
 ): Promise<{ lat: number; lon: number } | null> {
   if (!address.trim() && !postalCode?.trim()) return null
 
-  // 1. Postal code → HeartRails Geo API (most reliable for Japan)
   const pc = postalCode?.replace(/[^0-9]/g, "")
+
+  // 1. Postal code → zipcloud → get clean prefecture+city+town → Nominatim
+  //    More reliable than full address because building names are stripped automatically
   if (pc && pc.length === 7) {
     try {
-      const res = await fetch(`https://geoapi.heartrails.com/api/json?method=getCoordinates&zipcode=${pc}`)
-      if (res.ok) {
-        const data = await res.json()
-        const loc = data?.response?.location?.[0]
-        if (loc?.y && loc?.x) {
-          return { lat: parseFloat(loc.y), lon: parseFloat(loc.x) }
+      const zres = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${pc}`)
+      if (zres.ok) {
+        const zd = await zres.json()
+        const r = zd?.results?.[0]
+        if (r?.address1) {
+          const normalized = [r.address1, r.address2, r.address3].filter(Boolean).join("")
+          const coords = await nominatimSearch(normalized)
+          if (coords) return coords
         }
       }
     } catch { /* fall through */ }
   }
 
-  // 2. Nominatim with cleaned address (strip building name/room)
+  // 2. Full address with building name stripped → Nominatim
   if (!address.trim()) return null
   try {
     const cleaned = stripBuildingName(address)
-    const q = cleaned.includes("日本") ? cleaned : `${cleaned} 日本`
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=jp`
-    const res = await fetch(url, {
-      headers: { "Accept-Language": "ja", "User-Agent": "TimIndoApp/1.0" },
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    if (!data[0]) return null
-    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }
+    return await nominatimSearch(cleaned)
   } catch {
     return null
   }
@@ -61,12 +67,39 @@ export async function fetchNearbyTransit(
 }
 
 async function fetchStations(lat: number, lon: number): Promise<Station[]> {
+  // Primary: HeartRails Express (best data for Japan — line names + distance)
   try {
     const url = `https://express.heartrails.com/api/json?method=getStations&x=${lon}&y=${lat}`
-    const res = await fetch(url)
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
+    if (res.ok) {
+      const data = await res.json()
+      const stations = data?.response?.station ?? []
+      if (stations.length > 0) return stations as Station[]
+    }
+  } catch { /* fall through to OSM */ }
+
+  // Fallback: OpenStreetMap via Overpass (no line names, but always reachable)
+  try {
+    const radius = 1000
+    const query = `[out:json][timeout:10];node["railway"~"station|stop"]["name"](around:${radius},${lat},${lon});out body 8;`
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: `data=${encodeURIComponent(query)}`,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    })
     if (!res.ok) return []
     const data = await res.json()
-    return (data?.response?.station ?? []) as Station[]
+    return (data?.elements ?? []).map((el: Record<string, unknown>) => {
+      const tags = (el.tags ?? {}) as Record<string, string>
+      const dlat = (el.lat as number) - lat
+      const dlon = (el.lon as number) - lon
+      const dm = Math.round(Math.sqrt(dlat * dlat + dlon * dlon) * 111000)
+      return {
+        name: tags["name"] ?? tags["name:en"] ?? "駅",
+        line: tags["operator"] ?? "",
+        distance: `${dm}m`,
+      } as Station
+    }).sort((a: Station, b: Station) => parseInt(a.distance) - parseInt(b.distance))
   } catch {
     return []
   }
