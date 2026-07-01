@@ -7,6 +7,8 @@ import { getWorkers, upsertWorkers, updateWorker, deleteWorker, exportWorkersCsv
 import { getWorkerLocations, getAllWorkerLocations, upsertWorkerLocation, deleteWorkerLocation, type WorkerLocation } from "@/app/actions/workerLocations"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
+import { createClient } from "@/lib/supabase/client"
+import MoveTab from "@/components/people/MoveTab"
 
 // ─── CSV Parsing ──────────────────────────────────────────────────────────────
 
@@ -827,9 +829,37 @@ function WorkerPanel({
   const [showPayroll, setShowPayroll] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [panelTab, setPanelTab] = useState<"info" | "move">("info")
+  const [tenpoLoading, setTenpoLoading] = useState(false)
+  const [tenpoMsg, setTenpoMsg] = useState<{ type: "error" | "ok"; text: string } | null>(null)
+  const supabase = useRef(createClient()).current
 
   function set(field: keyof EditState, val: string | boolean | null) {
     setEdit(prev => ({ ...prev, [field]: val }))
+  }
+
+  // Look up a store by 店舗コード (tenpo_cd) in tenpo_master and auto-fill store fields.
+  async function lookupTenpo() {
+    const code = (edit.store_code ?? "").trim()
+    if (!code) { setTenpoMsg({ type: "error", text: "店舗コードを入力してください。" }); return }
+    setTenpoLoading(true); setTenpoMsg(null)
+    const { data, error } = await supabase
+      .from("tenpo_master")
+      .select("tenpo_name, zip, prefecture, address, tel")
+      .eq("tenpo_cd", code)
+      .maybeSingle()
+    setTenpoLoading(false)
+    if (error) { setTenpoMsg({ type: "error", text: `検索に失敗しました：${error.message}` }); return }
+    if (!data) { setTenpoMsg({ type: "error", text: `店舗コード「${code}」が見つかりません。` }); return }
+    setEdit(prev => ({
+      ...prev,
+      store_name:        data.tenpo_name ?? prev.store_name,
+      store_postal_code: data.zip ?? prev.store_postal_code,
+      area:              data.prefecture ?? prev.area,
+      store_address:     data.address ?? prev.store_address,
+      store_phone:       data.tel ?? prev.store_phone,
+    }))
+    setTenpoMsg({ type: "ok", text: `${data.tenpo_name ?? code} を反映しました。` })
   }
 
   async function save() {
@@ -862,6 +892,7 @@ function WorkerPanel({
     <div
       className="flex flex-col h-full"
       onKeyDown={e => {
+        if (panelTab === "move") return
         if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLSelectElement)) {
           e.preventDefault()
           save()
@@ -879,6 +910,30 @@ function WorkerPanel({
         </button>
       </div>
 
+      {/* Tab bar (Move requires a saved worker) */}
+      {!isNew && (
+        <div className="flex shrink-0 border-b border-[var(--border)] px-4">
+          {(["info", "move"] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setPanelTab(t)}
+              className={cn(
+                "px-3 py-2 text-[0.78rem] border-b-2 -mb-px transition-colors",
+                panelTab === t
+                  ? "border-[var(--text)] text-[var(--text)] font-medium"
+                  : "border-transparent text-[var(--text-3)] hover:text-[var(--text-2)]"
+              )}
+            >
+              {t === "info" ? "情報" : "移動 (Move)"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {panelTab === "move" && !isNew ? (
+        <MoveTab worker={worker!} />
+      ) : (
+      <>
       {/* Scrollable fields */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-5">
 
@@ -946,14 +1001,44 @@ function WorkerPanel({
           <Field label="Area (prefecture)"><TF value={edit.area} onChange={v => set("area", v)} /></Field>
           <Field label="First work date"><TF value={edit.first_work_date} onChange={v => set("first_work_date", v)} /></Field>
           <Field label="Assignment month"><TF value={edit.assignment_month} onChange={v => set("assignment_month", v)} /></Field>
-          <Field label="Store code"><TF value={edit.store_code} onChange={v => set("store_code", v)} /></Field>
+          <div className="col-span-2">
+            <Field label="Store code (店舗コード)">
+              <div className="flex gap-2">
+                <input
+                  className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[0.8rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors"
+                  type="text"
+                  value={edit.store_code ?? ""}
+                  onChange={e => { set("store_code", e.target.value); setTenpoMsg(null) }}
+                  onKeyDown={e => {
+                    if (["ArrowUp", "ArrowDown"].includes(e.key)) e.stopPropagation()
+                    if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); lookupTenpo() }
+                  }}
+                  placeholder="コードを入力 → Enter で検索"
+                />
+                <button
+                  type="button"
+                  onClick={lookupTenpo}
+                  disabled={tenpoLoading}
+                  className="px-3 py-1.5 rounded bg-[var(--bg-2)] border border-[var(--border)] text-[0.72rem] text-[var(--text-2)] hover:text-[var(--text)] shrink-0 transition-colors disabled:opacity-50"
+                >
+                  {tenpoLoading ? "検索中…" : "検索"}
+                </button>
+              </div>
+              {tenpoMsg && (
+                <p className={cn("text-[0.72rem] mt-1", tenpoMsg.type === "error" ? "text-red-400" : "text-[var(--text-2)]")}>
+                  {tenpoMsg.text}
+                </p>
+              )}
+            </Field>
+          </div>
           <div className="col-span-2">
             <Field label="Store name"><TF value={edit.store_name} onChange={v => set("store_name", v)} /></Field>
           </div>
+          <Field label="Store postal code"><TF value={edit.store_postal_code} onChange={v => set("store_postal_code", v)} /></Field>
+          <Field label="Store phone"><TF value={edit.store_phone} onChange={v => set("store_phone", v)} /></Field>
           <div className="col-span-2">
             <Field label="Store address"><TF value={edit.store_address} onChange={v => set("store_address", v)} /></Field>
           </div>
-          <Field label="Store phone"><TF value={edit.store_phone} onChange={v => set("store_phone", v)} /></Field>
           <Field label="Commute method"><TF value={edit.commute_method} onChange={v => set("commute_method", v)} /></Field>
           <Field label="Commute distance"><TF value={edit.commute_distance} onChange={v => set("commute_distance", v)} /></Field>
           <div className="col-span-2">
@@ -1111,6 +1196,8 @@ function WorkerPanel({
           </>
         )}
       </div>
+      </>
+      )}
     </div>
   )
 }

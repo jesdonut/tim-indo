@@ -31,6 +31,52 @@ export type WorkerLocation = {
   gas_appointment?: string | null
   leopalace_url?: string | null
   notes?: string | null
+
+  // Old address (move-out side)
+  housing_postal_code_old?: string | null
+  housing_address_old?: string | null
+  housing_building_old?: string | null
+  housing_room_old?: string | null
+
+  // Move logistics
+  ido_group?: string | null
+  last_work_date?: string | null
+  first_work_date?: string | null
+
+  // 荷物
+  luggage_pickup_datetime?: string | null
+  luggage_delivery_datetime?: string | null
+  luggage_received?: boolean | null
+
+  // 電気
+  electricity_stop_date?: string | null
+  electricity_start_date?: string | null
+  electricity_done?: boolean | null
+
+  // 水道
+  water_stop_date?: string | null
+  water_start_date?: string | null
+  water_done?: boolean | null
+
+  // ガス
+  gas_stop_date?: string | null
+  gas_start_date?: string | null
+  gas_tachiai_datetime?: string | null
+  gas_tachiai_unnecessary?: boolean | null
+  gas_deposit?: number | null
+  gas_done?: boolean | null
+
+  // 行政
+  tenshutsu_date?: string | null
+  tenshutsu_done?: boolean | null
+  tennyu_date?: string | null
+  tennyu_done?: boolean | null
+  tenkyo_date?: string | null
+  tenkyo_done?: boolean | null
+
+  // Move state
+  is_archived?: boolean | null
+
   created_at?: string | null
   updated_at?: string | null
 }
@@ -121,4 +167,29 @@ export async function snapshotWorkerAsLocation(
     move_number: moveNumber,
     ...worker,
   })
+}
+
+// Fetch a Leopalace (or similar) property page server-side and extract a phone
+// number. Runs on the server to avoid CORS. Display-only — nothing is stored.
+export async function fetchLeopalacePhone(
+  url: string
+): Promise<{ phone: string } | { error: string }> {
+  const trimmed = (url ?? "").trim()
+  if (!/^https?:\/\//i.test(trimmed)) return { error: "URLが正しくありません。" }
+
+  try {
+    const res = await fetch(trimmed, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; TimIndoBot/1.0)" },
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!res.ok) return { error: `取得失敗 (HTTP ${res.status})` }
+    const html = await res.text()
+
+    // Japanese landline/mobile: 0X-XXXX-XXXX / 0XX-XXX-XXXX etc.
+    const match = html.match(/0\d{1,4}[-(]\d{1,4}[-)]\d{3,4}/)
+    if (!match) return { error: "電話番号が見つかりません。" }
+    return { phone: match[0].replace(/[()]/g, "-").replace(/-+/g, "-") }
+  } catch {
+    return { error: "取得失敗" }
+  }
 }
