@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 import PixelLoader from "@/components/PixelLoader"
 import { getWorkers, upsertWorkers, updateWorker, deleteWorker, exportWorkersCsv, type Worker } from "@/app/actions/workers"
+import { getWorkerLocations, getAllWorkerLocations, upsertWorkerLocation, deleteWorkerLocation, type WorkerLocation } from "@/app/actions/workerLocations"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
 
@@ -570,6 +571,232 @@ function EditableCell({
   )
 }
 
+// ─── Location history (moves) ─────────────────────────────────────────────────
+
+type LocEdit = Partial<Omit<WorkerLocation, "id" | "worker_id" | "team_id" | "created_at" | "updated_at">>
+
+function MoveForm({
+  workerId,
+  initial,
+  onSaved,
+  onCancel,
+}: {
+  workerId: string
+  initial: LocEdit
+  onSaved: (loc: WorkerLocation) => void
+  onCancel: () => void
+}) {
+  const [e, setE] = useState<LocEdit>(initial)
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  function set<K extends keyof LocEdit>(k: K, v: LocEdit[K]) { setE(p => ({ ...p, [k]: v })) }
+
+  async function save() {
+    setSaving(true); setErr(null)
+    const res = await upsertWorkerLocation({
+      ...e,
+      worker_id: workerId,
+      team_id: "",
+      move_number: e.move_number ?? 1,
+    })
+    setSaving(false)
+    if ("error" in res) { setErr(res.error); return }
+    const updated = await getWorkerLocations(workerId)
+    const saved = updated.find(l => l.id === res.id) ?? updated[updated.length - 1]
+    if (saved) onSaved(saved)
+  }
+
+  const tf = (label: string, k: keyof LocEdit, type = "text") => (
+    <div>
+      <p className="text-[0.65rem] text-[var(--text-3)] mb-0.5">{label}</p>
+      <input
+        type={type}
+        className="w-full bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)]"
+        value={(e[k] as string | null | undefined) ?? ""}
+        onChange={ev => set(k, ev.target.value || null)}
+      />
+    </div>
+  )
+
+  return (
+    <div className="flex flex-col gap-3 p-3 bg-[var(--bg-2)] rounded border border-[var(--border)]">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <p className="text-[0.65rem] text-[var(--text-3)] mb-0.5">Move #</p>
+          <input type="number" min={1}
+            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)]"
+            value={e.move_number ?? ""}
+            onChange={ev => set("move_number", ev.target.value ? parseInt(ev.target.value) : undefined)}
+          />
+        </div>
+        {tf("Phone at time of move", "mobile_phone")}
+      </div>
+      <p className="text-[0.65rem] text-[var(--text-3)] font-medium uppercase tracking-wide mt-1">Housing</p>
+      <div className="grid grid-cols-2 gap-2">
+        {tf("Move-in date", "move_in_date", "date")}
+        {tf("Move-out date", "move_out_date", "date")}
+        {tf("Building", "housing_building")}
+        {tf("Room", "housing_room")}
+      </div>
+      {tf("Housing address", "housing_address")}
+      {tf("Housing postal code", "housing_postal_code")}
+      {tf("Leopalace URL", "leopalace_url")}
+      <p className="text-[0.65rem] text-[var(--text-3)] font-medium uppercase tracking-wide mt-1">Store / Workplace</p>
+      <div className="grid grid-cols-2 gap-2">
+        {tf("Store code", "store_code")}
+        {tf("Store name", "store_name")}
+        {tf("Commute method", "commute_method")}
+        {tf("Distance", "commute_distance")}
+      </div>
+      {tf("Store address", "store_address")}
+      {tf("Notes", "notes")}
+      {err && <p className="text-[0.72rem] text-red-400">{err}</p>}
+      <div className="flex gap-2 justify-end">
+        <button onClick={onCancel} className="px-3 py-1 rounded text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)]">Cancel</button>
+        <button onClick={save} disabled={saving}
+          className="px-3 py-1 rounded text-[0.72rem] bg-[var(--text)] text-[var(--bg)] hover:opacity-90 disabled:opacity-50 font-medium">
+          {saving ? "Saving…" : "Save move"}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function WorkerHistory({ worker }: { worker: Worker }) {
+  const [locs, setLocs] = useState<WorkerLocation[] | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+
+  async function load() {
+    const data = await getWorkerLocations(worker.id)
+    setLocs(data)
+  }
+
+  function toggle() {
+    if (!open && !locs) load()
+    setOpen(o => !o)
+  }
+
+  function nextMoveNumber() {
+    return (locs?.length ?? 0) + 1
+  }
+
+  function currentAsSnap(): LocEdit {
+    return {
+      move_number: nextMoveNumber(),
+      housing_address: worker.housing_address,
+      housing_postal_code: worker.housing_postal_code,
+      housing_building: worker.housing_building,
+      housing_room: worker.housing_room,
+      housing_passcode: worker.housing_passcode,
+      rent: worker.rent,
+      move_in_date: worker.move_in_date,
+      store_code: worker.store_code,
+      store_name: worker.store_name,
+      store_address: worker.store_address,
+      store_postal_code: worker.store_postal_code,
+      store_phone: worker.store_phone,
+      commute_method: worker.commute_method,
+      commute_distance: worker.commute_distance,
+      commute_route_url: worker.commute_route_url,
+      mobile_phone: worker.mobile_phone,
+      electricity_date: worker.electricity_date,
+      water_date: worker.water_date,
+      gas_appointment: worker.gas_appointment,
+      leopalace_url: worker.leopalace_url,
+    }
+  }
+
+  async function deleteLoc(id: string) {
+    await deleteWorkerLocation(id)
+    setLocs(prev => (prev ?? []).filter(l => l.id !== id))
+  }
+
+  return (
+    <div>
+      <button
+        onClick={toggle}
+        className="flex items-center gap-1.5 label-xs mb-2 border-b border-[var(--border)] pb-1 w-full hover:text-[var(--text)] transition-colors"
+      >
+        Move history
+        <Icon name={open ? "expand_less" : "expand_more"} size={14} />
+        {locs && locs.length > 0 && (
+          <span className="ml-auto font-normal text-[var(--text-3)]">{locs.length} move{locs.length > 1 ? "s" : ""}</span>
+        )}
+      </button>
+
+      {open && (
+        <div className="flex flex-col gap-3">
+          {locs === null && <p className="text-[0.75rem] text-[var(--text-3)] animate-pulse">Loading…</p>}
+
+          {locs !== null && locs.length === 0 && !adding && (
+            <p className="text-[0.75rem] text-[var(--text-3)]">No moves recorded yet.</p>
+          )}
+
+          {locs !== null && locs.map((loc: WorkerLocation) => (
+            editId === loc.id ? (
+              <MoveForm
+                key={loc.id}
+                workerId={worker.id}
+                initial={{ move_number: loc.move_number, housing_address: loc.housing_address, housing_postal_code: loc.housing_postal_code, housing_building: loc.housing_building, housing_room: loc.housing_room, housing_passcode: loc.housing_passcode, rent: loc.rent, move_in_date: loc.move_in_date, move_out_date: loc.move_out_date, store_code: loc.store_code, store_name: loc.store_name, store_address: loc.store_address, store_postal_code: loc.store_postal_code, store_phone: loc.store_phone, commute_method: loc.commute_method, commute_distance: loc.commute_distance, commute_route_url: loc.commute_route_url, mobile_phone: loc.mobile_phone, electricity_date: loc.electricity_date, water_date: loc.water_date, gas_appointment: loc.gas_appointment, leopalace_url: loc.leopalace_url, notes: loc.notes }}
+                onSaved={updated => { setLocs(prev => (prev ?? []).map(l => l.id === updated.id ? updated : l)); setEditId(null) }}
+                onCancel={() => setEditId(null)}
+              />
+            ) : (
+              <div key={loc.id} className="flex flex-col gap-1 p-3 bg-[var(--bg-2)] rounded border border-[var(--border)]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[0.72rem] font-semibold text-[var(--text)]">Move {loc.move_number}</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditId(loc.id)} className="text-[0.65rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors">Edit</button>
+                    <button onClick={() => deleteLoc(loc.id)} className="text-[0.65rem] text-[var(--text-3)] hover:text-red-400 transition-colors">Delete</button>
+                  </div>
+                </div>
+                {loc.move_in_date && <span className="text-[0.68rem] text-[var(--text-3)]">入居: {loc.move_in_date}{loc.move_out_date ? ` → ${loc.move_out_date}` : ""}</span>}
+                {loc.housing_building && <span className="text-[0.75rem] text-[var(--text-2)]">{loc.housing_building} {loc.housing_room}</span>}
+                {loc.housing_address && <span className="text-[0.72rem] text-[var(--text-3)] truncate">{loc.housing_address}</span>}
+                {loc.store_name && <span className="text-[0.72rem] text-[var(--text-2)] mt-1">店舗: {loc.store_name}</span>}
+                {loc.store_address && <span className="text-[0.72rem] text-[var(--text-3)] truncate">{loc.store_address}</span>}
+                {loc.mobile_phone && <span className="text-[0.72rem] text-[var(--text-3)]">📱 {loc.mobile_phone}</span>}
+              </div>
+            )
+          ))}
+
+          {adding && (
+            <MoveForm
+              workerId={worker.id}
+              initial={currentAsSnap()}
+              onSaved={saved => { setLocs(prev => [...(prev ?? []), saved]); setAdding(false) }}
+              onCancel={() => setAdding(false)}
+            />
+          )}
+
+          {!adding && !editId && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAdding(true)}
+                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded text-[0.72rem] border border-dashed border-[var(--border)] text-[var(--text-3)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-colors"
+              >
+                <Icon name="add" size={12} />
+                Add move (blank)
+              </button>
+              <button
+                onClick={() => setAdding(true)}
+                title="Pre-fill with current worker data"
+                className="flex items-center gap-1 px-3 py-1.5 rounded text-[0.72rem] border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
+              >
+                <Icon name="content_copy" size={12} />
+                Snapshot current
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function WorkerPanel({
   worker,
   onClose,
@@ -801,6 +1028,9 @@ function WorkerPanel({
           </div>
           <Field label="Gas deposit"><TF value={edit.gas_deposit} onChange={v => set("gas_deposit", v)} /></Field>
         </Section>
+
+        {/* Move history — collapsible */}
+        {!isNew && <WorkerHistory worker={worker!} />}
 
         {/* Payroll — sensitive, hidden by default */}
         <div>
@@ -1055,6 +1285,132 @@ function sortByWorkerId(a: Worker, b: Worker): number {
   const [ab, an] = parseWorkerId(a.worker_id)
   const [bb, bn] = parseWorkerId(b.worker_id)
   return ab !== bb ? ab - bb : an - bn
+}
+
+// ─── Moves tab (cross-worker location history) ────────────────────────────────
+
+function MovesTab({ workers }: { workers: Worker[] }) {
+  const [locs, setLocs] = useState<WorkerLocation[] | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
+
+  useEffect(() => {
+    getAllWorkerLocations().then(setLocs)
+  }, [])
+
+  const workerMap = new Map(workers.map(w => [w.id, w]))
+
+  async function copyRow(loc: WorkerLocation) {
+    const w = workerMap.get(loc.worker_id)
+    const parts = [
+      w?.name_latin ?? w?.name_kana ?? "—",
+      String(loc.move_number),
+      loc.move_in_date ?? "",
+      loc.move_out_date ?? "",
+      [loc.housing_building, loc.housing_room].filter(Boolean).join(" "),
+      loc.housing_address ?? "",
+      loc.store_name ?? "",
+      loc.store_address ?? "",
+      loc.mobile_phone ?? "",
+      loc.commute_method ?? "",
+    ]
+    await navigator.clipboard.writeText(parts.join("\t"))
+    setCopied(loc.id)
+    setTimeout(() => setCopied(null), 1200)
+  }
+
+  async function copyAll() {
+    if (!locs) return
+    const headers = ["Name", "Move #", "Move-in", "Move-out", "Building/Room", "Housing address", "Store", "Store address", "Phone", "Commute"]
+    const rows = locs.map(loc => {
+      const w = workerMap.get(loc.worker_id)
+      return [
+        w?.name_latin ?? w?.name_kana ?? "—",
+        String(loc.move_number),
+        loc.move_in_date ?? "",
+        loc.move_out_date ?? "",
+        [loc.housing_building, loc.housing_room].filter(Boolean).join(" "),
+        loc.housing_address ?? "",
+        loc.store_name ?? "",
+        loc.store_address ?? "",
+        loc.mobile_phone ?? "",
+        loc.commute_method ?? "",
+      ].join("\t")
+    })
+    await navigator.clipboard.writeText([headers.join("\t"), ...rows].join("\n"))
+    setCopied("all")
+    setTimeout(() => setCopied(null), 1500)
+  }
+
+  if (locs === null) return <div className="py-12 text-center text-[0.85rem] text-[var(--text-3)] animate-pulse">Loading…</div>
+
+  if (locs.length === 0) return (
+    <div className="py-16 flex flex-col items-center gap-3 text-[var(--text-3)]">
+      <Icon name="swap_horiz" size={32} />
+      <p className="text-[0.85rem]">No move history yet.</p>
+      <p className="text-[0.75rem]">Open a worker in the Workers tab and use the "Move history" section to record a move.</p>
+    </div>
+  )
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[0.78rem] text-[var(--text-2)]">
+          <span className="text-[var(--text)] font-medium">{locs.length}</span> moves across{" "}
+          <span className="text-[var(--text)] font-medium">{new Set(locs.map(l => l.worker_id)).size}</span> workers
+        </p>
+        <button
+          onClick={copyAll}
+          className={cn("text-[0.72rem] transition-colors flex items-center gap-1",
+            copied === "all" ? "text-green-400" : "text-[var(--text-3)] hover:text-[var(--text)]")}
+        >
+          <Icon name="content_copy" size={12} />
+          {copied === "all" ? "Copied!" : "Copy all as TSV"}
+        </button>
+      </div>
+
+      <div className="overflow-x-auto rounded border border-[var(--border)]">
+        <table className="w-full text-[0.75rem] border-collapse">
+          <thead>
+            <tr className="border-b border-[var(--border)] bg-[var(--bg-2)]">
+              {["Worker", "Move", "Move-in", "Move-out", "Building / Room", "Housing address", "Store", "Store address", "Phone", ""].map(h => (
+                <th key={h} className="px-3 py-2 text-left font-medium text-[var(--text-2)] whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {locs.map(loc => {
+              const w = workerMap.get(loc.worker_id)
+              return (
+                <tr key={loc.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--bg-2)]">
+                  <td className="px-3 py-2 text-[var(--text)] font-medium whitespace-nowrap">
+                    {w?.name_latin ?? w?.name_kana ?? "—"}
+                    {w?.worker_id && <span className="ml-1.5 text-[0.65rem] text-[var(--text-3)]">{w.worker_id}</span>}
+                  </td>
+                  <td className="px-3 py-2 text-[var(--text-2)] text-center font-mono">#{loc.move_number}</td>
+                  <td className="px-3 py-2 text-[var(--text-2)] whitespace-nowrap">{loc.move_in_date ?? "—"}</td>
+                  <td className="px-3 py-2 text-[var(--text-2)] whitespace-nowrap">{loc.move_out_date ?? "—"}</td>
+                  <td className="px-3 py-2 text-[var(--text-2)] whitespace-nowrap">{[loc.housing_building, loc.housing_room].filter(Boolean).join(" ") || "—"}</td>
+                  <td className="px-3 py-2 text-[var(--text-3)] max-w-[200px] truncate">{loc.housing_address ?? "—"}</td>
+                  <td className="px-3 py-2 text-[var(--text-2)] whitespace-nowrap">{loc.store_name ?? "—"}</td>
+                  <td className="px-3 py-2 text-[var(--text-3)] max-w-[200px] truncate">{loc.store_address ?? "—"}</td>
+                  <td className="px-3 py-2 text-[var(--text-2)] font-mono whitespace-nowrap">{loc.mobile_phone ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => copyRow(loc)}
+                      className={cn("text-[0.65rem] transition-colors",
+                        copied === loc.id ? "text-green-400" : "text-[var(--text-3)] hover:text-[var(--text)]")}
+                    >
+                      {copied === loc.id ? "Copied" : "Copy"}
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -1329,7 +1685,7 @@ function loadVisibleCols(): Set<keyof Worker> {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type Tab = "workers" | "import"
+type Tab = "workers" | "import" | "moves"
 
 export default function PeoplePage() {
   const [workers, setWorkers] = useState<Worker[]>([])
@@ -1346,6 +1702,7 @@ export default function PeoplePage() {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
 
   useEffect(() => {
     setVisibleCols(loadVisibleCols())
@@ -1380,6 +1737,34 @@ export default function PeoplePage() {
       (w.worker_id ?? "").toLowerCase().includes(q)
     )
   }).sort(sortByWorkerId)
+
+  // Ctrl+C / Cmd+C copies checked rows as TSV (Google Sheets compatible)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || (e.key !== "c" && e.key !== "C")) return
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === "input" || tag === "textarea" || tag === "select") return
+      if (checkedIds.size === 0) return
+      e.preventDefault()
+      const checkedWorkers = filtered.filter(w => checkedIds.has(w.id))
+      const headers = activeCols.map(c => c.label)
+      const rows = checkedWorkers.map(w =>
+        activeCols.map(c => {
+          const v = w[c.key]
+          if (v === null || v === undefined) return ""
+          if (typeof v === "boolean") return v ? "Y" : ""
+          return String(v)
+        })
+      )
+      const tsv = [headers.join("\t"), ...rows.map(r => r.join("\t"))].join("\n")
+      navigator.clipboard.writeText(tsv)
+      const msg = `Copied ${checkedWorkers.length} row${checkedWorkers.length > 1 ? "s" : ""}`
+      setCopyFeedback(msg)
+      setTimeout(() => setCopyFeedback(null), 2000)
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [checkedIds, filtered, activeCols])
 
   function applyWorkerUpdate(updated: Worker) {
     setWorkers(ws => ws.map(w => w.id === updated.id ? updated : w))
@@ -1429,6 +1814,7 @@ export default function PeoplePage() {
           <PillTabs
             options={[
               { value: "workers", label: `Workers${workers.length ? ` (${workers.length})` : ""}` },
+              { value: "moves",   label: "Moves" },
               { value: "import",  label: "Import CSV" },
             ]}
             value={tab}
@@ -1441,6 +1827,10 @@ export default function PeoplePage() {
         {tab === "import" ? (
           <div className="overflow-y-auto py-6">
             <ImportTab onImported={ws => { setWorkers(ws); setTab("workers") }} />
+          </div>
+        ) : tab === "moves" ? (
+          <div className="overflow-y-auto py-6">
+            <MovesTab workers={workers} />
           </div>
         ) : (
           <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -1504,6 +1894,11 @@ export default function PeoplePage() {
                 {checkedIds.size > 0 && (
                   <div className="flex items-center gap-2">
                     <span className="text-[0.72rem] text-[var(--text-2)]">{checkedIds.size} selected</span>
+                    {copyFeedback ? (
+                      <span className="text-[0.72rem] text-green-400">{copyFeedback}</span>
+                    ) : (
+                      <span className="text-[0.65rem] text-[var(--text-3)]">Ctrl+C to copy</span>
+                    )}
                     {confirmBulkDelete ? (
                       <>
                         <span className="text-[0.72rem] text-red-400">Delete {checkedIds.size} workers?</span>

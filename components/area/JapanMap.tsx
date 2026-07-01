@@ -49,6 +49,7 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
   const [dragging, setDragging]   = useState(false)
   const dragRef  = useRef<{ mx: number; my: number; tx: number; ty: number } | null>(null)
   const movedRef = useRef(false)
+  const svgRef   = useRef<SVGSVGElement>(null)
 
   useEffect(() => {
     fetch("/maps/japan.topojson").then(r => r.json()).then(setTopoData).catch(console.error)
@@ -126,17 +127,28 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
   }
   function onMouseUp() { dragRef.current = null; setDragging(false) }
 
-  function onWheel(e: React.WheelEvent<SVGSVGElement>) {
-    e.preventDefault()
-    const factor = e.deltaY > 0 ? 0.85 : 1.18
-    const newScale = Math.max(0.5, Math.min(10, transform.scale * factor))
-    const rect = e.currentTarget.getBoundingClientRect()
-    const vx = vb.x + ((e.clientX - rect.left) / rect.width) * vb.w
-    const vy = vb.y + ((e.clientY - rect.top) / rect.height) * vb.h
-    const mx = (vx - transform.x) / transform.scale
-    const my = (vy - transform.y) / transform.scale
-    setTransform({ x: vx - mx * newScale, y: vy - my * newScale, scale: newScale })
-  }
+  // Non-passive wheel listener so preventDefault() actually works (React's synthetic
+  // onWheel is passive by default, meaning the page scrolls AND the map zooms).
+  useEffect(() => {
+    const el = svgRef.current
+    if (!el) return
+    function handleWheel(e: WheelEvent) {
+      e.preventDefault()
+      const factor = e.deltaY > 0 ? 0.85 : 1.18
+      const rect = el!.getBoundingClientRect()
+      const cx = e.clientX, cy = e.clientY
+      setTransform(prev => {
+        const newScale = Math.max(0.5, Math.min(10, prev.scale * factor))
+        const vx = vb.x + ((cx - rect.left) / rect.width) * vb.w
+        const vy = vb.y + ((cy - rect.top) / rect.height) * vb.h
+        const mx = (vx - prev.x) / prev.scale
+        const my = (vy - prev.y) / prev.scale
+        return { x: vx - mx * newScale, y: vy - my * newScale, scale: newScale }
+      })
+    }
+    el.addEventListener("wheel", handleWheel, { passive: false })
+    return () => el.removeEventListener("wheel", handleWheel)
+  }, [vb])
 
   function zoom(factor: number) {
     setTransform(prev => {
@@ -159,6 +171,7 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
   return (
     <div className="flex-1 relative overflow-hidden bg-[var(--bg-2)]">
       <svg
+        ref={svgRef}
         viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
         className="w-full h-full select-none"
         preserveAspectRatio="xMidYMid meet"
@@ -167,7 +180,6 @@ export default function JapanMap({ state, mode, selectedPref, searchMatches, onS
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseUp}
-        onWheel={onWheel}
       >
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.scale})`}>
           {features.map(f => {

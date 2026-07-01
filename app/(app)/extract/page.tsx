@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { extractGuidebook, lookupPostal, type GuidebookData, type PostalResult } from "@/app/actions/extract"
+import { extractGuidebook, lookupPostal, lookupPostalByAddress, type GuidebookData, type PostalResult } from "@/app/actions/extract"
 import { parsePhones, type PhoneEntry } from "@/components/extract/parsePhones"
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent, PillTabs } from "@/components/PageHeader"
@@ -10,6 +10,16 @@ import { getWorkers, type Worker } from "@/app/actions/workers"
 
 type CopiedKey = keyof GuidebookData | "all" | null
 type Tab = "url" | "text"
+
+const PREFECTURES = [
+  "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
+  "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
+  "新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県",
+  "静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県",
+  "奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県",
+  "徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県",
+  "熊本県","大分県","宮崎県","鹿児島県","沖縄県",
+]
 
 const TYPE_COLORS: Record<string, string> = {
   "電気": "bg-blue-400/15 text-blue-600 dark:text-blue-300",
@@ -85,6 +95,9 @@ function UrlPanel({ label }: { label?: string }) {
   const [postalResults, setPostalResults] = useState<PostalResult[] | null>(null)
   const [postalError, setPostalError]     = useState<string | null>(null)
   const [copiedPostal, setCopiedPostal]   = useState<string | null>(null)
+  const [postalMode, setPostalMode]       = useState<"code" | "address">("code")
+  const [addrPref, setAddrPref]           = useState("")
+  const [addrCity, setAddrCity]           = useState("")
 
   async function run() {
     if (!url.trim()) return
@@ -127,6 +140,15 @@ function UrlPanel({ label }: { label?: string }) {
   function onPostalChange(val: string) {
     setPostal(val)
     if (val.replace(/[^0-9]/g, "").length === 7) runPostal(val)
+  }
+
+  async function runPostalByAddress() {
+    if (!addrPref) return
+    setPostalLoading(true); setPostalResults(null); setPostalError(null)
+    const res = await lookupPostalByAddress(addrPref, addrCity || undefined)
+    setPostalLoading(false)
+    if (res.error) setPostalError(res.error)
+    else if (res.results) setPostalResults(res.results)
   }
 
   async function copyPostal(text: string, key: string) {
@@ -213,27 +235,79 @@ function UrlPanel({ label }: { label?: string }) {
 
       {/* Postal lookup */}
       <div className="border-t border-[var(--border)] pt-5 flex flex-col gap-3">
-        <p className="label-xs">Postal code</p>
-        <div className="flex gap-2">
-          <input
-            className={cn(
-              "flex-1 bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5",
-              "text-[var(--text)] text-sm placeholder:text-[var(--text-3)] font-mono tracking-wider",
-              "outline-none focus:border-[var(--text)] transition-colors"
-            )}
-            placeholder="123-4567"
-            value={postal}
-            onChange={e => onPostalChange(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && runPostal()}
-            maxLength={8}
-          />
-          <button
-            onClick={() => runPostal()} disabled={postalLoading || !postal.trim()}
-            className="px-4 py-2.5 rounded bg-[var(--text)] text-[var(--bg)] text-sm font-semibold shrink-0 hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {postalLoading ? "..." : "Look up"}
-          </button>
+        <div className="flex items-center justify-between">
+          <p className="label-xs">Postal code</p>
+          <div className="flex gap-1 p-0.5 rounded bg-[var(--bg-2)] border border-[var(--border)]">
+            {(["code", "address"] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => { setPostalMode(m); setPostalResults(null); setPostalError(null) }}
+                className={cn("px-2 py-0.5 rounded text-[0.65rem] font-medium transition-colors",
+                  postalMode === m ? "bg-[var(--text)] text-[var(--bg)]" : "text-[var(--text-3)] hover:text-[var(--text)]")}
+              >
+                {m === "code" ? "〒 Code" : "住所から"}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {postalMode === "code" ? (
+          <div className="flex gap-2">
+            <input
+              className={cn(
+                "flex-1 bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5",
+                "text-[var(--text)] text-sm placeholder:text-[var(--text-3)] font-mono tracking-wider",
+                "outline-none focus:border-[var(--text)] transition-colors"
+              )}
+              placeholder="123-4567"
+              value={postal}
+              onChange={e => onPostalChange(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && runPostal()}
+              maxLength={8}
+            />
+            <button
+              onClick={() => runPostal()} disabled={postalLoading || !postal.trim()}
+              className="px-4 py-2.5 rounded bg-[var(--text)] text-[var(--bg)] text-sm font-semibold shrink-0 hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {postalLoading ? "..." : "Look up"}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <select
+                className={cn(
+                  "flex-1 bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5",
+                  "text-[var(--text)] text-sm outline-none focus:border-[var(--text)] transition-colors"
+                )}
+                value={addrPref}
+                onChange={e => { setAddrPref(e.target.value); setPostalResults(null) }}
+              >
+                <option value="">都道府県を選択…</option>
+                {PREFECTURES.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <input
+                className={cn(
+                  "flex-1 bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5",
+                  "text-[var(--text)] text-sm placeholder:text-[var(--text-3)]",
+                  "outline-none focus:border-[var(--text)] transition-colors"
+                )}
+                placeholder="市区町村名（任意）"
+                value={addrCity}
+                onChange={e => setAddrCity(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && runPostalByAddress()}
+              />
+              <button
+                onClick={runPostalByAddress} disabled={postalLoading || !addrPref}
+                className="px-4 py-2.5 rounded bg-[var(--text)] text-[var(--bg)] text-sm font-semibold shrink-0 hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {postalLoading ? "..." : "Search"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {postalError && (
           <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded px-3 py-2">{postalError}</p>

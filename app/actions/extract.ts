@@ -24,6 +24,32 @@ export type PostalResult = {
   town: string
 }
 
+export async function lookupPostalByAddress(
+  prefecture: string,
+  city?: string
+): Promise<{ results?: PostalResult[]; error?: string }> {
+  const address = [prefecture, city].filter(Boolean).join("").trim()
+  if (!address) return { error: "Select a prefecture" }
+  try {
+    const res = await fetch(
+      `https://zipcloud.ibsnet.co.jp/api/search?address=${encodeURIComponent(address)}&limit=20`
+    )
+    const data = await res.json()
+    if (!data.results) return { error: "No results found" }
+    const results: PostalResult[] = data.results.map((r: Record<string, string>) => ({
+      zipcode:    r.zipcode,
+      address:    r.address1 + r.address2 + r.address3,
+      reading:    r.kana1 + r.kana2 + r.kana3,
+      prefecture: r.address1,
+      city:       r.address2,
+      town:       r.address3,
+    }))
+    return { results }
+  } catch (e) {
+    return { error: String(e) }
+  }
+}
+
 export async function lookupPostal(code: string): Promise<{ results?: PostalResult[]; error?: string }> {
   const clean = code.replace(/[^0-9]/g, "")
   if (clean.length !== 7) return { error: "Enter a 7-digit postal code" }
@@ -96,7 +122,7 @@ export async function extractGuidebook(url: string): Promise<{ data?: GuidebookD
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; bot/1.0)" },
-      next: { revalidate: 0 },
+      cache: "no-store",
     })
 
     if (!res.ok) return { error: `Failed to fetch page (${res.status})` }

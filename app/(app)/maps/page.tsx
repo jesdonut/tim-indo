@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { getWorkers, type Worker } from "@/app/actions/workers"
+import { geocodeAddress, fetchNearbyTransit, lookupTrainLine, type Station, type BusStop, type LineInfo } from "@/app/actions/maps"
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent } from "@/components/PageHeader"
 
@@ -12,47 +13,6 @@ function googleMapsUrl(origin: string, dest: string) {
 }
 function yahooTransitUrl(origin: string, dest: string) {
   return `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(origin)}&to=${encodeURIComponent(dest)}`
-}
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-type Station = { name: string; line: string; distance: string }
-type BusStop = { name: string; distanceM: number }
-
-// ── API helpers ──────────────────────────────────────────────────────────────
-
-async function geocode(address: string): Promise<{ lat: number; lon: number } | null> {
-  const q = address.includes("日本") ? address : `${address} 日本`
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=jp`
-  const res = await fetch(url, { headers: { "Accept-Language": "ja", "User-Agent": "TimIndoApp/1.0" } })
-  const data = await res.json()
-  if (!data[0]) return null
-  return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }
-}
-
-async function fetchStations(lat: number, lon: number): Promise<Station[]> {
-  const url = `https://express.heartrails.com/api/json?method=getStations&x=${lon}&y=${lat}`
-  const res = await fetch(url)
-  const data = await res.json()
-  return (data?.response?.station ?? []) as Station[]
-}
-
-async function fetchBusStops(lat: number, lon: number): Promise<BusStop[]> {
-  const radius = 600
-  const query = `[out:json][timeout:10];node["highway"="bus_stop"](around:${radius},${lat},${lon});out body 10;`
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    body: `data=${encodeURIComponent(query)}`,
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  })
-  const data = await res.json()
-  return (data?.elements ?? []).map((el: Record<string, unknown>) => {
-    const tags = (el.tags ?? {}) as Record<string, string>
-    const dlat = (el.lat as number) - lat
-    const dlon = (el.lon as number) - lon
-    const distanceM = Math.round(Math.sqrt(dlat * dlat + dlon * dlon) * 111000)
-    return { name: tags["name"] ?? tags["name:ja"] ?? "Bus stop", distanceM }
-  }).sort((a: BusStop, b: BusStop) => a.distanceM - b.distanceM)
 }
 
 // ── Worker search dropdown ────────────────────────────────────────────────────
@@ -105,9 +65,13 @@ function WorkerSearch({ workers, onPick }: { workers: Worker[]; onPick: (w: Work
               className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-[var(--bg-2)] transition-colors"
             >
               <span className="text-[0.65rem] font-mono text-[var(--text-3)] w-8 shrink-0">{w.worker_id ?? "—"}</span>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="text-sm text-[var(--text)] truncate">{w.name_latin ?? w.name_kana ?? "—"}</div>
-                <div className="text-[0.65rem] text-[var(--text-3)] truncate">{w.store_name ?? ""}</div>
+                <div className="text-[0.65rem] text-[var(--text-3)] flex gap-2">
+                  <span className="truncate">{w.store_name ?? ""}</span>
+                  {!w.housing_address && <span className="text-amber-400 shrink-0">no home addr</span>}
+                  {!w.store_address && <span className="text-amber-400 shrink-0">no work addr</span>}
+                </div>
               </div>
             </button>
           ))}
@@ -117,7 +81,7 @@ function WorkerSearch({ workers, onPick }: { workers: Worker[]; onPick: (w: Work
   )
 }
 
-// ── Nearby results for one address ───────────────────────────────────────────
+// ── Nearby transit section ────────────────────────────────────────────────────
 
 type NearbyState =
   | { status: "idle" }
@@ -127,31 +91,21 @@ type NearbyState =
 
 function NearbySection({ label, address }: { label: string; address: string }) {
   const [state, setState] = useState<NearbyState>({ status: "idle" })
+  const [, startTransition] = useTransition()
 
   useEffect(() => {
     if (!address.trim()) { setState({ status: "idle" }); return }
-    let cancelled = false
     setState({ status: "loading" })
-
-    async function run() {
-      try {
-        const coords = await geocode(address)
-        if (!coords) {
-          if (!cancelled) setState({ status: "error", message: "Address not found" })
-          return
-        }
-        const [stations, busStops] = await Promise.all([
-          fetchStations(coords.lat, coords.lon),
-          fetchBusStops(coords.lat, coords.lon),
-        ])
-        if (!cancelled) setState({ status: "done", stations, busStops })
-      } catch {
-        if (!cancelled) setState({ status: "error", message: "Lookup failed" })
+    startTransition(async () => {
+      const coords = await geocodeAddress(address)
+      if (!coords) {
+        setState({ status: "error", message: "Address not found — try adding the full address with prefecture" })
+        return
       }
-    }
-
-    run()
-    return () => { cancelled = true }
+      const { stations, busStops } = await fetchNearbyTransit(coords.lat, coords.lon)
+      setState({ status: "done", stations, busStops })
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address])
 
   return (
@@ -159,13 +113,13 @@ function NearbySection({ label, address }: { label: string; address: string }) {
       <p className="label-xs">{label}</p>
 
       {state.status === "idle" && (
-        <p className="text-[0.75rem] text-[var(--text-3)]">Load a worker to see nearby transit.</p>
+        <p className="text-[0.75rem] text-[var(--text-3)]">Load a worker or enter an address to see nearby transit.</p>
       )}
       {state.status === "loading" && (
         <p className="text-[0.75rem] text-[var(--text-3)] animate-pulse">Looking up…</p>
       )}
       {state.status === "error" && (
-        <p className="text-[0.75rem] text-red-400">{state.message}</p>
+        <p className="text-[0.75rem] text-amber-400">{state.message}</p>
       )}
       {state.status === "done" && (
         <>
@@ -183,18 +137,101 @@ function NearbySection({ label, address }: { label: string; address: string }) {
             ))}
           </div>
 
-          <div className="flex flex-col gap-1">
-            <p className="label-xs mt-1">Bus stops <span className="text-[var(--text-3)] font-normal normal-case">(600m)</span></p>
-            {state.busStops.length === 0 ? (
-              <p className="text-[0.75rem] text-[var(--text-3)]">None found nearby.</p>
-            ) : state.busStops.slice(0, 4).map((b, i) => (
-              <div key={i} className="flex items-center justify-between px-3 py-2 rounded bg-[var(--bg-2)]">
-                <span className="text-sm text-[var(--text)]">{b.name}</span>
-                <span className="text-[0.7rem] text-[var(--text-3)]">{b.distanceM}m</span>
-              </div>
-            ))}
-          </div>
+          {state.busStops.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <p className="label-xs mt-1">Bus stops <span className="text-[var(--text-3)] font-normal normal-case">(600m)</span></p>
+              {state.busStops.slice(0, 4).map((b, i) => (
+                <div key={i} className="flex items-center justify-between px-3 py-2 rounded bg-[var(--bg-2)]">
+                  <span className="text-sm text-[var(--text)]">{b.name}</span>
+                  <span className="text-[0.7rem] text-[var(--text-3)]">{b.distanceM}m</span>
+                </div>
+              ))}
+            </div>
+          )}
         </>
+      )}
+    </div>
+  )
+}
+
+// ── Train company lookup ──────────────────────────────────────────────────────
+
+const TYPE_COLOR: Record<string, string> = {
+  "JR":      "bg-green-500/15 text-green-600 dark:text-green-400",
+  "JR新幹線": "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  "地下鉄":  "bg-purple-500/15 text-purple-600 dark:text-purple-400",
+  "私鉄":    "bg-orange-500/15 text-orange-600 dark:text-orange-400",
+  "新交通":  "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+  "モノレール": "bg-pink-500/15 text-pink-600 dark:text-pink-400",
+}
+
+function TrainLookup() {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<LineInfo[]>([])
+  const [copied, setCopied] = useState<string | null>(null)
+  const [, startTransition] = useTransition()
+
+  function handleChange(val: string) {
+    setQuery(val)
+    startTransition(async () => {
+      const r = await lookupTrainLine(val)
+      setResults(r)
+    })
+  }
+
+  async function copyLine(text: string, key: string) {
+    await navigator.clipboard.writeText(text)
+    setCopied(key)
+    setTimeout(() => setCopied(null), 1200)
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="label-xs">Train line → company</p>
+      <input
+        className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] transition-colors"
+        placeholder="e.g. 山手線, Yamanote, Tokyo Metro…"
+        value={query}
+        onChange={e => handleChange(e.target.value)}
+      />
+
+      {query.trim() && results.length === 0 && (
+        <p className="text-[0.75rem] text-[var(--text-3)]">No lines found.</p>
+      )}
+
+      {results.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {results.map((r, i) => {
+            const copyText = `${r.line}（${r.operator} / ${r.operatorEn}）`
+            const key = `${i}`
+            return (
+              <div key={i} className="flex items-center justify-between gap-3 px-3 py-2 rounded bg-[var(--bg-2)]">
+                <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                  <span className={cn("text-[0.6rem] font-bold px-1.5 py-0.5 rounded shrink-0",
+                    TYPE_COLOR[r.type] ?? "bg-[var(--bg)] text-[var(--text-3)]")}>
+                    {r.type}
+                  </span>
+                  <span className="text-sm font-medium text-[var(--text)]">{r.line}</span>
+                  <span className="text-[0.75rem] text-[var(--text-2)]">{r.operator}</span>
+                  <span className="text-[0.68rem] text-[var(--text-3)]">({r.operatorEn})</span>
+                </div>
+                <button
+                  onClick={() => copyLine(copyText, key)}
+                  className={cn("shrink-0 text-[0.65rem] transition-all",
+                    copied === key ? "text-green-400" : "text-[var(--text-3)] hover:text-[var(--text)]")}
+                >
+                  {copied === key ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {!query.trim() && (
+        <p className="text-[0.72rem] text-[var(--text-3)]">
+          Type a line name (e.g. 銀座線) or operator name (e.g. Tokyo Metro) to find the company.
+        </p>
       )}
     </div>
   )
@@ -278,6 +315,11 @@ export default function MapsPage() {
               >
                 Yahoo Transit
               </a>
+            </div>
+
+            {/* Train company lookup */}
+            <div className="border-t border-[var(--border)] pt-5">
+              <TrainLookup />
             </div>
           </div>
 
