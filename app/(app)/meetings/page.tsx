@@ -464,7 +464,7 @@ export default function MeetingsPage() {
 
   return (
     <div className="relative flex flex-col h-[calc(100dvh-48px)]">
-      {loading && <PixelLoader />}
+      <PixelLoader ready={!loading} />
       <PageHeader
         title="定期面談"
         right={

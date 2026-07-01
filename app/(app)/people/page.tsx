@@ -1959,7 +1959,7 @@ export default function PeoplePage() {
 
   return (
     <div className="relative flex flex-col h-[calc(100dvh-48px)]">
-      {loading && <PixelLoader />}
+      <PixelLoader ready={!loading} />
       <PageHeader
         full
         title="People"

@@ -1,58 +1,94 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { getTeamData } from "@/app/actions/teams"
 
 const FALLBACK_NAMES = ["Jessica", "Ben", "Dimas"]
 
 const CHAR_MS   = 80
+const CHAR_FAST = 18   // speed used when data is already ready
 const PAUSE_MS  = 300
-const FADE_WAIT = 600
+const FADE_WAIT = 400
 
-export default function PixelLoader() {
-  const [names, setNames] = useState<string[] | null>(null)
+// ready = data has finished loading. When false, the loader waits after
+// the animation completes. When it flips to true mid-animation, the
+// remaining characters are typed at CHAR_FAST so it finishes quickly.
+export default function PixelLoader({ ready = true }: { ready?: boolean }) {
+  const [names, setNames]     = useState<string[] | null>(null)
   const [revealed, setRevealed] = useState<number[]>([])
-  const [done, setDone] = useState(false)
-  const [fading, setFading] = useState(false)
+  const [animDone, setAnimDone] = useState(false)
+  const [fading, setFading]   = useState(false)
+  const [speedup, setSpeedup] = useState(false)
+  const revealedRef = useRef<number[]>([])
+  const timersRef   = useRef<ReturnType<typeof setTimeout>[]>([])
 
-  // Fetch real team member first names, fall back to hardcoded
   useEffect(() => {
     getTeamData().then(data => {
-      if (data?.profiles?.length) {
-        const firstNames = data.profiles.map(p =>
-          (p.name ?? "").split(/\s+/)[0] || p.name || "?"
-        )
-        setNames(firstNames)
-      } else {
-        setNames(FALLBACK_NAMES)
-      }
+      const firstNames = data?.profiles?.length
+        ? data.profiles.map(p => (p.name ?? "").split(/\s+/)[0] || p.name || "?")
+        : FALLBACK_NAMES
+      setNames(firstNames)
     }).catch(() => setNames(FALLBACK_NAMES))
   }, [])
 
-  // Start typing animation once names are known
+  // Kick off (or redo) the typing animation whenever names load or speedup toggles
   useEffect(() => {
     if (!names) return
-    setRevealed(names.map(() => 0))
-    const timers: ReturnType<typeof setTimeout>[] = []
-    let elapsed = 0
 
+    // Cancel any pending timers from a previous run
+    timersRef.current.forEach(clearTimeout)
+    timersRef.current = []
+
+    const charMs = speedup ? CHAR_FAST : CHAR_MS
+
+    // On speedup, continue from where we left off; on first run, start fresh
+    const startFrom = speedup ? revealedRef.current : names.map(() => 0)
+    if (!speedup) {
+      setRevealed(names.map(() => 0))
+      revealedRef.current = names.map(() => 0)
+    }
+    setAnimDone(false)
+
+    let elapsed = 0
     names.forEach((name, ni) => {
-      for (let c = 1; c <= name.length; c++) {
+      const from = startFrom[ni] ?? 0
+      for (let c = from + 1; c <= name.length; c++) {
         const t = elapsed
-        timers.push(setTimeout(() => {
-          setRevealed(prev => prev.map((v, i) => i === ni ? c : v))
+        timersRef.current.push(setTimeout(() => {
+          setRevealed(prev => {
+            const next = prev.map((v, i) => i === ni ? c : v)
+            revealedRef.current = next
+            return next
+          })
         }, t))
-        elapsed += CHAR_MS
+        elapsed += charMs
       }
-      elapsed += PAUSE_MS
+      elapsed += speedup ? 60 : PAUSE_MS
     })
 
-    const total = elapsed
-    timers.push(setTimeout(() => setDone(true), total))
-    timers.push(setTimeout(() => setFading(true), total + FADE_WAIT))
+    timersRef.current.push(setTimeout(() => setAnimDone(true), elapsed))
 
-    return () => timers.forEach(clearTimeout)
-  }, [names])
+    return () => timersRef.current.forEach(clearTimeout)
+  }, [names, speedup])
+
+  // When data becomes ready mid-animation → speed up; when both done → fade
+  useEffect(() => {
+    if (!ready) return
+    if (!animDone) {
+      setSpeedup(true)
+    } else {
+      const t = setTimeout(() => setFading(true), FADE_WAIT)
+      return () => clearTimeout(t)
+    }
+  }, [ready, animDone])
+
+  // Also trigger fade when animation finishes and data is already ready
+  useEffect(() => {
+    if (animDone && ready) {
+      const t = setTimeout(() => setFading(true), FADE_WAIT)
+      return () => clearTimeout(t)
+    }
+  }, [animDone, ready])
 
   return (
     <div
@@ -62,7 +98,7 @@ export default function PixelLoader() {
       {names && (
         <div className="flex flex-col gap-3 select-none">
           {names.map((name, ni) => {
-            const chars = revealed[ni] ?? 0
+            const chars      = revealed[ni] ?? 0
             const isActive   = chars > 0 && chars < name.length
             const isComplete = chars === name.length
             return (
@@ -88,7 +124,7 @@ export default function PixelLoader() {
                       style={{ background: "var(--highlight)", animation: "pixel-blink 0.7s step-end infinite" }}
                     />
                   )}
-                  {isComplete && !done && ni === names.length - 1 && (
+                  {isComplete && !animDone && ni === names.length - 1 && (
                     <span
                       className="inline-block w-[0.55em] h-[0.85em] ml-0.5 align-middle"
                       style={{ background: "var(--highlight)" }}
