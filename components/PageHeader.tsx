@@ -13,11 +13,12 @@ import type { ReactNode } from "react"
  */
 
 const CONTAINER = "max-w-7xl mx-auto px-5 w-full"
+const CONTAINER_FULL = "w-full px-5"
 
-export function PageHeader({ title, right }: { title: string; right?: ReactNode }) {
+export function PageHeader({ title, right, full }: { title: string; right?: ReactNode; full?: boolean }) {
   return (
     <div className="sticky top-[48px] z-30 border-b border-[var(--border)] bg-[var(--bg)] shrink-0">
-      <div className={cn(CONTAINER, "h-14 flex items-center justify-between gap-4")}>
+      <div className={cn(full ? CONTAINER_FULL : CONTAINER, "h-14 flex items-center justify-between gap-4")}>
         <h1 className="text-xl font-semibold tracking-tight text-[var(--text)] shrink-0">{title}</h1>
         {right && <div className="flex items-center gap-2 min-w-0 overflow-x-auto">{right}</div>}
       </div>
@@ -35,14 +36,16 @@ export function PageHeader({ title, right }: { title: string; right?: ReactNode 
 export function PageContent({
   children,
   narrow,
+  full,
   className,
 }: {
   children: ReactNode
   narrow?: boolean
+  full?: boolean
   className?: string
 }) {
   return (
-    <div className={cn(CONTAINER, "py-6 pb-10", className)}>
+    <div className={cn(full ? CONTAINER_FULL : CONTAINER, "py-6 pb-10", className)}>
       {narrow ? <div className="max-w-sm">{children}</div> : children}
     </div>
   )
@@ -54,13 +57,15 @@ export function PageContent({
  */
 export function ToolContent({
   children,
+  full,
   className,
 }: {
   children: ReactNode
+  full?: boolean
   className?: string
 }) {
   return (
-    <div className={cn(CONTAINER, "flex-1 min-h-0 flex flex-col", className)}>
+    <div className={cn(full ? CONTAINER_FULL : CONTAINER, "flex-1 min-h-0 flex flex-col", className)}>
       {children}
     </div>
   )

@@ -1961,6 +1961,7 @@ export default function PeoplePage() {
     <div className="relative flex flex-col h-[calc(100dvh-48px)]">
       {loading && <PixelLoader />}
       <PageHeader
+        full
         title="People"
         right={
           <PillTabs
@@ -1975,7 +1976,7 @@ export default function PeoplePage() {
         }
       />
 
-      <ToolContent className="overflow-hidden">
+      <ToolContent full className="overflow-hidden">
         {tab === "import" ? (
           <div className="overflow-y-auto py-6">
             <ImportTab onImported={ws => { setWorkers(ws); setTab("workers") }} />
