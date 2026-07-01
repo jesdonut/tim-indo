@@ -99,7 +99,7 @@ function NearbySection({ label, address, postalCode }: { label: string; address:
     startTransition(async () => {
       const coords = await geocodeAddress(address, postalCode)
       if (!coords) {
-        setState({ status: "error", message: "Address not found — try adding the full address with prefecture" })
+        setState({ status: "error", message: "Location not found — check that the address is correct" })
         return
       }
       const { stations, busStops } = await fetchNearbyTransit(coords.lat, coords.lon)

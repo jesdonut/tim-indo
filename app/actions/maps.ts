@@ -46,10 +46,20 @@ export async function geocodeAddress(
   }
 
   // 2. Full address with building name stripped → Nominatim
+  //    If that fails, retry with just the town/district (drop the house number too).
+  //    Town-level precision is enough to find the nearest station.
   if (!address.trim()) return null
   try {
     const cleaned = stripBuildingName(address)
-    return await nominatimSearch(cleaned)
+    const coords = await nominatimSearch(cleaned)
+    if (coords) return coords
+
+    // Drop trailing house number (e.g. "小杉陣屋町2-17-7" → "小杉陣屋町")
+    const withoutNumber = cleaned.replace(/[\d]+[-－ー][\d]+([-－ー][\d]+)?[\s]*$/, "").trim()
+    if (withoutNumber && withoutNumber !== cleaned) {
+      return await nominatimSearch(withoutNumber)
+    }
+    return null
   } catch {
     return null
   }
