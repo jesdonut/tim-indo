@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 
-const TEAM_ID = process.env.NEXT_PUBLIC_TEAM_ID!
+const TEAM_ID = process.env.NEXT_PUBLIC_TEAM_ID ?? "11111111-1111-1111-1111-111111111111"
 
 async function teamId() {
   const supabase = await createClient()

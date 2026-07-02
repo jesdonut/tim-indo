@@ -6,6 +6,7 @@ import { getWorkers, getWorkersDebug, upsertWorkers, updateWorker, deleteWorker,
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
 import { createClient } from "@/lib/supabase/client"
+import StoresTab from "@/components/people/StoresTab"
 
 // ─── CSV Parsing ──────────────────────────────────────────────────────────────
 
@@ -1398,7 +1399,7 @@ function loadVisibleCols(): Set<keyof Worker> {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type Tab = "workers" | "import"
+type Tab = "workers" | "import" | "stores"
 
 export default function PeoplePage() {
   const [workers, setWorkers] = useState<Worker[]>([])
@@ -1731,6 +1732,7 @@ export default function PeoplePage() {
           <PillTabs
             options={[
               { value: "workers", label: `Workers${workers.length ? ` (${workers.length})` : ""}` },
+              { value: "stores",  label: "Stores (店舗)" },
               { value: "import",  label: "Import CSV" },
             ]}
             value={tab}
@@ -1743,6 +1745,10 @@ export default function PeoplePage() {
         {tab === "import" ? (
           <div className="overflow-y-auto py-6">
             <ImportTab onImported={ws => { setWorkers(ws); setTab("workers") }} />
+          </div>
+        ) : tab === "stores" ? (
+          <div className="overflow-y-auto py-6">
+            <StoresTab />
           </div>
         ) : (
           <div className="flex flex-1 min-h-0 overflow-hidden">
