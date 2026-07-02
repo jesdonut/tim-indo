@@ -476,15 +476,32 @@ export default function MoveTab({ worker }: { worker: Worker }) {
             </table>
           </section>
 
-          {/* Manual archive (if not auto-done) */}
-          {!doneReady && (
-            <button
-              onClick={archive}
-              className="self-start px-3 py-1.5 rounded text-[0.72rem] border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
-            >
-              このMoveをアーカイブ
-            </button>
-          )}
+          {/* Archive / delete */}
+          <div className="flex items-center gap-2">
+            {!doneReady && (
+              <button
+                onClick={archive}
+                className="px-3 py-1.5 rounded text-[0.72rem] border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--text)] transition-colors"
+              >
+                アーカイブ
+              </button>
+            )}
+            {draft?.id && (
+              <button
+                onClick={async () => {
+                  if (!draft.id) return
+                  await deleteWorkerLocation(draft.id)
+                  setDraft(null)
+                  setLocal(EMPTY_LOCAL)
+                  setLeoPhone(null)
+                  setLocs(prev => (prev ?? []).filter(l => l.id !== draft.id))
+                }}
+                className="px-3 py-1.5 rounded text-[0.72rem] border border-[var(--border)] text-[var(--text-3)] hover:text-red-400 hover:border-red-400 transition-colors"
+              >
+                削除
+              </button>
+            )}
+          </div>
         </>
       )}
 
