@@ -77,6 +77,27 @@ export async function getWorkers(): Promise<Worker[]> {
   return (data ?? []) as Worker[]
 }
 
+// Debug variant — returns the error as data so production masking doesn't hide it.
+// Used only by the People page to surface Supabase errors to the UI.
+export async function getWorkersDebug(): Promise<{ workers: Worker[] } | { _error: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authErr } = await supabase.auth.getUser()
+    if (authErr) return { _error: `auth: ${authErr.message}` }
+    if (!user) return { _error: "not logged in — session expired?" }
+    const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
+    const { data, error: dbErr } = await supabase
+      .from("workers")
+      .select("*")
+      .eq("team_id", teamId)
+      .order("created_at")
+    if (dbErr) return { _error: `db: ${dbErr.message}` }
+    return { workers: (data ?? []) as Worker[] }
+  } catch (e) {
+    return { _error: String(e) }
+  }
+}
+
 // Fields that are preserved if the incoming value is empty — so multiple CSV sources
 // can each fill in their part without blanking out what another source already set.
 const TRACKING_FIELDS = new Set([

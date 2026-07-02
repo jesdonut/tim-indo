@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
-import { getWorkers, upsertWorkers, updateWorker, deleteWorker, exportWorkersCsv, type Worker } from "@/app/actions/workers"
+import { getWorkers, getWorkersDebug, upsertWorkers, updateWorker, deleteWorker, exportWorkersCsv, type Worker } from "@/app/actions/workers"
 import { getWorkerLocations, getAllWorkerLocations, upsertWorkerLocation, deleteWorkerLocation, type WorkerLocation } from "@/app/actions/workerLocations"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
@@ -1810,9 +1810,14 @@ export default function PeoplePage() {
   useEffect(() => {
     setVisibleCols(loadVisibleCols())
     try { const saved = localStorage.getItem(LS_COL_WIDTHS); if (saved) setColWidths(JSON.parse(saved)) } catch { /* ignore */ }
-    getWorkers()
-      .then(w => { setWorkers(w); setLoading(false) })
-      .catch(e => { setLoadError(String(e)); setLoading(false) })
+    getWorkersDebug().then(result => {
+      if ("_error" in result) {
+        setLoadError(result._error)
+      } else {
+        setWorkers(result.workers)
+      }
+      setLoading(false)
+    }).catch(e => { setLoadError(String(e)); setLoading(false) })
   }, [])
 
   function resizeCol(key: string, w: number) {
@@ -2220,7 +2225,7 @@ export default function PeoplePage() {
                     <p className="text-[0.85rem] text-red-400">Failed to load workers</p>
                     <p className="text-[0.72rem] font-mono text-[var(--text-3)] max-w-md text-center break-all">{loadError}</p>
                     <button
-                      onClick={() => { setLoadError(null); setLoading(true); getWorkers().then(w => { setWorkers(w); setLoading(false) }).catch(e => { setLoadError(String(e)); setLoading(false) }) }}
+                      onClick={() => { setLoadError(null); setLoading(true); getWorkersDebug().then(r => { if ("_error" in r) setLoadError(r._error); else setWorkers(r.workers); setLoading(false) }).catch(e => { setLoadError(String(e)); setLoading(false) }) }}
                       className="px-4 py-2 rounded text-[0.78rem] bg-[var(--text)] text-[var(--bg)] hover:opacity-90 font-medium"
                     >
                       Retry
