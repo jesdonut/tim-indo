@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 import PixelLoader from "@/components/PixelLoader"
 import { getWorkers, upsertWorkers, updateWorker, deleteWorker, exportWorkersCsv, type Worker } from "@/app/actions/workers"
@@ -1819,12 +1819,18 @@ export default function PeoplePage() {
     localStorage.setItem(LS_COL_WIDTHS, JSON.stringify(next))
   }
 
-  const activeCols = ALL_COLS.filter(c => visibleCols.has(c.key))
+  const activeCols = useMemo(
+    () => ALL_COLS.filter(c => visibleCols.has(c.key)),
+    [visibleCols]
+  )
 
   // Derived staff list
-  const staffList = Array.from(new Set(workers.map(w => w.support_staff).filter(Boolean))) as string[]
+  const staffList = useMemo(
+    () => Array.from(new Set(workers.map(w => w.support_staff).filter(Boolean))) as string[],
+    [workers]
+  )
 
-  const filtered = workers.filter(w => {
+  const filtered = useMemo(() => workers.filter(w => {
     if (filterStaff && w.support_staff !== filterStaff) return false
     if (filterStatus && w.status !== filterStatus) return false
     if (!search.trim()) return true
@@ -1839,7 +1845,7 @@ export default function PeoplePage() {
       (w.housing_building ?? "").toLowerCase().includes(q) ||
       (w.worker_id ?? "").toLowerCase().includes(q)
     )
-  }).sort(sortByWorkerId)
+  }).sort(sortByWorkerId), [workers, search, filterStaff, filterStatus])
 
   function navigateCell(dir: "next" | "prev" | "down") {
     if (!editingCell) return
