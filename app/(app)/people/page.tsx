@@ -1421,6 +1421,8 @@ export default function PeoplePage() {
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const undoStackRef = useRef<Array<Array<{ id: string; key: keyof Worker; oldVal: unknown }>>>([])
+  const undoLastRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     setVisibleCols(loadVisibleCols())
@@ -1579,6 +1581,19 @@ export default function PeoplePage() {
     return () => document.removeEventListener("keydown", handleNav)
   }, [cellSel, editingCell, filtered, activeCols])
 
+  // Ctrl+Z / Cmd+Z: undo last inline edit or paste
+  useEffect(() => {
+    function handleUndo(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || (e.key !== "z" && e.key !== "Z")) return
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === "input" || tag === "textarea" || tag === "select") return
+      e.preventDefault()
+      undoLastRef.current()
+    }
+    document.addEventListener("keydown", handleUndo)
+    return () => document.removeEventListener("keydown", handleUndo)
+  }, [])
+
   // Ctrl+V pastes TSV from clipboard into table starting at selection anchor
   useEffect(() => {
     async function handlePaste(e: ClipboardEvent) {
@@ -1618,6 +1633,20 @@ export default function PeoplePage() {
         endRi = Math.max(endRi, ri)
       }
 
+      // Capture old values for undo before overwriting
+      const undoEntries: Array<{ id: string; key: keyof Worker; oldVal: unknown }> = []
+      for (const [wId, patch] of rowUpdates) {
+        const oldWorker = filtered.find(fw => fw.id === wId)
+        if (!oldWorker) continue
+        for (const key of Object.keys(patch) as Array<keyof Worker>) {
+          undoEntries.push({ id: wId, key, oldVal: oldWorker[key] })
+        }
+      }
+      if (undoEntries.length > 0) {
+        undoStackRef.current.push(undoEntries)
+        if (undoStackRef.current.length > 50) undoStackRef.current.shift()
+      }
+
       // Optimistic update + fire-and-forget saves
       setWorkers(ws => ws.map(w => {
         const patch = rowUpdates.get(w.id)
@@ -1640,6 +1669,24 @@ export default function PeoplePage() {
     setWorkers(ws => ws.map(w => w.id === updated.id ? updated : w))
     if (selected?.id === updated.id) setSelected(updated)
   }
+
+  function undoLast() {
+    const entries = undoStackRef.current.pop()
+    if (!entries?.length) return
+    const patchMap = new Map<string, Partial<Worker>>()
+    for (const { id, key, oldVal } of entries) {
+      if (!patchMap.has(id)) patchMap.set(id, {})
+      patchMap.get(id)![key] = oldVal as never
+    }
+    setWorkers(ws => ws.map(w => {
+      const p = patchMap.get(w.id)
+      return p ? { ...w, ...p } : w
+    }))
+    for (const [id, p] of patchMap) updateWorker(id, p)
+    setCopyFeedback("Undone")
+    setTimeout(() => setCopyFeedback(null), 2000)
+  }
+  undoLastRef.current = undoLast
 
   function handleSaved(updated: Worker) {
     setAddingNew(false)
@@ -1779,6 +1826,10 @@ export default function PeoplePage() {
                       </>
                     )}
                   </div>
+                )}
+
+                {copyFeedback && checkedIds.size === 0 && (
+                  <span className="text-[0.72rem] text-emerald-400">{copyFeedback}</span>
                 )}
 
                 <span className="ml-auto text-[0.72rem] text-[var(--text-3)]">
@@ -1964,7 +2015,12 @@ export default function PeoplePage() {
                                   {isEditing ? (
                                     <EditableCell
                                       worker={w} col={col}
-                                      onSaved={updated => { applyWorkerUpdate(updated); setEditingCell(null) }}
+                                      onSaved={updated => {
+                                        undoStackRef.current.push([{ id: w.id, key: col.key, oldVal: w[col.key] }])
+                                        if (undoStackRef.current.length > 50) undoStackRef.current.shift()
+                                        applyWorkerUpdate(updated)
+                                        setEditingCell(null)
+                                      }}
                                       onEscape={() => setEditingCell(null)}
                                       onNavigate={navigateCell}
                                     />
