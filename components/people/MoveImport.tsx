@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
-import { parseOkurikomiCsv, applyParsedMoveRows, type ParsedMoveRow } from "@/app/actions/workerLocations"
+import { parseOkurikomiCsv, applyParsedMoveRows, undoMoveImport, type ParsedMoveRow } from "@/app/actions/workerLocations"
 
 type Stage = "upload" | "preview" | "done"
 
@@ -25,7 +25,8 @@ export default function MoveImport({
   const [checked, setChecked] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null)
+  const [result, setResult] = useState<{ created: number; skipped: number; errors: string[]; created_ids: string[] } | null>(null)
+  const [undone, setUndone] = useState(false)
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -158,10 +159,16 @@ export default function MoveImport({
 
           {stage === "done" && result && (
             <div className="flex flex-col gap-3 py-6">
-              <p className="text-[0.9rem] text-[var(--text)] font-medium">
-                {result.created}件追加、{result.skipped}件スキップ、エラー: {result.errors.length}
-              </p>
-              {result.errors.length > 0 && (
+              {undone ? (
+                <p className="text-[0.9rem] text-[var(--text)] font-medium">
+                  ✅ {result.created_ids.length}件を削除しました。
+                </p>
+              ) : (
+                <p className="text-[0.9rem] text-[var(--text)] font-medium">
+                  {result.created}件追加、{result.skipped}件スキップ、エラー: {result.errors.length}
+                </p>
+              )}
+              {result.errors.length > 0 && !undone && (
                 <div className="rounded border border-red-500/30 bg-red-500/10 p-3 flex flex-col gap-1">
                   {result.errors.map((err, i) => (
                     <p key={i} className="text-[0.72rem] text-red-400">{err}</p>
@@ -189,9 +196,26 @@ export default function MoveImport({
             </>
           )}
           {stage === "done" && (
-            <button onClick={onClose} className="px-4 py-1.5 rounded text-[0.78rem] bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-opacity font-medium">
-              閉じる
-            </button>
+            <>
+              {result && result.created_ids.length > 0 && !undone && (
+                <button
+                  onClick={async () => {
+                    setLoading(true)
+                    await undoMoveImport(result.created_ids)
+                    setUndone(true)
+                    setLoading(false)
+                    onImported()
+                  }}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded text-[0.78rem] border border-[var(--border)] text-[var(--text-3)] hover:text-red-400 hover:border-red-400 transition-colors disabled:opacity-50"
+                >
+                  {loading ? "削除中…" : "↩ 元に戻す"}
+                </button>
+              )}
+              <button onClick={onClose} className="px-4 py-1.5 rounded text-[0.78rem] bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-opacity font-medium">
+                閉じる
+              </button>
+            </>
           )}
         </div>
       </div>

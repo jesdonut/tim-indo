@@ -388,13 +388,14 @@ export async function parseOkurikomiCsv(csvText: string): Promise<ParsedMoveRow[
 
 export async function applyParsedMoveRows(
   rows: ParsedMoveRow[]
-): Promise<{ created: number; skipped: number; errors: string[] }> {
+): Promise<{ created: number; skipped: number; errors: string[]; created_ids: string[] }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { created: 0, skipped: 0, errors: ["Not logged in."] }
+  if (!user) return { created: 0, skipped: 0, errors: ["Not logged in."], created_ids: [] }
   const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
 
   const errors: string[] = []
+  const created_ids: string[] = []
   let created = 0
   let skipped = 0
 
@@ -417,10 +418,10 @@ export async function applyParsedMoveRows(
   for (const r of rows) {
     if (!r.matched_worker_id) { skipped++; continue }
     const info = existingByWorker.get(r.matched_worker_id) ?? { max: 0, active: false }
-    if (info.active) { skipped++; continue } // don't overwrite an active move
+    if (info.active) { skipped++; continue }
 
     const moveNumber = info.max + 1
-    const { error } = await supabase.from("worker_locations").insert({
+    const { data: inserted, error } = await supabase.from("worker_locations").insert({
       worker_id: r.matched_worker_id,
       team_id: teamId,
       move_number: moveNumber,
@@ -449,12 +450,25 @@ export async function applyParsedMoveRows(
       tennyu_done: false,
       tenkyo_done: false,
       is_archived: false,
-    })
+    }).select("id").single()
     if (error) { errors.push(`${r.name}: ${error.message}`); continue }
+    created_ids.push(inserted.id)
     created++
-    // reflect the new max so a duplicate row in the same file bumps move_number
     existingByWorker.set(r.matched_worker_id, { max: moveNumber, active: true })
   }
 
-  return { created, skipped, errors }
+  return { created, skipped, errors, created_ids }
+}
+
+export async function undoMoveImport(ids: string[]): Promise<{ deleted: number; error?: string }> {
+  if (ids.length === 0) return { deleted: 0 }
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { deleted: 0, error: "Not logged in." }
+  const { error, count } = await supabase
+    .from("worker_locations")
+    .delete({ count: "exact" })
+    .in("id", ids)
+  if (error) return { deleted: 0, error: error.message }
+  return { deleted: count ?? ids.length }
 }
