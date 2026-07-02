@@ -1810,7 +1810,7 @@ export default function PeoplePage() {
   useEffect(() => {
     setVisibleCols(loadVisibleCols())
     try { const saved = localStorage.getItem(LS_COL_WIDTHS); if (saved) setColWidths(JSON.parse(saved)) } catch { /* ignore */ }
-    getWorkers().then(w => { setWorkers(w); setLoading(false) })
+    getWorkers().then(w => { setWorkers(w); setLoading(false) }).catch(() => setLoading(false))
   }, [])
 
   function resizeCol(key: string, w: number) {

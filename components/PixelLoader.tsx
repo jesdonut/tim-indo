@@ -106,6 +106,12 @@ export default function PixelLoader({ ready = true }: { ready?: boolean }) {
     }
   }, [animDone, ready])
 
+  // Hard timeout: if ready never fires (e.g. server action fails), force fade after 8s
+  useEffect(() => {
+    const t = setTimeout(() => setFading(true), 8000)
+    return () => clearTimeout(t)
+  }, [])
+
   return (
     <div
       className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--bg)] transition-opacity duration-500"
