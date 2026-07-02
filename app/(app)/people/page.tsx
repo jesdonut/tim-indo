@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
-import { getWorkers, getWorkersDebug, upsertWorkers, updateWorker, deleteWorker, exportWorkersCsv, type Worker } from "@/app/actions/workers"
+import { getWorkers, getWorkersDebug, upsertWorkers, updateWorker, deleteWorker, exportWorkersCsv, syncWorkerStoreInfo, type Worker } from "@/app/actions/workers"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
 import { createClient } from "@/lib/supabase/client"
@@ -1419,6 +1419,8 @@ export default function PeoplePage() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
   useEffect(() => {
     setVisibleCols(loadVisibleCols())
@@ -1786,21 +1788,41 @@ export default function PeoplePage() {
                 <ViewPicker visible={visibleCols} onChange={(cols) => setVisibleCols(cols)} />
 
                 {workers.length > 0 && (
-                  <button
-                    onClick={async () => {
-                      const res = await exportWorkersCsv()
-                      if ("error" in res) return
-                      const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8;" })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement("a")
-                      a.href = url; a.download = res.filename; a.click()
-                      URL.revokeObjectURL(url)
-                    }}
-                    className="text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors flex items-center gap-1"
-                  >
-                    <Icon name="download" size={13} />
-                    Export
-                  </button>
+                  <>
+                    <button
+                      onClick={async () => {
+                        const res = await exportWorkersCsv()
+                        if ("error" in res) return
+                        const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8;" })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement("a")
+                        a.href = url; a.download = res.filename; a.click()
+                        URL.revokeObjectURL(url)
+                      }}
+                      className="text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors flex items-center gap-1"
+                    >
+                      <Icon name="download" size={13} />
+                      Export
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setSyncing(true); setSyncMsg(null)
+                        const res = await syncWorkerStoreInfo()
+                        setSyncing(false)
+                        if ("error" in res) { setSyncMsg(`Error: ${res.error}`); return }
+                        setSyncMsg(`Updated ${res.updated} workers`)
+                        setTimeout(() => setSyncMsg(null), 4000)
+                        const updated = await getWorkers()
+                        setWorkers(updated)
+                      }}
+                      disabled={syncing}
+                      className="text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)] transition-colors flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <Icon name="store" size={13} />
+                      {syncing ? "Syncing…" : "Sync stores"}
+                    </button>
+                    {syncMsg && <span className={cn("text-[0.72rem]", syncMsg.startsWith("Error") ? "text-red-400" : "text-emerald-400")}>{syncMsg}</span>}
+                  </>
                 )}
 
                 <button

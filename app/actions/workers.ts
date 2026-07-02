@@ -196,6 +196,47 @@ export async function deleteWorker(id: string): Promise<{ error: string } | { su
   return { success: true }
 }
 
+// Looks up each worker's store_code in tenpo_master and writes back
+// store_name, store_postal_code, area, store_address, store_phone.
+export async function syncWorkerStoreInfo(): Promise<{ error: string } | { success: true; updated: number }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Not logged in." }
+  const teamId: string = user.user_metadata?.team_id ?? TEAM_ID
+
+  const { data: workers, error: wErr } = await supabase
+    .from("workers")
+    .select("id, store_code")
+    .eq("team_id", teamId)
+    .not("store_code", "is", null)
+  if (wErr) return { error: wErr.message }
+  if (!workers?.length) return { success: true, updated: 0 }
+
+  const codes = [...new Set(workers.map((w: Record<string, unknown>) => w.store_code as string))]
+  const { data: tenpos, error: tErr } = await supabase
+    .from("tenpo_master")
+    .select("tenpo_cd, tenpo_name, zip, prefecture, address, tel")
+    .in("tenpo_cd", codes)
+  if (tErr) return { error: tErr.message }
+  if (!tenpos?.length) return { success: true, updated: 0 }
+
+  const tenpoMap = new Map((tenpos as Record<string, string>[]).map(t => [t.tenpo_cd, t]))
+  let updated = 0
+  for (const w of workers as Record<string, string>[]) {
+    const t = tenpoMap.get(w.store_code)
+    if (!t) continue
+    await supabase.from("workers").update({
+      store_name:        t.tenpo_name,
+      store_postal_code: t.zip,
+      area:              t.prefecture,
+      store_address:     t.address,
+      store_phone:       t.tel,
+    }).eq("id", w.id)
+    updated++
+  }
+  return { success: true, updated }
+}
+
 // Returns all workers as a CSV string (English headers).
 // This file can be re-imported to fully restore the database.
 export async function exportWorkersCsv(): Promise<{ error: string } | { csv: string; filename: string }> {
