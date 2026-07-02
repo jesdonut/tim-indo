@@ -8,10 +8,9 @@ import {
   applyParsedMoveRows,
   applyWorkerFieldsFromCsv,
   undoMoveImport,
-  CSV_WORKER_FIELD_MAP,
   type ParsedMoveRow,
-  type WorkerFieldKey,
 } from "@/app/actions/workerLocations"
+import { CSV_WORKER_FIELD_MAP, type WorkerFieldKey } from "@/lib/moveFields"
 
 type Stage = "upload" | "preview" | "done"
 type PreviewTab = "moves" | "workers"
