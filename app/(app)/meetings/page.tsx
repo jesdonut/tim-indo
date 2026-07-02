@@ -16,6 +16,7 @@ import InterviewFormFull, {
   TENCHO_SECTIONS, WORKER_SECTION_GROUPS, LEGAL_SECTION_GROUPS, FIELD_LABELS, TENCHO_RESPONSE_LABEL,
   type WorkerAnswers,
 } from "@/components/meetings/InterviewFormFull"
+import TranscribePanel from "@/components/meetings/TranscribePanel"
 
 // ── Milestones ────────────────────────────────────────────────────────────────
 
@@ -333,6 +334,7 @@ export default function MeetingsPage() {
   const [staffFilter, setStaffFilter] = useState("全員")
   const [tab, setTab] = useState<Tab>("soon")
   const [showQuestions, setShowQuestions] = useState(false)
+  const [showTranscribe, setShowTranscribe] = useState(false)
   const [activeRow, setActiveRow] = useState<WorkerRow | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -470,6 +472,18 @@ export default function MeetingsPage() {
         right={
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowTranscribe(p => !p)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded border text-[0.72rem] font-medium transition-all",
+                showTranscribe
+                  ? "border-[var(--text)] text-[var(--text)]"
+                  : "border-[var(--border)] text-[var(--text-3)] hover:text-[var(--text)] hover:border-[var(--text-2)]"
+              )}
+            >
+              <Icon name="record_voice_over" size={13} />
+              文字起こし
+            </button>
+            <button
               onClick={() => setShowQuestions(p => !p)}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded border text-[0.72rem] font-medium transition-all",
@@ -487,6 +501,9 @@ export default function MeetingsPage() {
 
       <PageContent>
         <div className="flex flex-col gap-5">
+
+          {/* Transcribe panel */}
+          {showTranscribe && <TranscribePanel />}
 
           {/* Question manager */}
           {showQuestions && (
