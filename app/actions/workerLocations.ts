@@ -219,6 +219,19 @@ export type ParsedMoveRow = {
   matched_worker_id: string | null
   matched_worker_name: string | null
   match_confidence: "exact" | "name_only" | "unmatched"
+  // current worker values for diff preview
+  current_store_code: string | null
+  current_arrival_group: string | null
+  current_move_in_date: string | null
+  current_first_work_date: string | null
+  current_housing_postal_code: string | null
+  current_housing_address: string | null
+  current_housing_building: string | null
+  current_housing_room: string | null
+  current_housing_passcode: string | null
+  current_leopalace_url: string | null
+  current_commute_distance: string | null
+  current_rent: number | null
 }
 
 // Quote-aware CSV parser (handles embedded commas / newlines / "" escapes).
@@ -313,7 +326,8 @@ export async function parseOkurikomiCsv(csvText: string): Promise<ParsedMoveRow[
 
   const cell = (row: string[], idx: number) => (idx >= 0 ? (row[idx] ?? "").trim() : "")
 
-  const parsed: Omit<ParsedMoveRow, "matched_worker_id" | "matched_worker_name" | "match_confidence">[] = []
+  type RawRow = Omit<ParsedMoveRow, "matched_worker_id" | "matched_worker_name" | "match_confidence" | "current_store_code" | "current_arrival_group" | "current_move_in_date" | "current_first_work_date" | "current_housing_postal_code" | "current_housing_address" | "current_housing_building" | "current_housing_room" | "current_housing_passcode" | "current_leopalace_url" | "current_commute_distance" | "current_rent">
+  const parsed: RawRow[] = []
   for (let r = headerIdx + 1; r < grid.length; r++) {
     const row = grid[r]
     if (!row || row.every(c => !c || !c.trim())) continue // entirely empty
@@ -354,35 +368,58 @@ export async function parseOkurikomiCsv(csvText: string): Promise<ParsedMoveRow[
   const teamId: string = user?.user_metadata?.team_id ?? TEAM_ID
   const { data: workers } = await supabase
     .from("workers")
-    .select("id, employee_no, name_kana")
+    .select("id, employee_no, name_kana, store_code, arrival_group, move_in_date, first_work_date, housing_postal_code, housing_address, housing_building, housing_room, housing_passcode, leopalace_url, commute_distance, rent")
     .eq("team_id", teamId)
 
-  const byEmp = new Map<string, { id: string; name_kana: string | null }>()
-  const byName = new Map<string, { id: string; name_kana: string | null }>()
-  for (const w of workers ?? []) {
-    if (w.employee_no) byEmp.set(norm(w.employee_no), { id: w.id, name_kana: w.name_kana })
-    if (w.name_kana) byName.set(stripSpaces(w.name_kana), { id: w.id, name_kana: w.name_kana })
+  type WRow = {
+    id: string; name_kana: string | null; employee_no?: string | null
+    store_code: string | null; arrival_group: string | null
+    move_in_date: string | null; first_work_date: string | null
+    housing_postal_code: string | null; housing_address: string | null
+    housing_building: string | null; housing_room: string | null
+    housing_passcode: string | null; leopalace_url: string | null
+    commute_distance: string | null; rent: number | null
+  }
+
+  const byEmp = new Map<string, WRow>()
+  const byName = new Map<string, WRow>()
+  for (const w of (workers ?? []) as WRow[]) {
+    if (w.employee_no) byEmp.set(norm(w.employee_no), w)
+    if (w.name_kana) byName.set(stripSpaces(w.name_kana), w)
   }
 
   return parsed.map(p => {
     let matched_worker_id: string | null = null
     let matched_worker_name: string | null = null
     let match_confidence: ParsedMoveRow["match_confidence"] = "unmatched"
+    let hit: WRow | null = null
 
     const byEmpHit = p.employee_no ? byEmp.get(norm(p.employee_no)) : undefined
     if (byEmpHit) {
-      matched_worker_id = byEmpHit.id
-      matched_worker_name = byEmpHit.name_kana
-      match_confidence = "exact"
+      matched_worker_id = byEmpHit.id; matched_worker_name = byEmpHit.name_kana
+      match_confidence = "exact"; hit = byEmpHit
     } else {
       const byNameHit = byName.get(stripSpaces(p.name))
       if (byNameHit) {
-        matched_worker_id = byNameHit.id
-        matched_worker_name = byNameHit.name_kana
-        match_confidence = "name_only"
+        matched_worker_id = byNameHit.id; matched_worker_name = byNameHit.name_kana
+        match_confidence = "name_only"; hit = byNameHit
       }
     }
-    return { ...p, matched_worker_id, matched_worker_name, match_confidence }
+    return {
+      ...p, matched_worker_id, matched_worker_name, match_confidence,
+      current_store_code: hit?.store_code ?? null,
+      current_arrival_group: hit?.arrival_group ?? null,
+      current_move_in_date: hit?.move_in_date ?? null,
+      current_first_work_date: hit?.first_work_date ?? null,
+      current_housing_postal_code: hit?.housing_postal_code ?? null,
+      current_housing_address: hit?.housing_address ?? null,
+      current_housing_building: hit?.housing_building ?? null,
+      current_housing_room: hit?.housing_room ?? null,
+      current_housing_passcode: hit?.housing_passcode ?? null,
+      current_leopalace_url: hit?.leopalace_url ?? null,
+      current_commute_distance: hit?.commute_distance ?? null,
+      current_rent: hit?.rent ?? null,
+    }
   })
 }
 
@@ -458,6 +495,60 @@ export async function applyParsedMoveRows(
   }
 
   return { created, skipped, errors, created_ids }
+}
+
+// Fields the CSV can update on the workers table, and how they map.
+export const CSV_WORKER_FIELD_MAP = [
+  { workerKey: "store_code",          csvKey: "store_code",          currentKey: "current_store_code",          label: "店舗CD",    isDate: false },
+  { workerKey: "arrival_group",       csvKey: "ido_group",           currentKey: "current_arrival_group",       label: "入国G",      isDate: false },
+  { workerKey: "move_in_date",        csvKey: "move_in_date",        currentKey: "current_move_in_date",        label: "入居日",     isDate: true  },
+  { workerKey: "first_work_date",     csvKey: "first_work_date",     currentKey: "current_first_work_date",     label: "初出勤",     isDate: true  },
+  { workerKey: "housing_postal_code", csvKey: "housing_postal_code", currentKey: "current_housing_postal_code", label: "郵便番号",   isDate: false },
+  { workerKey: "housing_address",     csvKey: "housing_address",     currentKey: "current_housing_address",     label: "住所",       isDate: false },
+  { workerKey: "housing_building",    csvKey: "housing_building",    currentKey: "current_housing_building",    label: "物件名",     isDate: false },
+  { workerKey: "housing_room",        csvKey: "housing_room",        currentKey: "current_housing_room",        label: "部屋番号",   isDate: false },
+  { workerKey: "housing_passcode",    csvKey: "housing_passcode",    currentKey: "current_housing_passcode",    label: "パスコード", isDate: false },
+  { workerKey: "leopalace_url",       csvKey: "leopalace_url",       currentKey: "current_leopalace_url",       label: "入居URL",    isDate: false },
+  { workerKey: "commute_distance",    csvKey: "commute_distance",    currentKey: "current_commute_distance",    label: "通勤距離",   isDate: false },
+  { workerKey: "rent",                csvKey: "rent",                currentKey: "current_rent",                label: "家賃",       isDate: false },
+] as const
+
+export type WorkerFieldKey = typeof CSV_WORKER_FIELD_MAP[number]["workerKey"]
+
+export async function applyWorkerFieldsFromCsv(
+  rows: ParsedMoveRow[],
+  selectedFields: WorkerFieldKey[],
+  overwriteExisting: boolean
+): Promise<{ updated: number; errors: string[] }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { updated: 0, errors: ["Not logged in."] }
+
+  const errors: string[] = []
+  let updated = 0
+
+  for (const r of rows) {
+    if (!r.matched_worker_id) continue
+    const patch: Record<string, unknown> = {}
+
+    for (const f of CSV_WORKER_FIELD_MAP) {
+      if (!selectedFields.includes(f.workerKey)) continue
+      const csvVal = f.csvKey === "rent" ? r.rent : r[f.csvKey as keyof ParsedMoveRow]
+      const curVal = r[f.currentKey as keyof ParsedMoveRow]
+      const hasCSV = csvVal !== null && csvVal !== undefined && csvVal !== ""
+      const hasCur = curVal !== null && curVal !== undefined && curVal !== ""
+      if (!hasCSV) continue
+      if (hasCur && !overwriteExisting) continue
+      patch[f.workerKey] = f.isDate ? (normalizeDate(String(csvVal)) ?? csvVal) : csvVal
+    }
+
+    if (Object.keys(patch).length === 0) continue
+    const { error } = await supabase.from("workers").update(patch).eq("id", r.matched_worker_id)
+    if (error) { errors.push(`${r.name}: ${error.message}`); continue }
+    updated++
+  }
+
+  return { updated, errors }
 }
 
 export async function undoMoveImport(ids: string[]): Promise<{ deleted: number; error?: string }> {
