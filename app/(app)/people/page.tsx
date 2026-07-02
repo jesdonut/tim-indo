@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
-import PixelLoader from "@/components/PixelLoader"
 import { getWorkers, upsertWorkers, updateWorker, deleteWorker, exportWorkersCsv, type Worker } from "@/app/actions/workers"
 import { getWorkerLocations, getAllWorkerLocations, upsertWorkerLocation, deleteWorkerLocation, type WorkerLocation } from "@/app/actions/workerLocations"
 import { cn } from "@/lib/cn"
@@ -2054,8 +2053,7 @@ export default function PeoplePage() {
   }
 
   return (
-    <div className="relative flex flex-col h-[calc(100dvh-48px)]">
-      <PixelLoader ready={!loading} />
+    <div className="flex flex-col h-[calc(100dvh-48px)]">
       <PageHeader
         full
         title="People"
@@ -2209,7 +2207,12 @@ export default function PeoplePage() {
 
               {/* Table */}
               <div className="flex-1 overflow-x-auto overflow-y-auto">
-                {workers.length === 0 && !loading ? (
+                {loading ? (
+                  <div className="flex items-center justify-center h-48 gap-2 text-[var(--text-3)]">
+                    <span className="inline-block w-4 h-4 border-2 border-[var(--border)] border-t-[var(--text-3)] rounded-full animate-spin" />
+                    <span className="text-[0.85rem]">Loading…</span>
+                  </div>
+                ) : workers.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-3 text-[var(--text-3)]">
                     <Icon name="group" size={32} />
                     <p className="text-[0.85rem]">No workers yet — import a CSV to get started</p>
