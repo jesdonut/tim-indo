@@ -1197,6 +1197,7 @@ const ALL_COLS: ColDef[] = [
   { key: "first_work_date",    label: "First day",     defaultOn: true },
   { key: "move_in_date",       label: "Move-in date",  defaultOn: true },
   { key: "assignment_month",   label: "Batch month",   defaultOn: true },
+  { key: "arrival_group",      label: "入国グループ",     defaultOn: true },
   { key: "japan_arrival_date", label: "Arrival date",    defaultOn: true },
   { key: "commute_method",     label: "Commute method",  defaultOn: true },
   { key: "commute_distance",   label: "Commute dist",    defaultOn: true },
