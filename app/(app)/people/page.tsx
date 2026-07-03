@@ -137,6 +137,8 @@ const SIMPLE_MAP: Array<[string, WKey]> = [
   ["ニックネーム",  "nickname"],
   ["従業員番号",   "employee_no"],
   ["性別",         "gender"],
+  ["ユニフォーム", "uniform_size"],
+  ["靴",           "shoe_size"],
   ["国籍",         "nationality"],
   ["生年月日",     "birth_date"],
   ["携帯電話",     "mobile_phone"],
@@ -212,7 +214,7 @@ function buildColMap(headers: string[]): Array<{ field: WKey; idx: number }> {
 // English column headers from our own export — maps directly 1:1 to Worker fields
 const ENGLISH_FIELDS = new Set<string>([
   "worker_id","employee_no","name_kana","nickname","name_latin","gender","nationality",
-  "birth_date","mobile_phone","whatsapp","email","assignment_month","batch_period",
+  "birth_date","mobile_phone","whatsapp","email","uniform_size","shoe_size","assignment_month","batch_period",
   "first_work_date","move_in_date","business_unit","division_name","support_staff",
   "store_code","store_name","store_postal_code","store_address","store_phone",
   "housing_postal_code","housing_address","housing_building","housing_room",
@@ -516,9 +518,27 @@ function EditableCell({
 
   async function commit(v: string) {
     const clean: string | null = isDate ? (normalizeDate(v) ?? (v || null)) : (v || null)
-    const updated = { ...worker, [col.key]: clean }
-    onSaved(updated as Worker)  // optimistic — update UI immediately
-    updateWorker(worker.id, { [col.key]: clean })  // fire-and-forget
+    const patch: Partial<Worker> = { [col.key]: clean }
+
+    // Editing the store code auto-fills store name / postal / area / address /
+    // phone from tenpo_master (same as the side-panel lookup).
+    if (col.key === "store_code" && clean) {
+      const { data } = await createClient()
+        .from("tenpo_master")
+        .select("tenpo_name, zip, prefecture, address, tel")
+        .eq("tenpo_cd", clean)
+        .maybeSingle()
+      if (data) {
+        patch.store_name        = data.tenpo_name ?? null
+        patch.store_postal_code = data.zip ?? null
+        patch.area              = data.prefecture ?? null
+        patch.store_address     = data.address ?? null
+        patch.store_phone       = data.tel ?? null
+      }
+    }
+
+    onSaved({ ...worker, ...patch } as Worker)  // optimistic — update UI immediately
+    updateWorker(worker.id, patch)              // fire-and-forget
   }
 
   const cls = "absolute inset-0 w-full h-full bg-[var(--bg)] border border-[var(--highlight)] outline-none text-[0.78rem] text-[var(--text)] px-2 z-50"
@@ -1188,8 +1208,10 @@ const ALL_COLS: ColDef[] = [
   { key: "mobile_phone",       label: "Phone",         defaultOn: true },
   { key: "whatsapp",           label: "WhatsApp",      defaultOn: true },
   { key: "email",              label: "Email",         defaultOn: true },
-  { key: "store_name",         label: "Store",         defaultOn: true },
+  { key: "uniform_size",       label: "ユニフォーム",   defaultOn: true },
+  { key: "shoe_size",          label: "靴サイズ",       defaultOn: true },
   { key: "store_code",         label: "Store code",    defaultOn: true },
+  { key: "store_name",         label: "Store",         defaultOn: true },
   { key: "store_address",      label: "Store address", defaultOn: true },
   { key: "area",               label: "Area",          defaultOn: true },
   { key: "support_staff",      label: "Staff",         defaultOn: true },

@@ -17,6 +17,8 @@ export type Worker = {
   mobile_phone?: string | null
   whatsapp?: string | null
   email?: string | null
+  uniform_size?: string | null
+  shoe_size?: string | null
   assignment_month?: string | null
   batch_period?: string | null
   first_work_date?: string | null
@@ -259,7 +261,7 @@ export async function exportWorkersCsv(): Promise<{ error: string } | { csv: str
   const COLS: Array<keyof Worker> = [
     "worker_id", "employee_no", "name_kana", "nickname", "name_latin",
     "gender", "nationality", "birth_date",
-    "mobile_phone", "whatsapp", "email",
+    "mobile_phone", "whatsapp", "email", "uniform_size", "shoe_size",
     "assignment_month", "batch_period", "first_work_date", "move_in_date",
     "business_unit", "division_name", "support_staff",
     "store_code", "store_name", "store_postal_code", "store_address", "store_phone",

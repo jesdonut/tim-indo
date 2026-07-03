@@ -8,6 +8,7 @@ import {
   addTenpoStore,
   updateTenpoStore,
   deleteTenpoStore,
+  bulkUpsertTenpoStores,
   type TenpoStore,
 } from "@/app/actions/tenpo"
 
@@ -21,6 +22,7 @@ const COLUMNS: { key: keyof TenpoStore; label: string; editable: boolean; wide?:
   { key: "address",    label: "住所",       editable: true, wide: true },
   { key: "tel",        label: "電話",       editable: true },
   { key: "area_cd",    label: "エリアCD",   editable: true },
+  { key: "gm",         label: "GM",         editable: true },
   { key: "am",         label: "AM",         editable: true },
 ]
 
@@ -28,7 +30,27 @@ const inputCls =
   "w-full bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)]"
 
 const EMPTY_NEW: TenpoStore = {
-  tenpo_cd: "", tenpo_name: "", zip: "", prefecture: "", address: "", tel: "", area_cd: "", am: "",
+  tenpo_cd: "", tenpo_name: "", zip: "", prefecture: "", address: "", tel: "", area_cd: "", gm: "", am: "",
+}
+
+// Parse a tab-separated block copied from Excel. Columns are read by position,
+// matching the table order (店舗CD first). A header row is skipped.
+function parseTsv(text: string): TenpoStore[] {
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n")
+  const out: TenpoStore[] = []
+  for (const line of lines) {
+    if (!line.trim()) continue
+    const c = line.split("\t")
+    const code = (c[0] ?? "").trim()
+    if (!code || code === "店舗CD" || code.toLowerCase() === "tenpo_cd") continue
+    const store = { tenpo_cd: code } as TenpoStore
+    COLUMNS.forEach((col, i) => {
+      if (col.key === "tenpo_cd") return
+      store[col.key] = c[i]?.trim() || null
+    })
+    out.push(store)
+  }
+  return out
 }
 
 export default function StoresTab() {
@@ -41,6 +63,10 @@ export default function StoresTab() {
   const [adding, setAdding] = useState(false)
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [copiedAll, setCopiedAll] = useState(false)
+  const [paste, setPaste] = useState<{ rows: TenpoStore[]; add: number; update: number } | null>(null)
+  const [pasting, setPasting] = useState(false)
+  const [pasteResult, setPasteResult] = useState<string | null>(null)
 
   async function load() {
     setStores(await getTenpoStores())
@@ -50,6 +76,43 @@ export default function StoresTab() {
     getTenpoStores().then(d => { if (alive) setStores(d) })
     return () => { alive = false }
   }, [])
+
+  // Paste a block copied from Excel → preview (add vs update) before writing.
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === "input" || tag === "textarea" || tag === "select") return
+      const text = e.clipboardData?.getData("text/plain")
+      if (!text?.trim()) return
+      const rows = parseTsv(text)
+      if (rows.length === 0) return
+      e.preventDefault()
+      const codes = new Set((stores ?? []).map(s => s.tenpo_cd))
+      const add = rows.filter(r => !codes.has(r.tenpo_cd)).length
+      setErr(null); setPasteResult(null)
+      setPaste({ rows, add, update: rows.length - add })
+    }
+    document.addEventListener("paste", onPaste)
+    return () => document.removeEventListener("paste", onPaste)
+  }, [stores])
+
+  async function confirmPaste() {
+    if (!paste) return
+    setPasting(true)
+    const res = await bulkUpsertTenpoStores(paste.rows)
+    setPasting(false)
+    setPaste(null)
+    if (res.errors.length) setErr(res.errors.join(" / "))
+    setPasteResult(`${res.added}件追加、${res.updated}件更新`)
+    load()
+  }
+
+  async function copyAll() {
+    const header = COLUMNS.map(c => c.label).join("\t")
+    const body = filtered.map(s => COLUMNS.map(c => s[c.key] ?? "").join("\t")).join("\n")
+    await navigator.clipboard.writeText([header, body].join("\n"))
+    setCopiedAll(true); setTimeout(() => setCopiedAll(false), 1500)
+  }
 
   function startEdit(code: string, key: EditableKey, current: string | null) {
     setEditing({ code, key }); setEditValue(current ?? "")
@@ -105,8 +168,16 @@ export default function StoresTab() {
           {stores === null ? "…" : `${filtered.length} / ${stores.length} 店舗`}
         </span>
         <button
+          onClick={copyAll}
+          className={cn("ml-auto flex items-center gap-1.5 text-[0.75rem] transition-colors",
+            copiedAll ? "text-green-400" : "text-[var(--text-3)] hover:text-[var(--text)]")}
+        >
+          <Icon name={copiedAll ? "check" : "content_copy"} size={13} />
+          {copiedAll ? "コピー済み" : "全部コピー"}
+        </button>
+        <button
           onClick={() => { setShowAdd(a => !a); setErr(null) }}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded text-[0.78rem] bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-opacity font-medium"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[0.78rem] bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-opacity font-medium"
         >
           <Icon name="add" size={14} />
           店舗を追加
@@ -114,6 +185,27 @@ export default function StoresTab() {
       </div>
 
       {err && <p className="text-[0.75rem] text-red-400">{err}</p>}
+      {pasteResult && <p className="text-[0.75rem] text-[var(--text-2)]">{pasteResult}</p>}
+
+      {/* Paste-from-Excel preview */}
+      {paste && (
+        <div className="rounded border border-[var(--highlight)] bg-[color-mix(in_srgb,var(--highlight)_10%,var(--bg))] p-3 flex items-center justify-between gap-3">
+          <p className="text-[0.78rem] text-[var(--text)]">
+            Excelから <span className="font-semibold">{paste.rows.length}</span> 行を貼り付け
+            <span className="text-[var(--text-3)]">（新規 {paste.add}・更新 {paste.update}）</span>
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={() => setPaste(null)} className="px-3 py-1 rounded text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)]">キャンセル</button>
+            <button
+              onClick={confirmPaste}
+              disabled={pasting}
+              className="px-3 py-1 rounded text-[0.72rem] bg-[var(--text)] text-[var(--bg)] hover:opacity-90 disabled:opacity-50 font-medium"
+            >
+              {pasting ? "反映中…" : "貼り付け実行"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Add form */}
       {showAdd && (
@@ -219,7 +311,9 @@ export default function StoresTab() {
         </div>
       )}
 
-      <p className="text-[0.7rem] text-[var(--text-3)]">セルをダブルクリックで編集できます（店舗CDは変更不可）。</p>
+      <p className="text-[0.7rem] text-[var(--text-3)]">
+        セルをダブルクリックで編集（店舗CDは変更不可）。Excelからコピーして貼り付け（Ctrl/Cmd+V）で一括追加・更新できます。列の順番: {COLUMNS.map(c => c.label).join(" / ")}
+      </p>
     </div>
   )
 }
