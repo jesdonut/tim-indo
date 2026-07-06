@@ -672,7 +672,6 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
   const [dateType, setDateType]       = useState<"再発行日" | "引越し日" | null>(null)
   const [dateVal, setDateVal]         = useState("")
   const [eigyoStore, setEigyoStore]   = useState("")
-  const [eigyoMoved, setEigyoMoved]   = useState(false)
   const [eigyoMoveDate, setEigyoMoveDate] = useState("")
   const newSlotRef = useRef<HTMLInputElement>(null)
 
@@ -709,7 +708,7 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
   function getSlotLabel(i: number): string {
     if (slots[i]?.label === EIGYO_LABEL) {
       const store = eigyoStore.trim()
-      if (eigyoMoved && eigyoMoveDate && store)
+      if (eigyoMoveDate && store)
         return `${eigyoMoveDate.replace(/-/g, "")}_異動後_${store}_${EIGYO_LABEL}`
       return store ? `${store}_${EIGYO_LABEL}` : EIGYO_LABEL
     }
@@ -717,7 +716,9 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
   }
 
   function getFilename(i: number) {
-    const prefix = dateType && dateVal ? `${dateVal.replace(/-/g, "")}_${dateType}` : ""
+    // 営業許可証 uses only its own 異動日 — never the global 再発行日/引越し日 prefix
+    const isEigyo = slots[i]?.label === EIGYO_LABEL
+    const prefix = !isEigyo && dateType && dateVal ? `${dateVal.replace(/-/g, "")}_${dateType}` : ""
     const parts = [prefix, serial.trim(), name.trim(), getSlotLabel(i)].filter(Boolean)
     return (parts.length === 1 ? parts[0] : parts.join("_")) + ".pdf"
   }
@@ -890,7 +891,7 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
           </div>
         </div>
 
-        {/* Date prefix — optional, only active when a type is checked + date is picked */}
+        {/* Date prefix (再発行日/引越し日) + 店舗名 for 営業許可証 */}
         <div className="flex items-center gap-4 flex-wrap">
           {(["再発行日", "引越し日"] as const).map(type => (
             <label key={type} className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -916,6 +917,13 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
               {dateVal.replace(/-/g, "")}_{dateType}_…
             </span>
           )}
+          <div className="h-4 w-px bg-[var(--border)]" />
+          <input
+            value={eigyoStore}
+            onChange={e => setEigyoStore(e.target.value)}
+            placeholder="店舗名（営業許可証）"
+            className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors placeholder:text-[var(--text-3)] w-44"
+          />
         </div>
       </div>
 
@@ -939,32 +947,17 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
                   )}
                 </div>
 
-                {/* 営業許可証 extra inputs */}
+                {/* 営業許可証: 異動日 only — store name is set in the header above */}
                 {slot.label === EIGYO_LABEL && (
-                  <div className="px-3 py-2 border-b border-[var(--border)] flex flex-wrap items-center gap-2 bg-[var(--bg)]">
+                  <div className="px-3 py-2 border-b border-[var(--border)] flex items-center gap-2 bg-[var(--bg)]">
+                    <span className="text-[0.72rem] text-[var(--text-3)]">異動日</span>
                     <input
-                      value={eigyoStore}
-                      onChange={e => setEigyoStore(e.target.value)}
-                      placeholder="店舗名"
-                      className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors placeholder:text-[var(--text-3)] w-36"
+                      type="date"
+                      value={eigyoMoveDate}
+                      onChange={e => setEigyoMoveDate(e.target.value)}
+                      className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2 py-1 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors"
                     />
-                    <label className="flex items-center gap-1 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={eigyoMoved}
-                        onChange={e => { setEigyoMoved(e.target.checked); setEigyoMoveDate("") }}
-                        className="accent-[var(--highlight)] w-3.5 h-3.5"
-                      />
-                      <span className="text-[0.78rem] text-[var(--text-2)]">異動</span>
-                    </label>
-                    {eigyoMoved && (
-                      <input
-                        type="date"
-                        value={eigyoMoveDate}
-                        onChange={e => setEigyoMoveDate(e.target.value)}
-                        className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2 py-1 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors"
-                      />
-                    )}
+                    {eigyoMoveDate && <button onClick={() => setEigyoMoveDate("")} className="text-[var(--text-3)] hover:text-[var(--text)] transition-colors flex items-center"><Icon name="close" size={13} /></button>}
                   </div>
                 )}
 
