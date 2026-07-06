@@ -668,6 +668,8 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
   const [checked, setChecked]     = useState<boolean[]>(DOC_SLOTS.map(() => false))
   const [addingSlot, setAddingSlot]   = useState(false)
   const [newSlotLabel, setNewSlotLabel] = useState("")
+  const [dateType, setDateType]       = useState<"再発行日" | "引越し日" | null>(null)
+  const [dateVal, setDateVal]         = useState("")
   const newSlotRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (addingSlot) setTimeout(() => newSlotRef.current?.focus(), 50) }, [addingSlot])
@@ -701,7 +703,8 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
   }, [activePaste])
 
   function getFilename(i: number) {
-    const parts = [serial.trim(), name.trim(), slots[i]?.label ?? ""].filter(Boolean)
+    const prefix = dateType && dateVal ? `${dateVal.replace(/-/g, "")}_${dateType}` : ""
+    const parts = [prefix, serial.trim(), name.trim(), slots[i]?.label ?? ""].filter(Boolean)
     return (parts.length === 1 ? parts[0] : parts.join("_")) + ".pdf"
   }
 
@@ -816,7 +819,8 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
       } else {
         selected.forEach(({ i }) => docLabels.push(slots[i]?.label ?? ""))
       }
-      const parts = [serial.trim(), name.trim(), docLabels.join("・")].filter(Boolean)
+      const prefix = dateType && dateVal ? `${dateVal.replace(/-/g, "")}_${dateType}` : ""
+      const parts = [prefix, serial.trim(), name.trim(), docLabels.join("・")].filter(Boolean)
       triggerDownload(out, parts.join("_") + ".pdf")
       setProgress(100)
       setStatus({ msg: `Combined ${selected.length} docs.`, type: "success" })
@@ -870,6 +874,34 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
             <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. 田中太郎"
               className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors placeholder:text-[var(--text-3)]" />
           </div>
+        </div>
+
+        {/* Date prefix — optional, only active when a type is checked + date is picked */}
+        <div className="flex items-center gap-4 flex-wrap">
+          {(["再発行日", "引越し日"] as const).map(type => (
+            <label key={type} className="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={dateType === type}
+                onChange={() => { setDateType(prev => prev === type ? null : type); setDateVal("") }}
+                className="accent-[var(--highlight)] w-3.5 h-3.5"
+              />
+              <span className="text-sm text-[var(--text-2)]">{type}</span>
+            </label>
+          ))}
+          {dateType && (
+            <input
+              type="date"
+              value={dateVal}
+              onChange={e => setDateVal(e.target.value)}
+              className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors"
+            />
+          )}
+          {dateType && dateVal && (
+            <span className="text-[0.68rem] font-mono text-[var(--text-3)]">
+              {dateVal.replace(/-/g, "")}_{dateType}_…
+            </span>
+          )}
         </div>
       </div>
 
