@@ -523,18 +523,20 @@ function EditableCell({
     // Editing the store code auto-fills store name / postal / area / address /
     // phone from tenpo_master (same as the side-panel lookup).
     if (col.key === "store_code" && clean) {
-      const { data } = await createClient()
-        .from("tenpo_master")
-        .select("tenpo_name, zip, prefecture, address, tel")
-        .eq("tenpo_cd", clean)
-        .maybeSingle()
-      if (data) {
-        patch.store_name        = data.tenpo_name ?? null
-        patch.store_postal_code = data.zip ?? null
-        patch.area              = data.prefecture ?? null
-        patch.store_address     = data.address ?? null
-        patch.store_phone       = data.tel ?? null
-      }
+      try {
+        const { data } = await createClient()
+          .from("tenpo_master")
+          .select("tenpo_name, zip, prefecture, address, tel")
+          .eq("tenpo_cd", clean)
+          .maybeSingle()
+        if (data) {
+          patch.store_name        = data.tenpo_name ?? null
+          patch.store_postal_code = data.zip ?? null
+          patch.area              = data.prefecture ?? null
+          patch.store_address     = data.address ?? null
+          patch.store_phone       = data.tel ?? null
+        }
+      } catch { /* store lookup failed — save without auto-fill */ }
     }
 
     onSaved({ ...worker, ...patch } as Worker)  // optimistic — update UI immediately
@@ -546,10 +548,10 @@ function EditableCell({
   function handleNavKey(e: React.KeyboardEvent, currentVal: string) {
     if (e.key === "Tab") {
       e.preventDefault()
-      commit(currentVal).then(() => onNavigate?.(e.shiftKey ? "prev" : "next"))
+      commit(currentVal).then(() => onNavigate?.(e.shiftKey ? "prev" : "next")).catch(() => {})
     } else if (e.key === "Enter") {
       e.preventDefault()
-      commit(currentVal).then(() => onNavigate?.("down"))
+      commit(currentVal).then(() => onNavigate?.("down")).catch(() => {})
     } else if (e.key === "Escape") {
       e.preventDefault()
       onEscape()

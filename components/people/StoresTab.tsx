@@ -69,11 +69,11 @@ export default function StoresTab() {
   const [pasteResult, setPasteResult] = useState<string | null>(null)
 
   async function load() {
-    setStores(await getTenpoStores())
+    try { setStores(await getTenpoStores()) } catch { setStores([]) }
   }
   useEffect(() => {
     let alive = true
-    getTenpoStores().then(d => { if (alive) setStores(d) })
+    getTenpoStores().then(d => { if (alive) setStores(d) }).catch(() => { if (alive) setStores([]) })
     return () => { alive = false }
   }, [])
 
@@ -110,8 +110,10 @@ export default function StoresTab() {
   async function copyAll() {
     const header = COLUMNS.map(c => c.label).join("\t")
     const body = filtered.map(s => COLUMNS.map(c => s[c.key] ?? "").join("\t")).join("\n")
-    await navigator.clipboard.writeText([header, body].join("\n"))
-    setCopiedAll(true); setTimeout(() => setCopiedAll(false), 1500)
+    try {
+      await navigator.clipboard.writeText([header, body].join("\n"))
+      setCopiedAll(true); setTimeout(() => setCopiedAll(false), 1500)
+    } catch { setErr("クリップボードへのアクセスが拒否されました。") }
   }
 
   function startEdit(code: string, key: EditableKey, current: string | null) {
