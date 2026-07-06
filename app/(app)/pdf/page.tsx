@@ -527,11 +527,12 @@ function CompressTab({ pdfJsReady }: { pdfJsReady: boolean }) {
 const DOC_SLOTS = [
   { label: "在留カード（表）" },
   { label: "在留カード（裏）" },
-  { label: "指定書" },
-  { label: "パスポート" },
-  { label: "営業許可証" },
+  { label: "指定書データ" },
+  { label: "パスポートデータ" },
+  { label: "営業許可証データ" },
   { label: "住民票" },
 ]
+const EIGYO_LABEL = "営業許可証データ"
 
 type DocEntry = { file: File | null; editedBlob: Blob | null; rotation: number }
 type DocSlot  = { label: string }
@@ -670,6 +671,9 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
   const [newSlotLabel, setNewSlotLabel] = useState("")
   const [dateType, setDateType]       = useState<"再発行日" | "引越し日" | null>(null)
   const [dateVal, setDateVal]         = useState("")
+  const [eigyoStore, setEigyoStore]   = useState("")
+  const [eigyoMoved, setEigyoMoved]   = useState(false)
+  const [eigyoMoveDate, setEigyoMoveDate] = useState("")
   const newSlotRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (addingSlot) setTimeout(() => newSlotRef.current?.focus(), 50) }, [addingSlot])
@@ -702,9 +706,19 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
     return () => window.removeEventListener("paste", handler)
   }, [activePaste])
 
+  function getSlotLabel(i: number): string {
+    if (slots[i]?.label === EIGYO_LABEL) {
+      const store = eigyoStore.trim()
+      if (eigyoMoved && eigyoMoveDate && store)
+        return `${eigyoMoveDate.replace(/-/g, "")}_異動後_${store}_${EIGYO_LABEL}`
+      return store ? `${store}_${EIGYO_LABEL}` : EIGYO_LABEL
+    }
+    return slots[i]?.label ?? ""
+  }
+
   function getFilename(i: number) {
     const prefix = dateType && dateVal ? `${dateVal.replace(/-/g, "")}_${dateType}` : ""
-    const parts = [prefix, serial.trim(), name.trim(), slots[i]?.label ?? ""].filter(Boolean)
+    const parts = [prefix, serial.trim(), name.trim(), getSlotLabel(i)].filter(Boolean)
     return (parts.length === 1 ? parts[0] : parts.join("_")) + ".pdf"
   }
 
@@ -815,9 +829,9 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
       const docLabels: string[] = []
       if (hasZairyuuBoth) {
         docLabels.push("在留カード")
-        selected.filter(({ i }) => i !== 0 && i !== 1).forEach(({ i }) => docLabels.push(slots[i]?.label ?? ""))
+        selected.filter(({ i }) => i !== 0 && i !== 1).forEach(({ i }) => docLabels.push(getSlotLabel(i)))
       } else {
-        selected.forEach(({ i }) => docLabels.push(slots[i]?.label ?? ""))
+        selected.forEach(({ i }) => docLabels.push(getSlotLabel(i)))
       }
       const prefix = dateType && dateVal ? `${dateVal.replace(/-/g, "")}_${dateType}` : ""
       const parts = [prefix, serial.trim(), name.trim(), docLabels.join("・")].filter(Boolean)
@@ -924,6 +938,35 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
                     <button onClick={() => removeSlot(i)} className="text-[var(--text-3)] hover:text-red-400 transition-colors shrink-0 flex items-center" title="Remove this slot"><Icon name="close" size={14} /></button>
                   )}
                 </div>
+
+                {/* 営業許可証 extra inputs */}
+                {slot.label === EIGYO_LABEL && (
+                  <div className="px-3 py-2 border-b border-[var(--border)] flex flex-wrap items-center gap-2 bg-[var(--bg)]">
+                    <input
+                      value={eigyoStore}
+                      onChange={e => setEigyoStore(e.target.value)}
+                      placeholder="店舗名"
+                      className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors placeholder:text-[var(--text-3)] w-36"
+                    />
+                    <label className="flex items-center gap-1 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={eigyoMoved}
+                        onChange={e => { setEigyoMoved(e.target.checked); setEigyoMoveDate("") }}
+                        className="accent-[var(--highlight)] w-3.5 h-3.5"
+                      />
+                      <span className="text-[0.78rem] text-[var(--text-2)]">異動</span>
+                    </label>
+                    {eigyoMoved && (
+                      <input
+                        type="date"
+                        value={eigyoMoveDate}
+                        onChange={e => setEigyoMoveDate(e.target.value)}
+                        className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2 py-1 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] transition-colors"
+                      />
+                    )}
+                  </div>
+                )}
 
                 {d.file ? (
                   <div className="flex items-center gap-3 px-3 py-2.5">
