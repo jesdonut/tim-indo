@@ -1242,12 +1242,12 @@ function ScanModal({ imgSrc, onApply, onCancel }: {
           <Icon name="close" size={18} />
         </button>
       </div>
-      <div className="flex-1 min-h-0 overflow-auto bg-[#111] flex items-start justify-center p-8">
+      <div className="flex-1 min-h-0 overflow-hidden bg-[#111] flex items-center justify-center p-8">
         {natW > 0 && (
           <div
             ref={containerRef}
             className="relative select-none overflow-visible"
-            style={{ width: "100%", maxWidth: 700, paddingTop: `${(natH / natW * 100).toFixed(3)}%` }}
+            style={{ aspectRatio: `${natW} / ${natH}`, width: "100%", maxWidth: 700, maxHeight: "100%" }}
             onPointerMove={onPointerMove}
             onPointerUp={() => { dragIdx.current = null }}
             onPointerLeave={() => { dragIdx.current = null }}
