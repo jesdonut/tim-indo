@@ -1207,8 +1207,8 @@ function ScanModal({ imgSrc, onApply, onCancel }: {
     setCorners(prev => {
       const next = [...prev]
       next[i] = {
-        x: Math.max(0, Math.min(natW, nx * natW)),
-        y: Math.max(0, Math.min(natH, ny * natH)),
+        x: nx * natW,
+        y: ny * natH,
       }
       return next
     })
@@ -1242,11 +1242,11 @@ function ScanModal({ imgSrc, onApply, onCancel }: {
           <Icon name="close" size={18} />
         </button>
       </div>
-      <div className="flex-1 min-h-0 overflow-auto bg-[#111] flex items-start justify-center p-4">
+      <div className="flex-1 min-h-0 overflow-auto bg-[#111] flex items-start justify-center p-8">
         {natW > 0 && (
           <div
             ref={containerRef}
-            className="relative select-none"
+            className="relative select-none overflow-visible"
             style={{ width: "100%", maxWidth: 700, paddingTop: `${(natH / natW * 100).toFixed(3)}%` }}
             onPointerMove={onPointerMove}
             onPointerUp={() => { dragIdx.current = null }}
