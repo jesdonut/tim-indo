@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Script from "next/script"
 import { cn } from "@/lib/cn"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
@@ -665,6 +665,8 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
   const [building, setBuilding]   = useState(false)
   const [editIdx, setEditIdx]     = useState<number | null>(null)
   const [cropSrc, setCropSrc]     = useState<string | null>(null)
+  const [scanIdx, setScanIdx]     = useState<number | null>(null)
+  const [scanSrc, setScanSrc]     = useState<string | null>(null)
   const [activePaste, setActivePaste] = useState(-1)
   const [checked, setChecked]     = useState<boolean[]>(DOC_SLOTS.map(() => false))
   const [addingSlot, setAddingSlot]   = useState(false)
@@ -740,6 +742,13 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
     if (!d.file || d.file.type === "application/pdf") return
     setEditIdx(i)
     setCropSrc(URL.createObjectURL(d.editedBlob ?? d.file))
+  }
+
+  function openScan(i: number) {
+    const d = docs[i]
+    if (!d.file || d.file.type === "application/pdf") return
+    setScanIdx(i)
+    setScanSrc(URL.createObjectURL(d.editedBlob ?? d.file))
   }
 
   async function imageToBytes(blob: Blob): Promise<Uint8Array> {
@@ -977,7 +986,8 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      {isImg && <button onClick={() => openCrop(i)} className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors"><Icon name="content_cut" size={14} /></button>}
+                      {isImg && <button onClick={() => openCrop(i)} title="Crop" className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors"><Icon name="content_cut" size={14} /></button>}
+                      {isImg && <button onClick={() => openScan(i)} title="Perspective correct" className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors"><Icon name="document_scanner" size={14} /></button>}
                       <button onClick={() => rotateDoc(i, -1)} title="Rotate left" className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">↺</button>
                       <button onClick={() => rotateDoc(i,  1)} title="Rotate right" className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">↻</button>
                       <button onClick={() => downloadDoc(i)} className="w-7 h-7 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">↓</button>
@@ -1050,11 +1060,17 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
           setCropSrc(null); setEditIdx(null)
         }}
         onCancel={() => { setCropSrc(null); setEditIdx(null) }} />
+      <ScanModal imgSrc={scanSrc}
+        onApply={blob => {
+          if (scanIdx !== null) setDocs(prev => prev.map((d, i) => i === scanIdx ? { ...d, editedBlob: blob } : d))
+          setScanSrc(null); setScanIdx(null)
+        }}
+        onCancel={() => { setScanSrc(null); setScanIdx(null) }} />
     </>
   )
 }
 
-// ─── Tab: Scan (perspective correction) ──────────────────────────────────────
+// ─── Scan modal (perspective correction) ──────────────────────────────────────
 
 type Pt = { x: number; y: number }
 
@@ -1145,28 +1161,22 @@ function warpQuad(src: HTMLCanvasElement, corners: Pt[]): HTMLCanvasElement {
 
 const HANDLE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"]
 
-function ScanTab() {
-  const [stage, setStage] = useState<"idle" | "corners" | "warping" | "done">("idle")
-  const [imgUrl, setImgUrl]             = useState<string | null>(null)
-  const [natW, setNatW]                 = useState(0)
-  const [natH, setNatH]                 = useState(0)
-  const [corners, setCorners]           = useState<Pt[]>([])
-  const [resultCanvas, setResultCanvas] = useState<HTMLCanvasElement | null>(null)
-  const [saving, setSaving]             = useState(false)
-  const srcCanvasRef  = useRef<HTMLCanvasElement>(null)
-  const containerRef  = useRef<HTMLDivElement>(null)
-  const inputRef      = useRef<HTMLInputElement>(null)
-  const dragIdx       = useRef<number | null>(null)
+function ScanModal({ imgSrc, onApply, onCancel }: {
+  imgSrc: string | null
+  onApply: (blob: Blob) => void
+  onCancel: () => void
+}) {
+  const [natW, setNatW]       = useState(0)
+  const [natH, setNatH]       = useState(0)
+  const [corners, setCorners] = useState<Pt[]>([])
+  const [warping, setWarping] = useState(false)
+  const srcCanvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const dragIdx      = useRef<number | null>(null)
 
-  const resultUrl = useMemo(
-    () => resultCanvas ? resultCanvas.toDataURL("image/jpeg", 0.92) : null,
-    [resultCanvas],
-  )
-
-  function handleFiles(files: FileList | null) {
-    const file = Array.from(files ?? []).find(f => f.type.startsWith("image/"))
-    if (!file) return
-    const url = URL.createObjectURL(file)
+  useEffect(() => {
+    if (!imgSrc) return
+    setNatW(0); setNatH(0); setCorners([])
     const img = new Image()
     img.onload = () => {
       const maxPx = 3000
@@ -1176,13 +1186,11 @@ function ScanTab() {
       const c = srcCanvasRef.current!
       c.width = w; c.height = h
       c.getContext("2d")!.drawImage(img, 0, 0, w, h)
-      setImgUrl(url); setNatW(w); setNatH(h)
+      setNatW(w); setNatH(h)
       setCorners([{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: 0, y: h }])
-      setResultCanvas(null)
-      setStage("corners")
     }
-    img.src = url
-  }
+    img.src = imgSrc
+  }, [imgSrc])
 
   function onPointerDown(i: number, e: React.PointerEvent) {
     e.preventDefault()
@@ -1206,167 +1214,88 @@ function ScanTab() {
     })
   }
 
-  function applyWarp() {
-    setStage("warping")
+  function apply() {
+    setWarping(true)
     requestAnimationFrame(() => requestAnimationFrame(() => {
       try {
         const out = warpQuad(srcCanvasRef.current!, corners)
-        setResultCanvas(out)
-        setStage("done")
+        out.toBlob(blob => {
+          if (blob) onApply(blob)
+          setWarping(false)
+        }, "image/jpeg", 0.92)
       } catch {
-        setStage("corners")
+        setWarping(false)
       }
     }))
   }
 
-  async function downloadPdf() {
-    if (!resultCanvas) return
-    setSaving(true)
-    try {
-      const jpgBuf: ArrayBuffer = await new Promise(res =>
-        resultCanvas.toBlob(b => b!.arrayBuffer().then(res), "image/jpeg", 0.92),
-      )
-      const { PDFDocument } = await import("pdf-lib")
-      const pdf = await PDFDocument.create()
-      const img = await pdf.embedJpg(jpgBuf)
-      const page = pdf.addPage([img.width, img.height])
-      page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height })
-      triggerDownload(await pdf.save(), "scan.pdf")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  function reset() {
-    setStage("idle"); setImgUrl(null); setCorners([]); setResultCanvas(null)
-  }
+  if (!imgSrc) return null
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-black">
       <canvas ref={srcCanvasRef} className="hidden" />
-
-      {stage === "idle" && (
-        <div className="flex flex-1 items-center justify-center p-6">
+      <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-[var(--bg)] border-b border-[var(--border)]">
+        <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text)]">
+          <Icon name="document_scanner" size={16} /> Perspective Correct
+        </div>
+        <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)]">
+          <Icon name="close" size={18} />
+        </button>
+      </div>
+      <div className="flex-1 min-h-0 overflow-auto bg-[#111] flex items-start justify-center p-4">
+        {natW > 0 && (
           <div
-            className="border-2 border-dashed border-[var(--border)] rounded-xl px-10 py-14 text-center cursor-pointer hover:border-[var(--text-2)] transition-colors max-w-sm w-full"
-            onClick={() => inputRef.current?.click()}
-            onDragOver={e => e.preventDefault()}
-            onDrop={e => { e.preventDefault(); handleFiles(e.dataTransfer.files) }}
+            ref={containerRef}
+            className="relative select-none"
+            style={{ width: "100%", maxWidth: 700, paddingTop: `${(natH / natW * 100).toFixed(3)}%` }}
+            onPointerMove={onPointerMove}
+            onPointerUp={() => { dragIdx.current = null }}
+            onPointerLeave={() => { dragIdx.current = null }}
           >
-            <Icon name="document_scanner" size={36} className="mx-auto text-[var(--text-3)] mb-3" />
-            <p className="text-sm text-[var(--text-2)]">写真をドロップまたはクリックして選択</p>
-            <p className="text-[0.72rem] text-[var(--text-3)] mt-1">JPEG · PNG · HEIC · WEBP</p>
-            <input ref={inputRef} type="file" accept="image/*" className="hidden"
-              onChange={e => handleFiles(e.target.files)} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imgSrc} className="absolute inset-0 w-full h-full" draggable={false} alt="" />
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+              className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none" }}>
+              <polygon
+                points={corners.map(c =>
+                  `${(c.x / natW * 100).toFixed(3)},${(c.y / natH * 100).toFixed(3)}`
+                ).join(" ")}
+                fill="rgba(59,130,246,0.12)" stroke="#3b82f6" strokeWidth="0.6"
+              />
+            </svg>
+            {corners.map((c, i) => (
+              <div key={i}
+                className="absolute w-7 h-7 rounded-full border-2 border-white cursor-grab touch-none"
+                style={{
+                  left: `${(c.x / natW * 100).toFixed(3)}%`,
+                  top: `${(c.y / natH * 100).toFixed(3)}%`,
+                  transform: "translate(-50%, -50%)",
+                  backgroundColor: HANDLE_COLORS[i],
+                  boxShadow: "0 0 0 1.5px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.6)",
+                }}
+                onPointerDown={e => onPointerDown(i, e)}
+              />
+            ))}
           </div>
-        </div>
-      )}
-
-      {stage === "corners" && natW > 0 && imgUrl && (
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
-            <div
-              ref={containerRef}
-              className="relative select-none"
-              style={{ width: "100%", maxWidth: 680,
-                       paddingTop: `${(natH / natW * 100).toFixed(3)}%` }}
-              onPointerMove={onPointerMove}
-              onPointerUp={() => { dragIdx.current = null }}
-              onPointerLeave={() => { dragIdx.current = null }}
-            >
-              <img src={imgUrl} className="absolute inset-0 w-full h-full" draggable={false} alt="" />
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none"
-                className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none" }}>
-                <polygon
-                  points={corners.map(c =>
-                    `${(c.x / natW * 100).toFixed(3)},${(c.y / natH * 100).toFixed(3)}`
-                  ).join(" ")}
-                  fill="rgba(59,130,246,0.08)" stroke="#3b82f6" strokeWidth="0.5"
-                />
-              </svg>
-              {corners.map((c, i) => (
-                <div key={i}
-                  className="absolute w-6 h-6 rounded-full border-2 border-white cursor-grab touch-none"
-                  style={{
-                    left: `${(c.x / natW * 100).toFixed(3)}%`,
-                    top: `${(c.y / natH * 100).toFixed(3)}%`,
-                    transform: "translate(-50%, -50%)",
-                    backgroundColor: HANDLE_COLORS[i],
-                    boxShadow: "0 0 0 1.5px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.5)",
-                  }}
-                  onPointerDown={e => onPointerDown(i, e)}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="w-52 shrink-0 border-l border-[var(--border)] flex flex-col gap-5 p-4 overflow-y-auto">
-            <div>
-              <p className="label-xs mb-2">使い方</p>
-              <p className="text-[0.72rem] text-[var(--text-3)] leading-relaxed">
-                4つの点を書類の角にドラッグして「補正する」を押します。
-              </p>
-            </div>
-            <button onClick={applyWarp}
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded bg-[var(--text)] text-[var(--bg)] text-[0.78rem] font-medium hover:opacity-80 transition-opacity">
-              <Icon name="crop_free" size={15} />
-              補正する
-            </button>
-            <button onClick={reset}
-              className="text-[0.72rem] text-center text-[var(--text-3)] hover:text-[var(--text)] transition-colors">
-              別の写真
-            </button>
-          </div>
-        </div>
-      )}
-
-      {stage === "warping" && (
-        <div className="flex flex-1 items-center justify-center gap-3 text-[var(--text-3)]">
-          <span className="w-5 h-5 border-2 border-[var(--border)] border-t-[var(--text-3)] rounded-full animate-spin" />
-          <span className="text-sm">補正中…</span>
-        </div>
-      )}
-
-      {stage === "done" && resultUrl && resultCanvas && (
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
-            <img src={resultUrl} className="max-w-full object-contain rounded shadow-md"
-              style={{ maxHeight: "calc(100dvh - 160px)" }} alt="補正後" />
-          </div>
-          <div className="w-52 shrink-0 border-l border-[var(--border)] flex flex-col gap-4 p-4">
-            <div>
-              <p className="label-xs mb-1">出力</p>
-              <p className="text-[0.75rem] text-[var(--text-2)]">{resultCanvas.width} × {resultCanvas.height} px</p>
-            </div>
-            <button onClick={downloadPdf} disabled={saving}
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded bg-[var(--text)] text-[var(--bg)] text-[0.78rem] font-medium hover:opacity-80 transition-opacity disabled:opacity-50">
-              <Icon name="picture_as_pdf" size={15} />
-              {saving ? "作成中…" : "PDFで保存"}
-            </button>
-            <button onClick={() => { const a = document.createElement("a"); a.href = resultUrl; a.download = "scan.jpg"; a.click() }}
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded border border-[var(--border)] text-[0.78rem] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">
-              <Icon name="image" size={15} />
-              JPEGで保存
-            </button>
-            <div className="mt-auto flex flex-col gap-2">
-              <button onClick={() => setStage("corners")}
-                className="text-[0.72rem] text-center text-[var(--text-3)] hover:text-[var(--text)] transition-colors">
-                やり直す
-              </button>
-              <button onClick={reset}
-                className="text-[0.72rem] text-center text-[var(--text-3)] hover:text-[var(--text)] transition-colors">
-                別の写真
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
+      <div className="shrink-0 px-4 py-3 bg-[var(--bg)] border-t border-[var(--border)] flex items-center gap-3">
+        <p className="flex-1 text-[0.72rem] text-[var(--text-3)]">
+          Drag the 4 handles to the document corners
+        </p>
+        <button onClick={onCancel} className="px-4 py-2.5 rounded border border-[var(--border)] text-sm text-[var(--text-2)] hover:text-[var(--text)] transition-colors">Cancel</button>
+        <button onClick={apply} disabled={warping || corners.length < 4}
+          className="px-6 py-2.5 rounded bg-[var(--text)] text-[var(--bg)] text-sm font-semibold hover:opacity-80 transition-opacity disabled:opacity-50">
+          {warping ? "Processing…" : "Apply"}
+        </button>
+      </div>
     </div>
   )
 }
 
 // ─── Page shell ───────────────────────────────────────────────────────────────
 
-type Tab = "merge" | "compress" | "docs" | "scan"
+type Tab = "merge" | "compress" | "docs"
 
 export default function PDFPage() {
   const [tab, setTab]                   = useState<Tab>("docs")
@@ -1395,7 +1324,6 @@ export default function PDFPage() {
               { value: "docs"     as Tab, label: "Docs" },
               { value: "merge"    as Tab, label: "Merge" },
               { value: "compress" as Tab, label: "Compress" },
-              { value: "scan"     as Tab, label: "Scan" },
             ]}
             value={tab}
             onChange={setTab}
@@ -1406,7 +1334,6 @@ export default function PDFPage() {
           {tab === "merge"    && <MergeTab    cropperReady={cropperReady} />}
           {tab === "compress" && <CompressTab pdfJsReady={pdfJsReady} />}
           {tab === "docs"     && <DocsTab     cropperReady={cropperReady} pdfJsReady={pdfJsReady} serial={serial} setSerial={setSerial} name={name} setName={setName} />}
-          {tab === "scan"     && <ScanTab />}
         </ToolContent>
       </div>
     </>
