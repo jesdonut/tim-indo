@@ -82,8 +82,18 @@ function CropModal({ imgSrc, onApply, onCancel, cropperReady }: {
 
   function rotateCrop(deg: number) {
     baseAngle.current += deg
-    if ((cropperRef.current as any)?.rotateTo)
-      (cropperRef.current as any).rotateTo(baseAngle.current + angle)
+    const cropper = cropperRef.current as any
+    if (!cropper?.rotateTo) return
+    cropper.rotateTo(baseAngle.current + angle)
+    // swap crop box dimensions to match the new orientation
+    const box = cropper.getCropBoxData()
+    const cnt = cropper.getContainerData()
+    const nw = box.height, nh = box.width
+    cropper.setCropBoxData({
+      left:  (cnt.width  - nw) / 2,
+      top:   (cnt.height - nh) / 2,
+      width: nw, height: nh,
+    })
   }
 
   function apply() {
@@ -667,6 +677,7 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
   const [cropSrc, setCropSrc]     = useState<string | null>(null)
   const [scanIdx, setScanIdx]     = useState<number | null>(null)
   const [scanSrc, setScanSrc]     = useState<string | null>(null)
+  const [preview, setPreview]     = useState<{ src: string; rot: number; x: number; y: number } | null>(null)
   const [activePaste, setActivePaste] = useState(-1)
   const [checked, setChecked]     = useState<boolean[]>(DOC_SLOTS.map(() => false))
   const [addingSlot, setAddingSlot]   = useState(false)
@@ -972,7 +983,12 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
 
                 {d.file ? (
                   <div className="flex items-center gap-3 px-3 py-2.5">
-                    <div className="w-10 h-10 rounded bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center overflow-hidden shrink-0">
+                    <div
+                      className="w-10 h-10 rounded bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center overflow-hidden shrink-0 cursor-zoom-in"
+                      onMouseEnter={e => isImg && setPreview({ src: URL.createObjectURL(d.editedBlob ?? d.file!), rot: d.rotation, x: e.clientX, y: e.clientY })}
+                      onMouseMove={e => isImg && setPreview(p => p ? { ...p, x: e.clientX, y: e.clientY } : null)}
+                      onMouseLeave={() => setPreview(null)}
+                    >
                       {isImg
                         ? <img src={URL.createObjectURL(d.editedBlob ?? d.file!)} className={cn("w-full h-full object-cover", rotClass(d.rotation))} alt="" />
                         : <Icon name="description" size={22} className="text-[var(--text-3)]" />}
@@ -1053,6 +1069,20 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
         {progress >= 0 && <div className="h-0.5 bg-[var(--border)] rounded overflow-hidden"><div className="h-full bg-[var(--highlight)] transition-all duration-300" style={{ width: `${progress}%` }} /></div>}
         {status.msg && <p className={cn("text-[0.73rem] text-center", status.type === "error" ? "text-red-400" : status.type === "success" ? "text-[var(--highlight-text)]" : "text-[var(--text-3)]")}>{status.msg}</p>}
       </div>
+
+      {preview && (
+        <div
+          className="fixed z-50 pointer-events-none rounded-xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl overflow-hidden"
+          style={{
+            width: 480, maxWidth: "90vw",
+            left: preview.x + 20,
+            top: Math.max(8, Math.min(preview.y - 240, window.innerHeight - 500)),
+            transform: preview.x + 500 > window.innerWidth ? "translateX(calc(-100% - 40px))" : undefined,
+          }}
+        >
+          <img src={preview.src} className={cn("w-full h-auto object-contain", rotClass(preview.rot))} alt="" />
+        </div>
+      )}
 
       <CropModal cropperReady={cropperReady} imgSrc={cropSrc}
         onApply={blob => {
