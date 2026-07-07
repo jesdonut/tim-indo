@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Script from "next/script"
 import { cn } from "@/lib/cn"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
@@ -1054,9 +1054,319 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
   )
 }
 
+// ─── Tab: Scan (perspective correction) ──────────────────────────────────────
+
+type Pt = { x: number; y: number }
+
+function gaussSolve(A: number[][], b: number[]): number[] {
+  const n = 8
+  const M = A.map((row, i) => [...row, b[i]])
+  for (let col = 0; col < n; col++) {
+    let pivot = col
+    for (let r = col + 1; r < n; r++)
+      if (Math.abs(M[r][col]) > Math.abs(M[pivot][col])) pivot = r
+    ;[M[col], M[pivot]] = [M[pivot], M[col]]
+    const p = M[col][col]
+    if (Math.abs(p) < 1e-10) continue
+    for (let r = col + 1; r < n; r++) {
+      const f = M[r][col] / p
+      for (let j = col; j <= n; j++) M[r][j] -= f * M[col][j]
+    }
+  }
+  const x = new Array(n).fill(0)
+  for (let i = n - 1; i >= 0; i--) {
+    x[i] = M[i][n]
+    for (let j = i + 1; j < n; j++) x[i] -= M[i][j] * x[j]
+    x[i] /= M[i][i]
+  }
+  return x
+}
+
+function computeH(src: Pt[], dst: Pt[]): number[] {
+  const A: number[][] = []
+  const b: number[] = []
+  for (let i = 0; i < 4; i++) {
+    const { x: sx, y: sy } = src[i]
+    const { x: dx, y: dy } = dst[i]
+    A.push([sx, sy, 1, 0, 0, 0, -dx * sx, -dx * sy])
+    b.push(dx)
+    A.push([0, 0, 0, sx, sy, 1, -dy * sx, -dy * sy])
+    b.push(dy)
+  }
+  return [...gaussSolve(A, b), 1]
+}
+
+function warpQuad(src: HTMLCanvasElement, corners: Pt[]): HTMLCanvasElement {
+  const [tl, tr, br, bl] = corners
+  const d = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y)
+  const rawW = Math.round(Math.max(d(tl, tr), d(bl, br)))
+  const rawH = Math.round(Math.max(d(tl, bl), d(tr, br)))
+  const scale = Math.min(1, 2000 / Math.max(rawW, rawH))
+  const w = Math.round(rawW * scale)
+  const h = Math.round(rawH * scale)
+
+  const H = computeH(
+    [{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: 0, y: h }],
+    corners,
+  )
+  const [h0, h1, h2, h3, h4, h5, h6, h7] = H
+
+  const srcCtx = src.getContext("2d", { willReadFrequently: true })!
+  const sd = srcCtx.getImageData(0, 0, src.width, src.height)
+  const sw = src.width, sh = src.height, sp = sd.data
+
+  const out = document.createElement("canvas")
+  out.width = w; out.height = h
+  const od = out.getContext("2d")!.createImageData(w, h)
+  const op = od.data
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const denom = h6 * x + h7 * y + 1
+      const sx = (h0 * x + h1 * y + h2) / denom
+      const sy = (h3 * x + h4 * y + h5) / denom
+      const x0 = sx | 0, y0 = sy | 0
+      const x1 = x0 + 1, y1 = y0 + 1
+      const fx = sx - x0, fy = sy - y0
+      const gc = (px: number, py: number, c: number) =>
+        px < 0 || px >= sw || py < 0 || py >= sh ? 255 : sp[(py * sw + px) * 4 + c]
+      const oi = (y * w + x) * 4
+      for (let c = 0; c < 3; c++) {
+        const t0 = gc(x0, y0, c) + (gc(x1, y0, c) - gc(x0, y0, c)) * fx
+        const t1 = gc(x0, y1, c) + (gc(x1, y1, c) - gc(x0, y1, c)) * fx
+        op[oi + c] = t0 + (t1 - t0) * fy
+      }
+      op[oi + 3] = 255
+    }
+  }
+  out.getContext("2d")!.putImageData(od, 0, 0)
+  return out
+}
+
+const HANDLE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"]
+
+function ScanTab() {
+  const [stage, setStage] = useState<"idle" | "corners" | "warping" | "done">("idle")
+  const [imgUrl, setImgUrl]             = useState<string | null>(null)
+  const [natW, setNatW]                 = useState(0)
+  const [natH, setNatH]                 = useState(0)
+  const [corners, setCorners]           = useState<Pt[]>([])
+  const [resultCanvas, setResultCanvas] = useState<HTMLCanvasElement | null>(null)
+  const [saving, setSaving]             = useState(false)
+  const srcCanvasRef  = useRef<HTMLCanvasElement>(null)
+  const containerRef  = useRef<HTMLDivElement>(null)
+  const inputRef      = useRef<HTMLInputElement>(null)
+  const dragIdx       = useRef<number | null>(null)
+
+  const resultUrl = useMemo(
+    () => resultCanvas ? resultCanvas.toDataURL("image/jpeg", 0.92) : null,
+    [resultCanvas],
+  )
+
+  function handleFiles(files: FileList | null) {
+    const file = Array.from(files ?? []).find(f => f.type.startsWith("image/"))
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      const maxPx = 3000
+      const sc = Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight))
+      const w = Math.round(img.naturalWidth * sc)
+      const h = Math.round(img.naturalHeight * sc)
+      const c = srcCanvasRef.current!
+      c.width = w; c.height = h
+      c.getContext("2d")!.drawImage(img, 0, 0, w, h)
+      setImgUrl(url); setNatW(w); setNatH(h)
+      setCorners([{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: 0, y: h }])
+      setResultCanvas(null)
+      setStage("corners")
+    }
+    img.src = url
+  }
+
+  function onPointerDown(i: number, e: React.PointerEvent) {
+    e.preventDefault()
+    dragIdx.current = i
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (dragIdx.current === null) return
+    const rect = containerRef.current!.getBoundingClientRect()
+    const nx = (e.clientX - rect.left) / rect.width
+    const ny = (e.clientY - rect.top) / rect.height
+    const i = dragIdx.current
+    setCorners(prev => {
+      const next = [...prev]
+      next[i] = {
+        x: Math.max(0, Math.min(natW, nx * natW)),
+        y: Math.max(0, Math.min(natH, ny * natH)),
+      }
+      return next
+    })
+  }
+
+  function applyWarp() {
+    setStage("warping")
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      try {
+        const out = warpQuad(srcCanvasRef.current!, corners)
+        setResultCanvas(out)
+        setStage("done")
+      } catch {
+        setStage("corners")
+      }
+    }))
+  }
+
+  async function downloadPdf() {
+    if (!resultCanvas) return
+    setSaving(true)
+    try {
+      const jpgBuf: ArrayBuffer = await new Promise(res =>
+        resultCanvas.toBlob(b => b!.arrayBuffer().then(res), "image/jpeg", 0.92),
+      )
+      const { PDFDocument } = await import("pdf-lib")
+      const pdf = await PDFDocument.create()
+      const img = await pdf.embedJpg(jpgBuf)
+      const page = pdf.addPage([img.width, img.height])
+      page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height })
+      triggerDownload(await pdf.save(), "scan.pdf")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function reset() {
+    setStage("idle"); setImgUrl(null); setCorners([]); setResultCanvas(null)
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <canvas ref={srcCanvasRef} className="hidden" />
+
+      {stage === "idle" && (
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div
+            className="border-2 border-dashed border-[var(--border)] rounded-xl px-10 py-14 text-center cursor-pointer hover:border-[var(--text-2)] transition-colors max-w-sm w-full"
+            onClick={() => inputRef.current?.click()}
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => { e.preventDefault(); handleFiles(e.dataTransfer.files) }}
+          >
+            <Icon name="document_scanner" size={36} className="mx-auto text-[var(--text-3)] mb-3" />
+            <p className="text-sm text-[var(--text-2)]">写真をドロップまたはクリックして選択</p>
+            <p className="text-[0.72rem] text-[var(--text-3)] mt-1">JPEG · PNG · HEIC · WEBP</p>
+            <input ref={inputRef} type="file" accept="image/*" className="hidden"
+              onChange={e => handleFiles(e.target.files)} />
+          </div>
+        </div>
+      )}
+
+      {stage === "corners" && natW > 0 && imgUrl && (
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
+            <div
+              ref={containerRef}
+              className="relative select-none"
+              style={{ width: "100%", maxWidth: 680,
+                       paddingTop: `${(natH / natW * 100).toFixed(3)}%` }}
+              onPointerMove={onPointerMove}
+              onPointerUp={() => { dragIdx.current = null }}
+              onPointerLeave={() => { dragIdx.current = null }}
+            >
+              <img src={imgUrl} className="absolute inset-0 w-full h-full" draggable={false} alt="" />
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+                className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none" }}>
+                <polygon
+                  points={corners.map(c =>
+                    `${(c.x / natW * 100).toFixed(3)},${(c.y / natH * 100).toFixed(3)}`
+                  ).join(" ")}
+                  fill="rgba(59,130,246,0.08)" stroke="#3b82f6" strokeWidth="0.5"
+                />
+              </svg>
+              {corners.map((c, i) => (
+                <div key={i}
+                  className="absolute w-6 h-6 rounded-full border-2 border-white cursor-grab touch-none"
+                  style={{
+                    left: `${(c.x / natW * 100).toFixed(3)}%`,
+                    top: `${(c.y / natH * 100).toFixed(3)}%`,
+                    transform: "translate(-50%, -50%)",
+                    backgroundColor: HANDLE_COLORS[i],
+                    boxShadow: "0 0 0 1.5px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.5)",
+                  }}
+                  onPointerDown={e => onPointerDown(i, e)}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="w-52 shrink-0 border-l border-[var(--border)] flex flex-col gap-5 p-4 overflow-y-auto">
+            <div>
+              <p className="label-xs mb-2">使い方</p>
+              <p className="text-[0.72rem] text-[var(--text-3)] leading-relaxed">
+                4つの点を書類の角にドラッグして「補正する」を押します。
+              </p>
+            </div>
+            <button onClick={applyWarp}
+              className="flex items-center justify-center gap-2 px-3 py-2 rounded bg-[var(--text)] text-[var(--bg)] text-[0.78rem] font-medium hover:opacity-80 transition-opacity">
+              <Icon name="crop_free" size={15} />
+              補正する
+            </button>
+            <button onClick={reset}
+              className="text-[0.72rem] text-center text-[var(--text-3)] hover:text-[var(--text)] transition-colors">
+              別の写真
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage === "warping" && (
+        <div className="flex flex-1 items-center justify-center gap-3 text-[var(--text-3)]">
+          <span className="w-5 h-5 border-2 border-[var(--border)] border-t-[var(--text-3)] rounded-full animate-spin" />
+          <span className="text-sm">補正中…</span>
+        </div>
+      )}
+
+      {stage === "done" && resultUrl && resultCanvas && (
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
+            <img src={resultUrl} className="max-w-full object-contain rounded shadow-md"
+              style={{ maxHeight: "calc(100dvh - 160px)" }} alt="補正後" />
+          </div>
+          <div className="w-52 shrink-0 border-l border-[var(--border)] flex flex-col gap-4 p-4">
+            <div>
+              <p className="label-xs mb-1">出力</p>
+              <p className="text-[0.75rem] text-[var(--text-2)]">{resultCanvas.width} × {resultCanvas.height} px</p>
+            </div>
+            <button onClick={downloadPdf} disabled={saving}
+              className="flex items-center justify-center gap-2 px-3 py-2 rounded bg-[var(--text)] text-[var(--bg)] text-[0.78rem] font-medium hover:opacity-80 transition-opacity disabled:opacity-50">
+              <Icon name="picture_as_pdf" size={15} />
+              {saving ? "作成中…" : "PDFで保存"}
+            </button>
+            <button onClick={() => { const a = document.createElement("a"); a.href = resultUrl; a.download = "scan.jpg"; a.click() }}
+              className="flex items-center justify-center gap-2 px-3 py-2 rounded border border-[var(--border)] text-[0.78rem] text-[var(--text-2)] hover:text-[var(--text)] transition-colors">
+              <Icon name="image" size={15} />
+              JPEGで保存
+            </button>
+            <div className="mt-auto flex flex-col gap-2">
+              <button onClick={() => setStage("corners")}
+                className="text-[0.72rem] text-center text-[var(--text-3)] hover:text-[var(--text)] transition-colors">
+                やり直す
+              </button>
+              <button onClick={reset}
+                className="text-[0.72rem] text-center text-[var(--text-3)] hover:text-[var(--text)] transition-colors">
+                別の写真
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Page shell ───────────────────────────────────────────────────────────────
 
-type Tab = "merge" | "compress" | "docs"
+type Tab = "merge" | "compress" | "docs" | "scan"
 
 export default function PDFPage() {
   const [tab, setTab]                   = useState<Tab>("docs")
@@ -1085,6 +1395,7 @@ export default function PDFPage() {
               { value: "docs"     as Tab, label: "Docs" },
               { value: "merge"    as Tab, label: "Merge" },
               { value: "compress" as Tab, label: "Compress" },
+              { value: "scan"     as Tab, label: "Scan" },
             ]}
             value={tab}
             onChange={setTab}
@@ -1095,6 +1406,7 @@ export default function PDFPage() {
           {tab === "merge"    && <MergeTab    cropperReady={cropperReady} />}
           {tab === "compress" && <CompressTab pdfJsReady={pdfJsReady} />}
           {tab === "docs"     && <DocsTab     cropperReady={cropperReady} pdfJsReady={pdfJsReady} serial={serial} setSerial={setSerial} name={name} setName={setName} />}
+          {tab === "scan"     && <ScanTab />}
         </ToolContent>
       </div>
     </>
