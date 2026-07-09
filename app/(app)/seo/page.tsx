@@ -311,11 +311,10 @@ export default function SeoPage() {
   // ── Copy TSV ──────────────────────────────────────────────────────────────
 
   function copyTsv() {
-    const header = "キーワード\tYahoo月間\tGoogle月間"
     const body = rows.map(r =>
-      [r.keyword, r.yahoo ?? "", r.google ?? ""].join("\t")
+      [r.keyword, r.kd ?? "", r.yahoo ?? "", r.google ?? ""].join("\t")
     ).join("\n")
-    navigator.clipboard.writeText([header, body].join("\n")).then(() => {
+    navigator.clipboard.writeText(body).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 1600)
     })
   }
