@@ -5,7 +5,11 @@
   function firstVolume(str) {
     var nums = (str.match(/[\d,]+/g) || [])
       .map(function (s) { return parseInt(s.replace(/,/g, ''), 10) })
-      .filter(function (n) { return !isNaN(n) && n >= 10 && n < 100000000 })
+      .filter(function (n) {
+        if (isNaN(n) || n < 10 || n >= 100000000) return false
+        if (n >= 1900 && n <= 2100) return false // skip years / copyright dates
+        return true
+      })
     return nums.length ? nums[0] : null
   }
 
