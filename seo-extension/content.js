@@ -3,13 +3,11 @@
   var sent    = false
 
   function firstVolume(str) {
-    var nums = (str.match(/[\d,]+/g) || [])
+    // Strip copyright / date patterns before extracting numbers
+    var cleaned = str.replace(/(?:copyright|©|all\s+rights?|co\.,?\s*ltd\.?)[\s\S]{0,30}/gi, ' ')
+    var nums = (cleaned.match(/[\d,]+/g) || [])
       .map(function (s) { return parseInt(s.replace(/,/g, ''), 10) })
-      .filter(function (n) {
-        if (isNaN(n) || n < 10 || n >= 100000000) return false
-        if (n >= 1900 && n <= 2100) return false // skip years / copyright dates
-        return true
-      })
+      .filter(function (n) { return !isNaN(n) && n >= 10 && n < 100000000 })
     return nums.length ? nums[0] : null
   }
 
