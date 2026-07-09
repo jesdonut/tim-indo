@@ -14,10 +14,9 @@ type Row = {
   status: "idle" | "loading" | "done" | "error"
 }
 
-// ─── HTML parser (runs in browser) ───────────────────────────────────────────
+// ─── HTML parser (used by CORS-proxy auto mode) ───────────────────────────────
 
 function parseAramaki(html: string): { yahoo: number | null; google: number | null } {
-  // Strip scripts / styles / tags
   const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -30,7 +29,7 @@ function parseAramaki(html: string): { yahoo: number | null; google: number | nu
 
   const segs = text.split(/(?=(?:Google|グーグル|Yahoo|ヤフー))/i)
   for (const seg of segs) {
-    const local = seg.slice(0, 120)
+    const local = seg.slice(0, 200)
     const nums  = local.match(/\d[\d,]*/g)
       ?.map(n => parseInt(n.replace(/,/g, "")))
       .filter(n => n > 0)
@@ -41,7 +40,7 @@ function parseAramaki(html: string): { yahoo: number | null; google: number | nu
   return { google, yahoo }
 }
 
-// ─── Fetch via CORS proxy (client-side, avoids server IP blocks) ──────────────
+// ─── CORS-proxy fetch ─────────────────────────────────────────────────────────
 
 const PROXIES = [
   (u: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
@@ -50,18 +49,16 @@ const PROXIES = [
 
 async function fetchAramaki(keyword: string): Promise<{ yahoo: number | null; google: number | null; error?: string }> {
   const targetUrl = `https://aramakijake.jp/keyword/?keyword=${encodeURIComponent(keyword)}`
-
   for (const makeProxy of PROXIES) {
     try {
       const res = await fetch(makeProxy(targetUrl), { signal: AbortSignal.timeout(10000) })
       if (!res.ok) continue
       const json = await res.json().catch(() => null)
-      // allorigins wraps in { contents: "..." }, corsproxy returns raw text
       const html: string = json?.contents ?? await res.text()
       if (!html || html.length < 200) continue
       const result = parseAramaki(html)
       if (result.google !== null || result.yahoo !== null) return result
-    } catch { /* try next proxy */ }
+    } catch { /* try next */ }
   }
   return { google: null, yahoo: null, error: "fetch_failed" }
 }
@@ -108,12 +105,21 @@ export default function SeoPage() {
   const [input, setInput]       = useState("")
   const [rows, setRows]         = useState<Row[]>([])
   const [running, setRunning]   = useState(false)
+  const [extRunning, setExtRunning] = useState(false)
   const [done, setDone]         = useState(0)
   const [copied, setCopied]     = useState(false)
   const [guideIdx, setGuideIdx] = useState<number | null>(null)
-  const abortRef                = useRef(false)
-  const lookupWindowRef         = useRef<Window | null>(null)
-  const kdRef                   = useRef<HTMLInputElement>(null)
+
+  const abortRef        = useRef(false)
+  const lookupWindowRef = useRef<Window | null>(null)
+  const kdRef           = useRef<HTMLInputElement>(null)
+
+  // Refs kept in sync for the message handler (avoids stale closures)
+  const rowsRef    = useRef<Row[]>([])
+  const extIdxRef  = useRef(-1)
+  const extTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => { rowsRef.current = rows }, [rows])
 
   const kwCount = input.split("\n").filter(k => k.trim()).length
 
@@ -121,10 +127,77 @@ export default function SeoPage() {
     setRows(prev => prev.map(r => r.keyword === keyword ? { ...r, ...patch } : r))
   }
 
-  // ── Auto-fetch mode ────────────────────────────────────────────────────────
+  // ── Extension mode ─────────────────────────────────────────────────────────
+
+  function openExtKeyword(keyword: string) {
+    if (extTimeout.current) clearTimeout(extTimeout.current)
+    const url = `https://aramakijake.jp/keyword/?keyword=${encodeURIComponent(keyword)}`
+    // Must NOT use noopener — content script needs window.opener to postMessage back
+    lookupWindowRef.current = window.open(url, "seo-lookup")
+    // Fallback: mark error and advance after 12s if no message received
+    extTimeout.current = setTimeout(() => {
+      if (extIdxRef.current < 0) return
+      const kw = rowsRef.current[extIdxRef.current]?.keyword
+      if (kw) setRows(prev => prev.map(r => r.keyword === kw ? { ...r, status: "error" } : r))
+      advanceExt()
+    }, 12000)
+  }
+
+  function advanceExt() {
+    const next = extIdxRef.current + 1
+    extIdxRef.current = next
+    if (next < rowsRef.current.length) {
+      const nextKw = rowsRef.current[next].keyword
+      setRows(prev => prev.map(r => r.keyword === nextKw ? { ...r, status: "loading" } : r))
+      openExtKeyword(nextKw)
+    } else {
+      extIdxRef.current = -1
+      setExtRunning(false)
+      lookupWindowRef.current?.close()
+    }
+  }
+
+  // Listen for postMessage from the extension content script
+  useEffect(() => {
+    function handler(e: MessageEvent) {
+      if (e.data?.type !== "aramaki-result" || extIdxRef.current < 0) return
+      if (extTimeout.current) clearTimeout(extTimeout.current)
+      const { keyword, google, yahoo } = e.data as { keyword: string; google: number | null; yahoo: number | null }
+      setRows(prev => prev.map(r => r.keyword === keyword ? { ...r, google, yahoo, status: "done" } : r))
+      setDone(extIdxRef.current + 1)
+      advanceExt()
+    }
+    window.addEventListener("message", handler)
+    return () => window.removeEventListener("message", handler)
+  }, []) // no deps — uses refs throughout
+
+  function startExtMode() {
+    const keywords = input.split("\n").map(k => k.trim()).filter(Boolean).slice(0, 20)
+    if (!keywords.length || running || extRunning) return
+    const initial = keywords.map((kw, i) => ({
+      keyword: kw, google: null, yahoo: null, kd: null,
+      status: (i === 0 ? "loading" : "idle") as Row["status"],
+    }))
+    setRows(initial)
+    rowsRef.current = initial
+    extIdxRef.current = 0
+    setDone(0)
+    setExtRunning(true)
+    setGuideIdx(null)
+    openExtKeyword(keywords[0])
+  }
+
+  function stopExtMode() {
+    if (extTimeout.current) clearTimeout(extTimeout.current)
+    extIdxRef.current = -1
+    setExtRunning(false)
+  }
+
+  // ── Auto-fetch mode (CORS proxy) ───────────────────────────────────────────
+
   async function autoSearch() {
     const keywords = input.split("\n").map(k => k.trim()).filter(Boolean).slice(0, 20)
-    if (!keywords.length || running) return
+    if (!keywords.length || running || extRunning) return
     abortRef.current = false
     setRunning(true); setDone(0); setGuideIdx(null)
     setRows(keywords.map(kw => ({ keyword: kw, google: null, yahoo: null, kd: null, status: "idle" })))
@@ -147,9 +220,10 @@ export default function SeoPage() {
   }
 
   // ── Guided manual mode ─────────────────────────────────────────────────────
+
   function startGuide() {
     const keywords = input.split("\n").map(k => k.trim()).filter(Boolean).slice(0, 20)
-    if (!keywords.length) return
+    if (!keywords.length || running || extRunning) return
     setRows(keywords.map(kw => ({ keyword: kw, google: null, yahoo: null, kd: null, status: "idle" })))
     setGuideIdx(0)
     openLookup(keywords[0])
@@ -164,10 +238,7 @@ export default function SeoPage() {
   const guideNext = useCallback(() => {
     if (guideIdx === null) return
     const next = guideIdx + 1
-    if (next >= rows.length) {
-      setGuideIdx(null)
-      return
-    }
+    if (next >= rows.length) { setGuideIdx(null); return }
     patchRow(rows[guideIdx].keyword, { status: "done" })
     setGuideIdx(next)
     openLookup(rows[next].keyword)
@@ -177,7 +248,8 @@ export default function SeoPage() {
     if (guideIdx !== null) setTimeout(() => kdRef.current?.focus(), 50)
   }, [guideIdx])
 
-  // ── Copy ──────────────────────────────────────────────────────────────────
+  // ── Copy TSV ──────────────────────────────────────────────────────────────
+
   function copyTsv() {
     const header = "キーワード\tKD\tYahoo月間\tGoogle月間"
     const body = rows.map(r =>
@@ -189,6 +261,7 @@ export default function SeoPage() {
   }
 
   const guideRow = guideIdx !== null ? rows[guideIdx] : null
+  const anyRunning = running || extRunning
 
   return (
     <div className="max-w-3xl mx-auto px-5 py-8">
@@ -207,47 +280,69 @@ export default function SeoPage() {
           rows={6}
           className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] resize-none transition-colors"
         />
+
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[0.73rem] text-[var(--text-3)]">{kwCount} / 20</span>
           <div className="flex-1" />
-          {running && (
-            <button onClick={() => { abortRef.current = true }}
-              className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.75rem] text-[var(--text-3)] hover:text-red-400 hover:border-red-400/50 transition-colors">
+
+          {anyRunning && (
+            <button
+              onClick={() => { abortRef.current = true; stopExtMode() }}
+              className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.75rem] text-[var(--text-3)] hover:text-red-400 hover:border-red-400/50 transition-colors"
+            >
               停止
             </button>
           )}
-          {/* Guided mode: reliable, opens aramakijake.jp in one named window */}
+
+          {/* Guided manual mode */}
           <button
             onClick={startGuide}
-            disabled={running || !input.trim()}
+            disabled={anyRunning || !input.trim()}
             title="aramakijake.jpをブラウザで開き、数値を手入力するモード"
             className={cn(
               "flex items-center gap-1.5 px-4 py-1.5 rounded border text-[0.78rem] font-medium transition-all",
-              running || !input.trim()
+              anyRunning || !input.trim()
                 ? "border-[var(--border)] text-[var(--text-3)] cursor-not-allowed"
                 : "border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)]"
             )}
           >
             <Icon name="open_in_new" size={14} />
-            手入力モード
+            手入力
           </button>
-          {/* Auto mode: tries CORS proxy */}
+
+          {/* CORS proxy auto mode */}
           <button
             onClick={autoSearch}
-            disabled={running || !input.trim()}
+            disabled={anyRunning || !input.trim()}
             className={cn(
-              "flex items-center gap-1.5 px-4 py-1.5 rounded text-[0.78rem] font-medium transition-all",
-              running || !input.trim()
-                ? "bg-[var(--bg-2)] border border-[var(--border)] text-[var(--text-3)] cursor-not-allowed"
-                : "bg-[var(--text)] text-[var(--bg)] hover:opacity-90"
+              "flex items-center gap-1.5 px-4 py-1.5 rounded border text-[0.78rem] font-medium transition-all",
+              anyRunning || !input.trim()
+                ? "border-[var(--border)] text-[var(--text-3)] cursor-not-allowed"
+                : "border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)]"
             )}
           >
             <Icon name="search" size={14} />
             自動取得
           </button>
+
+          {/* Extension mode — most reliable */}
+          <button
+            onClick={startExtMode}
+            disabled={anyRunning || !input.trim()}
+            title="Chrome拡張機能が必要。自動で全キーワードを順番に取得します。"
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-1.5 rounded text-[0.78rem] font-medium transition-all",
+              anyRunning || !input.trim()
+                ? "bg-[var(--bg-2)] border border-[var(--border)] text-[var(--text-3)] cursor-not-allowed"
+                : "bg-[var(--text)] text-[var(--bg)] hover:opacity-90"
+            )}
+          >
+            <Icon name="extension" size={14} />
+            拡張機能モード
+          </button>
         </div>
 
-        {running && (
+        {anyRunning && (
           <div className="flex flex-col gap-1.5">
             <div className="h-1 bg-[var(--border)] rounded overflow-hidden">
               <div className="h-full bg-[var(--highlight)] transition-all duration-500"
@@ -256,6 +351,20 @@ export default function SeoPage() {
             <p className="text-[0.72rem] text-[var(--text-3)]">{done} / {rows.length} 取得中…</p>
           </div>
         )}
+
+        {/* Extension install instructions */}
+        <details className="text-[0.72rem] text-[var(--text-3)] border border-[var(--border)] rounded-lg px-3 py-2">
+          <summary className="cursor-pointer select-none hover:text-[var(--text)] transition-colors font-medium">
+            拡張機能のインストール方法（初回のみ）
+          </summary>
+          <ol className="mt-2.5 ml-3 list-decimal space-y-1.5 leading-relaxed">
+            <li>このリポジトリの <code className="bg-[var(--bg-2)] px-1 rounded">seo-extension/</code> フォルダをPC上に用意する</li>
+            <li>Chromeで <code className="bg-[var(--bg-2)] px-1 rounded">chrome://extensions</code> を開く</li>
+            <li>右上「デベロッパーモード」を ON にする</li>
+            <li>「パッケージ化されていない拡張機能を読み込む」→ <code className="bg-[var(--bg-2)] px-1 rounded">seo-extension</code> フォルダを選択</li>
+            <li>「拡張機能モード」ボタンを押すと自動で全キーワードを順番に取得</li>
+          </ol>
+        </details>
       </div>
 
       {/* Guided mode panel */}
@@ -279,7 +388,7 @@ export default function SeoPage() {
           <div className="grid grid-cols-3 gap-3">
             {([
               { label: "KD (Ahrefs)", key: "kd" as const, ref: kdRef },
-              { label: "Yahoo 月間", key: "yahoo" as const, ref: undefined },
+              { label: "Yahoo 月間",  key: "yahoo" as const, ref: undefined },
               { label: "Google 月間", key: "google" as const, ref: undefined },
             ] as Array<{ label: string; key: "kd" | "yahoo" | "google"; ref: React.RefObject<HTMLInputElement> | undefined }>).map(({ label, key, ref }) => (
               <label key={key} className="flex flex-col gap-1">
@@ -350,7 +459,7 @@ export default function SeoPage() {
               </thead>
               <tbody>
                 {rows.map((r, ri) => {
-                  const isActive = guideIdx === ri
+                  const isActive = guideIdx === ri || (extRunning && extIdxRef.current === ri)
                   const loading  = r.status === "loading"
                   return (
                     <tr key={r.keyword}
@@ -381,7 +490,7 @@ export default function SeoPage() {
           </div>
 
           <p className="text-[0.68rem] text-[var(--text-3)] leading-relaxed">
-            「自動取得」はCORSプロキシ経由で取得を試みます（ブロックされる場合は⚠）。「手入力モード」は各キーワードをブラウザで順番に開き、数値を手入力します。KDはAhrefs手動入力。コピー後、ExcelまたはGoogle Sheetsに貼り付け。
+            「拡張機能モード」は最も確実。「自動取得」はCORSプロキシ経由（ブロックされると⚠）。「手入力」は手動入力。KDはAhrefs手動入力。コピー後、ExcelまたはGoogle Sheetsに貼り付け。
           </p>
         </div>
       )}
