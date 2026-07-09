@@ -10,7 +10,7 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://app.ahrefs.com/keywords-explorer/*"],
+      "matches": ["https://ahrefs.com/keyword-difficulty/*"],
       "js": ["content-ahrefs.js"],
       "run_at": "document_idle"
     }

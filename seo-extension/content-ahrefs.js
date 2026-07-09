@@ -1,7 +1,6 @@
 ;(function () {
-  // Keyword from URL — Ahrefs uses ?keyword= in keywords-explorer
-  var keyword = new URLSearchParams(location.search).get('keyword') ||
-                new URLSearchParams(location.search).get('keywords') || ''
+  // URL uses ?input= for the keyword
+  var keyword = new URLSearchParams(location.search).get('input') || ''
   var sent = false
 
   function getFullText() {
@@ -28,19 +27,24 @@
   function extractKD() {
     var text = getFullText()
 
-    // Ahrefs shows KD as a 0–100 number near the "KD" label in the overview panel
-    var patterns = [
-      /\bKD\b\s*(\d{1,3})\b/,
-      /[Kk]eyword\s*[Dd]ifficulty\s*(\d{1,3})\b/,
-    ]
-    for (var i = 0; i < patterns.length; i++) {
-      var m = text.match(patterns[i])
-      if (m) {
-        var kd = parseInt(m[1], 10)
-        if (kd >= 0 && kd <= 100) return kd
-      }
+    // KD appears right after the "SERP & KD" heading
+    var marker = 'SERP & KD'
+    var idx = text.indexOf(marker)
+    if (idx === -1) return null
+
+    // Look at the next ~150 chars for the first number 0–100
+    var section = text.slice(idx + marker.length, idx + marker.length + 150)
+    var m = section.match(/\b(\d{1,3})\b/)
+    if (m) {
+      var kd = parseInt(m[1], 10)
+      if (kd >= 0 && kd <= 100) return kd
     }
     return null
+  }
+
+  function noDataOnPage(text) {
+    // Ahrefs shows nothing / not enough data message sometimes
+    return /not enough data|データ不足|no data/i.test(text)
   }
 
   function sendResult(kd) {
@@ -59,20 +63,28 @@
 
   function tryExtract() {
     if (sent) return
-    var kd = extractKD()
-    if (kd !== null) sendResult(kd)
+    var text = getFullText()
+
+    // If we can see "SERP & KD" heading the page has loaded
+    if (text.indexOf('SERP & KD') !== -1) {
+      var kd = extractKD()
+      sendResult(kd) // send whatever we found (null = no data)
+      return
+    }
+
+    if (noDataOnPage(text)) {
+      sendResult(null)
+    }
   }
 
   var observer = new MutationObserver(function () { tryExtract() })
 
-  // Ahrefs is a SPA — give it more time before first attempt
   setTimeout(function () {
     observer.observe(document.body, { childList: true, subtree: true, characterData: true })
     tryExtract()
-    // Hard stop after 30s — send null so tool moves on
     setTimeout(function () {
       observer.disconnect()
       if (!sent) sendResult(null)
-    }, 30000)
-  }, 3000)
+    }, 25000)
+  }, 1500)
 })()

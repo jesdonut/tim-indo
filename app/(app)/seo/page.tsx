@@ -171,7 +171,7 @@ export default function SeoPage() {
   function openAhrefsKeyword(keyword: string) {
     if (ahrefsTimeout.current) clearTimeout(ahrefsTimeout.current)
     ahrefsKwRef.current = keyword
-    const url = `https://app.ahrefs.com/keywords-explorer/google/jp/overview?keyword=${encodeURIComponent(keyword)}`
+    const url = `https://ahrefs.com/keyword-difficulty/?country=jp&input=${encodeURIComponent(keyword)}`
     ahrefsWinRef.current = window.open(url, "ahrefs-lookup")
     ahrefsTimeout.current = setTimeout(() => {
       if (ahrefsIdxRef.current < 0) return
