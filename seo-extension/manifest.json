@@ -1,12 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Tim Indo SEO Helper",
-  "version": "1.0",
-  "description": "Reads keyword volumes from aramakijake.jp and sends them back to the SEO tool",
+  "version": "1.2",
+  "description": "Reads keyword volumes from aramakijake.jp and KD from Ahrefs",
   "content_scripts": [
     {
       "matches": ["https://aramakijake.jp/keyword/*"],
       "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://app.ahrefs.com/keywords-explorer/*"],
+      "js": ["content-ahrefs.js"],
       "run_at": "document_idle"
     }
   ]

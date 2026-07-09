@@ -104,9 +104,10 @@ function NumCell({
 export default function SeoPage() {
   const [input, setInput]       = useState("")
   const [rows, setRows]         = useState<Row[]>([])
-  const [running, setRunning]   = useState(false)
+  const [running, setRunning]       = useState(false)
   const [extRunning, setExtRunning] = useState(false)
-  const [done, setDone]         = useState(0)
+  const [ahrefsRunning, setAhrefsRunning] = useState(false)
+  const [done, setDone]             = useState(0)
   const [copied, setCopied]     = useState(false)
   const [guideIdx, setGuideIdx] = useState<number | null>(null)
 
@@ -114,11 +115,17 @@ export default function SeoPage() {
   const lookupWindowRef = useRef<Window | null>(null)
   const kdRef           = useRef<HTMLInputElement>(null)
 
-  // Refs kept in sync for the message handler (avoids stale closures)
-  const rowsRef      = useRef<Row[]>([])
-  const extIdxRef    = useRef(-1)
-  const extTimeout   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Refs for aramakijake extension mode
+  const rowsRef       = useRef<Row[]>([])
+  const extIdxRef     = useRef(-1)
+  const extTimeout    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const expectedKwRef = useRef<string | null>(null)
+
+  // Refs for Ahrefs KD mode
+  const ahrefsIdxRef  = useRef(-1)
+  const ahrefsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const ahrefsKwRef   = useRef<string | null>(null)
+  const ahrefsWinRef  = useRef<Window | null>(null)
 
   useEffect(() => { rowsRef.current = rows }, [rows])
 
@@ -159,20 +166,70 @@ export default function SeoPage() {
     }
   }
 
-  // Listen for postMessage from the extension content script
+  // ── Ahrefs KD mode ────────────────────────────────────────────────────────
+
+  function openAhrefsKeyword(keyword: string) {
+    if (ahrefsTimeout.current) clearTimeout(ahrefsTimeout.current)
+    ahrefsKwRef.current = keyword
+    const url = `https://app.ahrefs.com/keywords-explorer/google/jp/overview?keyword=${encodeURIComponent(keyword)}`
+    ahrefsWinRef.current = window.open(url, "ahrefs-lookup")
+    ahrefsTimeout.current = setTimeout(() => {
+      if (ahrefsIdxRef.current < 0) return
+      advanceAhrefs()
+    }, 35000)
+  }
+
+  function advanceAhrefs() {
+    const next = ahrefsIdxRef.current + 1
+    ahrefsIdxRef.current = next
+    if (next < rowsRef.current.length) {
+      openAhrefsKeyword(rowsRef.current[next].keyword)
+    } else {
+      ahrefsIdxRef.current = -1
+      setAhrefsRunning(false)
+      ahrefsWinRef.current?.close()
+    }
+  }
+
+  function startAhrefsMode() {
+    if (!rowsRef.current.length || ahrefsRunning || running || extRunning) return
+    ahrefsIdxRef.current = 0
+    setDone(0)
+    setAhrefsRunning(true)
+    openAhrefsKeyword(rowsRef.current[0].keyword)
+  }
+
+  function stopAhrefsMode() {
+    if (ahrefsTimeout.current) clearTimeout(ahrefsTimeout.current)
+    ahrefsIdxRef.current = -1
+    setAhrefsRunning(false)
+  }
+
+  // Listen for postMessage from both extension content scripts
   useEffect(() => {
     function handler(e: MessageEvent) {
-      if (e.data?.type !== "aramaki-result" || extIdxRef.current < 0) return
-      if (e.data.keyword !== expectedKwRef.current) return // ignore late/stale messages
-      if (extTimeout.current) clearTimeout(extTimeout.current)
-      const { keyword, google, yahoo } = e.data as { keyword: string; google: number | null; yahoo: number | null }
-      setRows(prev => prev.map(r => r.keyword === keyword ? { ...r, google, yahoo, status: "done" } : r))
-      setDone(extIdxRef.current + 1)
-      advanceExt()
+      // aramakijake results
+      if (e.data?.type === "aramaki-result") {
+        if (extIdxRef.current < 0 || e.data.keyword !== expectedKwRef.current) return
+        if (extTimeout.current) clearTimeout(extTimeout.current)
+        const { keyword, google, yahoo } = e.data as { keyword: string; google: number | null; yahoo: number | null }
+        setRows(prev => prev.map(r => r.keyword === keyword ? { ...r, google, yahoo, status: "done" } : r))
+        setDone(extIdxRef.current + 1)
+        advanceExt()
+      }
+      // Ahrefs KD results
+      if (e.data?.type === "ahrefs-result") {
+        if (ahrefsIdxRef.current < 0 || e.data.keyword !== ahrefsKwRef.current) return
+        if (ahrefsTimeout.current) clearTimeout(ahrefsTimeout.current)
+        const { keyword, kd } = e.data as { keyword: string; kd: number | null }
+        setRows(prev => prev.map(r => r.keyword === keyword ? { ...r, kd } : r))
+        setDone(ahrefsIdxRef.current + 1)
+        advanceAhrefs()
+      }
     }
     window.addEventListener("message", handler)
     return () => window.removeEventListener("message", handler)
-  }, []) // no deps — uses refs throughout
+  }, [])
 
   function startExtMode() {
     const keywords = input.split("\n").map(k => k.trim()).filter(Boolean).slice(0, 20)
@@ -254,9 +311,9 @@ export default function SeoPage() {
   // ── Copy TSV ──────────────────────────────────────────────────────────────
 
   function copyTsv() {
-    const header = "キーワード\tKD\tYahoo月間\tGoogle月間"
+    const header = "キーワード\tYahoo月間\tGoogle月間"
     const body = rows.map(r =>
-      [r.keyword, r.kd ?? "", r.yahoo ?? "", r.google ?? ""].join("\t")
+      [r.keyword, r.yahoo ?? "", r.google ?? ""].join("\t")
     ).join("\n")
     navigator.clipboard.writeText([header, body].join("\n")).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 1600)
@@ -264,7 +321,7 @@ export default function SeoPage() {
   }
 
   const guideRow = guideIdx !== null ? rows[guideIdx] : null
-  const anyRunning = running || extRunning
+  const anyRunning = running || extRunning || ahrefsRunning
 
   return (
     <div className="max-w-3xl mx-auto px-5 py-8">
@@ -290,7 +347,7 @@ export default function SeoPage() {
 
           {anyRunning && (
             <button
-              onClick={() => { abortRef.current = true; stopExtMode() }}
+              onClick={() => { abortRef.current = true; stopExtMode(); stopAhrefsMode() }}
               className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.75rem] text-[var(--text-3)] hover:text-red-400 hover:border-red-400/50 transition-colors"
             >
               停止
@@ -328,7 +385,7 @@ export default function SeoPage() {
             自動取得
           </button>
 
-          {/* Extension mode — most reliable */}
+          {/* Extension mode — most reliable for Yahoo/Google */}
           <button
             onClick={startExtMode}
             disabled={anyRunning || !input.trim()}
@@ -344,6 +401,26 @@ export default function SeoPage() {
             拡張機能モード
           </button>
         </div>
+
+        {/* Second row — Ahrefs KD (only visible once rows exist) */}
+        {rows.length > 0 && (
+          <div className="flex justify-end">
+            <button
+              onClick={startAhrefsMode}
+              disabled={anyRunning}
+              title="AhrefsのKeyword ExplorerでKDを自動取得（要ログイン済みブラウザ）"
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-1.5 rounded border text-[0.78rem] font-medium transition-all",
+                anyRunning
+                  ? "border-[var(--border)] text-[var(--text-3)] cursor-not-allowed"
+                  : "border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)]"
+              )}
+            >
+              <Icon name="extension" size={14} />
+              Ahrefs KD 取得
+            </button>
+          </div>
+        )}
 
         {anyRunning && (
           <div className="flex flex-col gap-1.5">
