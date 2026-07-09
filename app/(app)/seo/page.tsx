@@ -312,7 +312,7 @@ export default function SeoPage() {
 
   function copyTsv() {
     const body = rows.map(r =>
-      [r.keyword, r.kd ?? "", r.yahoo ?? "", r.google ?? ""].join("\t")
+      [r.keyword, r.kd ?? "-", r.yahoo ?? "-", r.google ?? "-"].join("\t")
     ).join("\n")
     navigator.clipboard.writeText(body).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 1600)
