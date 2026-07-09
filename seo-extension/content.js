@@ -1,54 +1,82 @@
 ;(function () {
-  var MAX_ATTEMPTS = 12
-  var RETRY_MS     = 700
+  var MAX_ATTEMPTS = 15
+  var RETRY_MS     = 800
 
   function getKeyword() {
     return new URLSearchParams(location.search).get('keyword') || ''
   }
 
-  function extract() {
-    var text = (document.body.innerText || '').replace(/\s+/g, ' ')
-    var google = null
-    var yahoo  = null
+  function firstVolume(str) {
+    var nums = (str.match(/[\d,]+/g) || [])
+      .map(function (s) { return parseInt(s.replace(/,/g, ''), 10) })
+      .filter(function (n) { return !isNaN(n) && n >= 10 && n < 100000000 })
+    return nums.length ? nums[0] : null
+  }
 
-    // Split on each Google/Yahoo marker and grab the first number after it
+  function scanText(text) {
+    var google = null, yahoo = null
     var segs = text.split(/(?=(?:Google|グーグル|Yahoo|ヤフー))/i)
     for (var i = 0; i < segs.length; i++) {
       var local = segs[i].slice(0, 200)
-      var matches = local.match(/[\d,]{2,}/g)
-      if (!matches) continue
-      var nums = matches
-        .map(function (n) { return parseInt(n.replace(/,/g, ''), 10) })
-        .filter(function (n) { return n > 0 })
-      if (!nums.length) continue
-      if (/Google|グーグル/i.test(local) && google === null) google = nums[0]
-      if (/Yahoo|ヤフー/i.test(local)   && yahoo  === null) yahoo  = nums[0]
+      var vol = firstVolume(local)
+      if (vol === null) continue
+      if (/Google|グーグル/i.test(local) && google === null) google = vol
+      if (/Yahoo|ヤフー/i.test(local)   && yahoo  === null) yahoo  = vol
+    }
+    return { google: google, yahoo: yahoo }
+  }
+
+  function extract() {
+    var keyword = getKeyword()
+
+    // Base text from rendered DOM
+    var baseText = (document.body.innerText || '').replace(/\s+/g, ' ')
+
+    // Also grab values from <input> elements — aramakijake may use readonly inputs
+    // Include the parent element's text as context so Google/Yahoo label travels with the value
+    var extraText = ''
+    var inputs = document.querySelectorAll('input, textarea')
+    for (var i = 0; i < inputs.length; i++) {
+      var inp = inputs[i]
+      var val = (inp.value || '').trim()
+      if (!val || val.length > 30) continue
+      var ctx = inp.parentElement ? (inp.parentElement.innerText || inp.parentElement.textContent || '') : ''
+      extraText += ' ' + ctx + ' ' + val + ' '
     }
 
-    return { keyword: getKeyword(), google: google, yahoo: yahoo }
+    var fullText = (baseText + ' ' + extraText).replace(/\s+/g, ' ')
+
+    // Strategy 1: look inside the 月間 (monthly search) section — most precise
+    var monthMatch = fullText.match(/月間[\s\S]{0,800}/i)
+    if (monthMatch) {
+      var r1 = scanText(monthMatch[0])
+      if (r1.google !== null || r1.yahoo !== null)
+        return { keyword: keyword, google: r1.google, yahoo: r1.yahoo }
+    }
+
+    // Strategy 2: full-page scan
+    var r2 = scanText(fullText)
+    return { keyword: keyword, google: r2.google, yahoo: r2.yahoo }
   }
 
   function trySend(attempts) {
-    var result = extract()
-
-    if (result.google !== null || result.yahoo !== null) {
+    var res = extract()
+    if (res.google !== null || res.yahoo !== null) {
       if (window.opener) {
         try {
           window.opener.postMessage(
-            { type: 'aramaki-result', keyword: result.keyword, google: result.google, yahoo: result.yahoo },
+            { type: 'aramaki-result', keyword: res.keyword, google: res.google, yahoo: res.yahoo },
             '*'
           )
-        } catch (e) {}
+        } catch (_) {}
       }
       return
     }
-
-    // Numbers not in DOM yet — page JS may still be rendering
     if (attempts < MAX_ATTEMPTS) {
       setTimeout(function () { trySend(attempts + 1) }, RETRY_MS)
     }
   }
 
-  // Give the page's own JS time to render before first attempt
-  setTimeout(function () { trySend(0) }, 1200)
+  // Give page JS extra time to render before first attempt
+  setTimeout(function () { trySend(0) }, 1500)
 })()
