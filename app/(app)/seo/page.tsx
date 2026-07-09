@@ -115,9 +115,10 @@ export default function SeoPage() {
   const kdRef           = useRef<HTMLInputElement>(null)
 
   // Refs kept in sync for the message handler (avoids stale closures)
-  const rowsRef    = useRef<Row[]>([])
-  const extIdxRef  = useRef(-1)
-  const extTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const rowsRef      = useRef<Row[]>([])
+  const extIdxRef    = useRef(-1)
+  const extTimeout   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const expectedKwRef = useRef<string | null>(null)
 
   useEffect(() => { rowsRef.current = rows }, [rows])
 
@@ -133,14 +134,15 @@ export default function SeoPage() {
     if (extTimeout.current) clearTimeout(extTimeout.current)
     const url = `https://aramakijake.jp/keyword/?keyword=${encodeURIComponent(keyword)}`
     // Must NOT use noopener — content script needs window.opener to postMessage back
+    expectedKwRef.current = keyword
     lookupWindowRef.current = window.open(url, "seo-lookup")
-    // Fallback: mark error and advance after 12s if no message received
+    // Fallback: advance after 22s if extension sends nothing
     extTimeout.current = setTimeout(() => {
       if (extIdxRef.current < 0) return
       const kw = rowsRef.current[extIdxRef.current]?.keyword
       if (kw) setRows(prev => prev.map(r => r.keyword === kw ? { ...r, status: "error" } : r))
       advanceExt()
-    }, 12000)
+    }, 22000)
   }
 
   function advanceExt() {
@@ -161,6 +163,7 @@ export default function SeoPage() {
   useEffect(() => {
     function handler(e: MessageEvent) {
       if (e.data?.type !== "aramaki-result" || extIdxRef.current < 0) return
+      if (e.data.keyword !== expectedKwRef.current) return // ignore late/stale messages
       if (extTimeout.current) clearTimeout(extTimeout.current)
       const { keyword, google, yahoo } = e.data as { keyword: string; google: number | null; yahoo: number | null }
       setRows(prev => prev.map(r => r.keyword === keyword ? { ...r, google, yahoo, status: "done" } : r))
