@@ -357,8 +357,18 @@ export default function SeoPage() {
           <summary className="cursor-pointer select-none hover:text-[var(--text)] transition-colors font-medium">
             拡張機能のインストール方法（初回のみ）
           </summary>
-          <ol className="mt-2.5 ml-3 list-decimal space-y-1.5 leading-relaxed">
-            <li>このリポジトリの <code className="bg-[var(--bg-2)] px-1 rounded">seo-extension/</code> フォルダをPC上に用意する</li>
+          <div className="mt-2.5 mb-2">
+            <a
+              href="/seo-extension.zip"
+              download="seo-extension.zip"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-[var(--border)] text-[0.72rem] font-medium text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all"
+            >
+              <Icon name="download" size={13} />
+              seo-extension.zip をダウンロード
+            </a>
+          </div>
+          <ol className="mt-1 ml-3 list-decimal space-y-1.5 leading-relaxed">
+            <li>上のボタンからZIPをダウンロードして解凍する</li>
             <li>Chromeで <code className="bg-[var(--bg-2)] px-1 rounded">chrome://extensions</code> を開く</li>
             <li>右上「デベロッパーモード」を ON にする</li>
             <li>「パッケージ化されていない拡張機能を読み込む」→ <code className="bg-[var(--bg-2)] px-1 rounded">seo-extension</code> フォルダを選択</li>
