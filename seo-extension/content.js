@@ -2,54 +2,67 @@
   var keyword = new URLSearchParams(location.search).get('keyword') || ''
   var sent    = false
 
-  function firstVolume(str) {
-    // Strip copyright / date patterns before extracting numbers
-    var cleaned = str.replace(/(?:copyright|©|all\s+rights?|co\.,?\s*ltd\.?)[\s\S]{0,30}/gi, ' ')
-    var nums = (cleaned.match(/[\d,]+/g) || [])
-      .map(function (s) { return parseInt(s.replace(/,/g, ''), 10) })
-      .filter(function (n) { return !isNaN(n) && n >= 10 && n < 100000000 })
-    return nums.length ? nums[0] : null
-  }
-
-  function scanText(text) {
-    var google = null, yahoo = null
-    var segs = text.split(/(?=(?:Google|グーグル|Yahoo|ヤフー))/i)
-    for (var i = 0; i < segs.length; i++) {
-      var local = segs[i].slice(0, 200)
-      var vol = firstVolume(local)
-      if (vol === null) continue
-      if (/Google|グーグル/i.test(local) && google === null) google = vol
-      if (/Yahoo|ヤフー/i.test(local)   && yahoo  === null) yahoo  = vol
-    }
-    return { google: google, yahoo: yahoo }
-  }
-
+  // Walk the DOM in order, capturing text nodes and <input> values
+  // (aramakijake renders volumes into readonly inputs, invisible to innerText)
   function getFullText() {
-    var base = (document.body.innerText || '').replace(/\s+/g, ' ')
-    // Also read <input> values — aramakijake uses readonly inputs for volumes
-    var extra = ''
-    var inputs = document.querySelectorAll('input, textarea')
-    for (var i = 0; i < inputs.length; i++) {
-      var val = (inputs[i].value || '').trim()
-      if (!val || val.length > 30) continue
-      var ctx = inputs[i].parentElement ? (inputs[i].parentElement.innerText || '') : ''
-      extra += ' ' + ctx + ' ' + val + ' '
+    var parts = []
+    function walk(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        var t = (node.textContent || '').trim()
+        if (t) parts.push(t)
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        var tag = node.nodeName.toUpperCase()
+        if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return
+        if (tag === 'INPUT' || tag === 'TEXTAREA') {
+          var v = (node.value || '').trim()
+          if (v) parts.push(v)
+          return
+        }
+        for (var i = 0; i < node.childNodes.length; i++) walk(node.childNodes[i])
+      }
     }
-    return (base + ' ' + extra).replace(/\s+/g, ' ')
+    walk(document.body)
+    return parts.join(' ').replace(/\s+/g, ' ')
+  }
+
+  function extract() {
+    var text = getFullText()
+
+    // Numbers appear between these two markers.
+    // Yahoo label and Google label are images, so we can't look for that text —
+    // but order is always: first number = Yahoo, second number = Google.
+    var START = '月間推定検索数'
+    var END   = 'SEOツール'
+
+    var si = text.indexOf(START)
+    if (si === -1) return { yahoo: null, google: null }
+
+    var section = text.slice(si + START.length)
+    var ei = section.indexOf(END)
+    if (ei !== -1) section = section.slice(0, ei)
+
+    var nums = (section.match(/[\d,]+/g) || [])
+      .map(function (s) { return parseInt(s.replace(/,/g, ''), 10) })
+      .filter(function (n) { return !isNaN(n) && n >= 0 })
+
+    return {
+      yahoo:  nums.length > 0 ? nums[0] : null,
+      google: nums.length > 1 ? nums[1] : null,
+    }
   }
 
   function noDataOnPage(text) {
-    return /データ(が|は)?(見つかり|ありません|取得できません)|検索結果(が|は)?ありません|no[\s\-]?data/i.test(text)
+    return /データ(が|は)?(見つかり|ありません|取得できません)|検索結果(が|は)?ありません/i.test(text)
   }
 
-  function sendResult(google, yahoo) {
+  function sendResult(yahoo, google) {
     if (sent) return
     sent = true
     observer.disconnect()
     if (window.opener) {
       try {
         window.opener.postMessage(
-          { type: 'aramaki-result', keyword: keyword, google: google, yahoo: yahoo },
+          { type: 'aramaki-result', keyword: keyword, yahoo: yahoo, google: google },
           '*'
         )
       } catch (_) {}
@@ -59,32 +72,16 @@
   function tryExtract() {
     if (sent) return
     var text = getFullText()
-
-    if (noDataOnPage(text)) {
-      sendResult(null, null)
-      return
-    }
-
-    // Prefer numbers from the 月間 (monthly search) section
-    var monthMatch = text.match(/月間[\s\S]{0,800}/i)
-    if (monthMatch) {
-      var r1 = scanText(monthMatch[0])
-      if (r1.google !== null || r1.yahoo !== null) { sendResult(r1.google, r1.yahoo); return }
-    }
-
-    // Full-page fallback
-    var r2 = scanText(text)
-    if (r2.google !== null || r2.yahoo !== null) { sendResult(r2.google, r2.yahoo); return }
+    if (noDataOnPage(text)) { sendResult(null, null); return }
+    var r = extract()
+    if (r.yahoo !== null || r.google !== null) sendResult(r.yahoo, r.google)
   }
 
-  // MutationObserver fires as soon as the DOM updates — no fixed polling delay
   var observer = new MutationObserver(function () { tryExtract() })
 
   setTimeout(function () {
     observer.observe(document.body, { childList: true, subtree: true, characterData: true })
-    tryExtract() // try immediately too
-
-    // Hard stop after 20 s — send null so the SEO page can move on
+    tryExtract()
     setTimeout(function () {
       observer.disconnect()
       if (!sent) sendResult(null, null)
