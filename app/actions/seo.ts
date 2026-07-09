@@ -70,7 +70,7 @@ export async function lookupKeyword(keyword: string): Promise<SeoRow> {
   if (!kw) return { keyword: kw, google: null, yahoo: null, kd: null }
 
   try {
-    const url = `https://aramakijake.jp/term/search/?keyword=${encodeURIComponent(kw)}`
+    const url = `https://aramakijake.jp/keyword/?keyword=${encodeURIComponent(kw)}`
     const res = await fetch(url, {
       headers: {
         "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",

@@ -49,7 +49,7 @@ const PROXIES = [
 ]
 
 async function fetchAramaki(keyword: string): Promise<{ yahoo: number | null; google: number | null; error?: string }> {
-  const targetUrl = `https://aramakijake.jp/term/search/?keyword=${encodeURIComponent(keyword)}`
+  const targetUrl = `https://aramakijake.jp/keyword/?keyword=${encodeURIComponent(keyword)}`
 
   for (const makeProxy of PROXIES) {
     try {
@@ -156,7 +156,7 @@ export default function SeoPage() {
   }
 
   function openLookup(keyword: string) {
-    const url = `https://aramakijake.jp/term/search/?keyword=${encodeURIComponent(keyword)}`
+    const url = `https://aramakijake.jp/keyword/?keyword=${encodeURIComponent(keyword)}`
     lookupWindowRef.current = window.open(url, "seo-lookup", "noopener")
     setTimeout(() => kdRef.current?.focus(), 80)
   }
@@ -366,7 +366,7 @@ export default function SeoPage() {
                       <td className="px-3 py-2"><NumCell value={r.yahoo}  onChange={v => patchRow(r.keyword, { yahoo:  v })} loading={loading} /></td>
                       <td className="px-3 py-2"><NumCell value={r.google} onChange={v => patchRow(r.keyword, { google: v })} loading={loading} /></td>
                       <td className="px-3 py-2 text-right">
-                        <a href={`https://aramakijake.jp/term/search/?keyword=${encodeURIComponent(r.keyword)}`}
+                        <a href={`https://aramakijake.jp/keyword/?keyword=${encodeURIComponent(r.keyword)}`}
                           target="_blank" rel="noopener noreferrer"
                           className="text-[var(--text-3)] hover:text-[var(--text)] opacity-0 group-hover:opacity-100 transition-all"
                           title="aramakijake.jpで開く">
