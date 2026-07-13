@@ -20,6 +20,8 @@ const NAV_ITEMS = [
   { href: "/extract",   label: "Extract" },
   { href: "/meetings",  label: "定期面談" },
   { href: "/dispatch",  label: "送り込み" },
+  { href: "/seo",       label: "SEO" },
+  { href: "/kyoryoku",  label: "協力確認書" },
 ]
 
 export default function Nav() {
