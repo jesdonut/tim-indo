@@ -476,7 +476,8 @@ function GenerateTab({
       const selectedStoreList = stores.filter(s => selectedStores.has(s.tenpo_cd))
 
       for (const muni of selectedMuniList) {
-        const folder = zipOut.folder(muni.name_romaji || muni.name) as InstanceType<typeof JSZip>
+        const safeMuni = muni.name.replace(/[/\\:*?"<>|]/g, "")
+        const folder = zipOut.folder(safeMuni) as InstanceType<typeof JSZip>
         const emlAttachments: { name: string; data: Uint8Array }[] = []
 
         for (const store of selectedStoreList) {
@@ -484,16 +485,15 @@ function GenerateTab({
             const pz = new PizZip(templateBuffer)
             const doc = new Docxtemplater(pz, { paragraphLoop: true, linebreaks: true })
             doc.render({
-              MUNICIPALITY: `${muni.name}　御中`,
+              MUNICIPALITY: `${muni.name}長　殿`,
               DATE: dateStr,
               STORE_NAME: store.tenpo_name ?? store.tenpo_cd,
               STORE_ADDRESS: store.address ?? "",
               COMPANY,
             })
             const outBuf = doc.getZip().generate({ type: "arraybuffer" })
-            const safeName = (store.tenpo_name ?? store.tenpo_cd).replace(/[/\\:*?"<>|]/g, "_")
-            const safeRomaji = (muni.name_romaji || muni.name).replace(/\s+/g, "_")
-            const filename = `kyoryokukakuninsho_${safeRomaji}_${safeName}.docx`
+            const safeStore = (store.tenpo_name ?? store.tenpo_cd).replace(/[/\\:*?"<>|]/g, "")
+            const filename = `協力確認書_${safeMuni}_${safeStore}.docx`
             folder.file(filename, outBuf)
             emlAttachments.push({ name: filename, data: new Uint8Array(outBuf) })
             addLog(`✓ ${muni.name} × ${store.tenpo_name ?? store.tenpo_cd}`, "success")
@@ -503,10 +503,9 @@ function GenerateTab({
         }
 
         if (muni.submission_method === "email" && muni.email) {
-          const body = `${muni.name}　ご担当者様\n\nお世話になっております。\n${COMPANY}でございます。\n\n協力確認書をお送りいたします。\nご確認のほどよろしくお願いいたします。`
+          const body = `${muni.name}長　殿\n\nお世話になっております。\n${COMPANY}でございます。\n\n協力確認書をお送りいたします。\nご確認のほどよろしくお願いいたします。`
           const eml = buildEml(muni.email, `協力確認書 送付 – ${muni.name}`, body, emlAttachments)
-          const safeRomaji = (muni.name_romaji || muni.name).replace(/\s+/g, "_")
-          folder.file(`${safeRomaji}_draft.eml`, eml)
+          folder.file(`${safeMuni}_draft.eml`, eml)
           addLog(`📧 ${muni.name}: .emlドラフト作成`, "info")
         } else if (muni.submission_method === "form" && muni.form_url) {
           addLog(`🔗 ${muni.name}: フォームURL → ${muni.form_url}`, "info")
