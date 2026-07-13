@@ -12,7 +12,6 @@ const AUTH_PATHS   = ["/login", "/signup", "/verify", "/join-team"]
 const NAV_ITEMS = [
   { href: "/people",   label: "People" },
   { href: "/maps",     label: "Maps" },
-  { href: "/links",    label: "Moodboard" },
   { href: "/pdf",      label: "PDF" },
   { href: "/translate",label: "Translate" },
   { href: "/builder",  label: "Builder" },

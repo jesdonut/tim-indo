@@ -7,7 +7,6 @@ Private internal tools for a small Indonesia-based team working in Japan. Requir
 | Page | What it does |
 |------|-------------|
 | **Database** | Shared team data viewer |
-| **Moodboard** | Team link board — draggable cards, pinnable, categorised |
 | **PDF** | Merge, compress, and package document sets (在留カード etc.) |
 | **Translate** | Japanese → EN / ID with romaji and furigana |
 | **Builder** | Paste Excel columns, stitch them into strings row by row with formula columns |

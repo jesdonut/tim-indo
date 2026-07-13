@@ -30,12 +30,31 @@ export async function getTenpoStores(): Promise<{ stores: TenpoStore[] } | { err
       .order("tenpo_cd")
       .range(from, from + PAGE - 1)
     if (error) return { error: error.message }
-    const rows = (data ?? []) as unknown as TenpoStore[]
+    // Numeric columns (tenpo_cd, zip, area_cd …) come back as JS numbers.
+    // Coerce to strings so the UI can safely call string methods on them.
+    const rows = (data ?? []).map(r => normalizeStore(r as Record<string, unknown>))
     all.push(...rows)
     if (rows.length < PAGE) break
   }
 
   return { stores: all }
+}
+
+const str = (v: unknown): string | null =>
+  v === null || v === undefined || v === "" ? null : String(v)
+
+function normalizeStore(r: Record<string, unknown>): TenpoStore {
+  return {
+    tenpo_cd:   String(r.tenpo_cd ?? ""),
+    tenpo_name: str(r.tenpo_name),
+    zip:        str(r.zip),
+    prefecture: str(r.prefecture),
+    address:    str(r.address),
+    tel:        str(r.tel),
+    area_cd:    str(r.area_cd),
+    gm:         str(r.gm),
+    am:         str(r.am),
+  }
 }
 
 export async function addTenpoStore(

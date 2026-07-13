@@ -132,7 +132,8 @@ export default function StoresTab() {
   }
 
   function startEdit(code: string, key: EditableKey, current: string | null) {
-    setEditing({ code, key }); setEditValue(current ?? "")
+    setEditing({ code, key })
+    setEditValue(current == null ? "" : String(current))
   }
 
   async function commitEdit() {
@@ -165,7 +166,9 @@ export default function StoresTab() {
   const filtered = (stores ?? []).filter(s => {
     const q = search.trim().toLowerCase()
     if (!q) return true
-    return [s.tenpo_cd, s.tenpo_name, s.address, s.prefecture].some(v => (v ?? "").toLowerCase().includes(q))
+    // String(...) guards against numeric columns coming back as JS numbers.
+    return [s.tenpo_cd, s.tenpo_name, s.address, s.prefecture]
+      .some(v => String(v ?? "").toLowerCase().includes(q))
   })
 
   return (
