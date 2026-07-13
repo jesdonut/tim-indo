@@ -18,8 +18,6 @@ const NAV_ITEMS = [
   { href: "/area",      label: "Area" },
   { href: "/extract",   label: "Extract" },
   { href: "/meetings",  label: "定期面談" },
-  { href: "/dispatch",  label: "送り込み" },
-  { href: "/seo",       label: "SEO" },
 ]
 
 export default function Nav() {
