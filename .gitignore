@@ -43,3 +43,6 @@ next-env.d.ts
 # local data files — never commit, upload via the app instead
 /grasp-data-main/
 /grasp-data-indonesia/
+
+# generated 協力確認書 PDFs
+協力確認書_*.pdf
