@@ -36,6 +36,29 @@ function parseCsv(s) {
 const sq = v => (v === null || v === undefined || v === "" ? "null" : `'${String(v).replace(/'/g, "''")}'`)
 const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/
 
+// ── 自治体名の正規化 ──────────────────────────────────────────────────────────
+// 宛名に使う形へ: 都道府県なし・郡なし・空白/改行なし・末尾「長」なし。
+// 政令指定都市は市レベル（区ではない）— チームの申請先URLが市で一本化されている。
+// 東京23区は特別区＝それ自体が自治体なので区のまま。
+const SEIREI = ["札幌市","仙台市","さいたま市","千葉市","横浜市","川崎市","相模原市","新潟市","静岡市","浜松市","名古屋市","京都市","大阪市","堺市","神戸市","岡山市","広島市","北九州市","福岡市","熊本市"]
+const PREFS = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"]
+const TRICKY = ["四日市市", "廿日市市", "野々市市"] // 名前に「市」を含む市
+
+function canonMuni(raw) {
+  let a = (raw ?? "").split("\n")[0]              // 改行で2自治体が連結された行は先頭のみ
+    .replace(/[\s　]/g, "")
+    .replace(/長$/, "")                            // 「大崎上島町長」→「大崎上島町」
+  if (!a) return null
+  for (const p of PREFS) if (a.startsWith(p)) { a = a.slice(p.length); break }
+  a = a.replace(/^.*?郡/, "")                      // 郡名は含めない
+  for (const t of TRICKY) if (a.startsWith(t)) return t
+  for (const s of SEIREI) if (a.startsWith(s)) return s
+  const m = a.match(/^(.+?[市区町村])/)
+  if (m) return m[1]
+  // 「東京都千代田」のように市区町村が欠けている → 区として補完
+  return a ? a + "区" : null
+}
+
 // 「2025年11月28日」「2025年12月01日」→ 2025-11-28
 function parseDate(raw) {
   const t = (raw ?? "").split("\n")[0].trim()
@@ -103,6 +126,9 @@ rows.forEach((r, i) => {
   const storeName = get("name")
   const addr = get("addr")
 
+  // 順番だけが入った空白行（スプレッドシートの区切り行）は取り込まない
+  if (!storeName && !get("code") && !addr) return
+
   const { method, email, note } = parseMethod(r[C.method])
   const date = parseDate(r[C.date])
 
@@ -117,14 +143,23 @@ rows.forEach((r, i) => {
     errors.push({ line, store: storeName, reason: `住所に移動先/複数店舗が混在: ${JSON.stringify(addr).slice(0, 80)}…` })
   }
 
-  // ── 自治体（重複排除・最初の非空値を採用） ──
-  if (muniName) {
-    const cur = munis.get(muniName) ?? { name: muniName, method: "未調査", email: null, form_url: null, notes: null }
+  // ── 自治体（正規化してから重複排除・最初の非空値を採用） ──
+  const canon = canonMuni(muniName)
+  if (canon) {
+    const cur = munis.get(canon) ?? { name: canon, method: "未調査", email: null, form_url: null, notes: null }
     if (cur.method === "未調査" && method && method !== "未調査") cur.method = method
     cur.email ??= email
-    cur.form_url ??= (get("link").split("\n")[0] || null)
+    // form_url にメールアドレスが入っている行があるので弾く
+    const link = get("link").split("\n")[0]
+    cur.form_url ??= (/^https?:\/\//.test(link) ? link : null)
     cur.notes ??= ([note, get("notes")].filter(Boolean).join(" / ") || null)
-    munis.set(muniName, cur)
+    munis.set(canon, cur)
+  }
+
+  // ── 住所から導いた自治体と宛名が食い違う行を報告（誤った宛名でPDFが出るのを防ぐ） ──
+  const fromAddr = canonMuni(addr.split("\n")[0].replace(/^〒?\s*\d{3}-?\d{4}\s*/, ""))
+  if (canon && fromAddr && canon !== fromAddr) {
+    errors.push({ line, store: storeName, reason: `宛名「${canon}」と住所「${fromAddr}」が不一致 — 要確認` })
   }
 
   // ── ステータス ──
@@ -139,7 +174,7 @@ rows.forEach((r, i) => {
     store_code: get("code") || null,
     store_name: storeName || null,
     store_address: addressLooksBroken(addr) ? addr.split("\n")[0] : (addr || null),
-    muni: muniName || null,
+    muni: canon,                       // 正規化済みの名前で紐付ける
     status,
     submitted_at: date || null,
     receipt_number: receipt,
