@@ -16,13 +16,26 @@ export type TenpoStore = {
 
 const COLS = "tenpo_cd, tenpo_name, zip, prefecture, address, tel, area_cd, gm, am"
 
-export async function getTenpoStores(): Promise<TenpoStore[]> {
+// Supabase caps a select at 1000 rows, so page through until we have them all.
+// Errors are returned (not swallowed) so the UI can show what actually broke.
+export async function getTenpoStores(): Promise<{ stores: TenpoStore[] } | { error: string }> {
   const supabase = await createClient()
-  const { data } = await supabase
-    .from("tenpo_master")
-    .select(COLS)
-    .order("tenpo_cd")
-  return (data ?? []) as unknown as TenpoStore[]
+  const PAGE = 1000
+  const all: TenpoStore[] = []
+
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("tenpo_master")
+      .select(COLS)
+      .order("tenpo_cd")
+      .range(from, from + PAGE - 1)
+    if (error) return { error: error.message }
+    const rows = (data ?? []) as unknown as TenpoStore[]
+    all.push(...rows)
+    if (rows.length < PAGE) break
+  }
+
+  return { stores: all }
 }
 
 export async function addTenpoStore(

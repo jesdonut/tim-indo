@@ -69,11 +69,26 @@ export default function StoresTab() {
   const [pasteResult, setPasteResult] = useState<string | null>(null)
 
   async function load() {
-    try { setStores(await getTenpoStores()) } catch { setStores([]) }
+    try {
+      const res = await getTenpoStores()
+      if ("error" in res) { setErr(`店舗の読み込みに失敗しました: ${res.error}`); setStores([]); return }
+      setErr(null); setStores(res.stores)
+    } catch (e) {
+      setErr(`店舗の読み込みに失敗しました: ${String(e)}`); setStores([])
+    }
   }
   useEffect(() => {
     let alive = true
-    getTenpoStores().then(d => { if (alive) setStores(d) }).catch(() => { if (alive) setStores([]) })
+    getTenpoStores()
+      .then(res => {
+        if (!alive) return
+        if ("error" in res) { setErr(`店舗の読み込みに失敗しました: ${res.error}`); setStores([]) }
+        else setStores(res.stores)
+      })
+      .catch(e => {
+        if (!alive) return
+        setErr(`店舗の読み込みに失敗しました: ${String(e)}`); setStores([])
+      })
     return () => { alive = false }
   }, [])
 
