@@ -1,20 +1,14 @@
 -- 協力確認書: 自治体マスタのクリーンアップ
--- seed で取り込んだ自治体名は CSV の生値のため、都道府県・郡・全角空白・改行・
--- 末尾の「長」が混入し、同じ自治体が最大9行に重複していた（114行 → 94行）。
--- 宛名にそのまま使うため、正規化して重複を統合する。
---   ・都道府県／郡は含めない
+-- seed の自治体名は CSV の生値。都道府県・郡・全角空白・改行・末尾「長」が混入し、
+-- 同じ自治体が最大9行に重複していた（114行 → 94行）。宛名にそのまま使うため正規化する。
+--   ・都道府県／郡は含めない（ただし「郡山市」のように名前に郡を含む市は壊さない）
 --   ・政令指定都市は市レベル（申請先URLが市で一本化されているため）
 --   ・東京23区は特別区＝自治体そのものなので区のまま
+-- ※ Supabase SQLエディタは文ごとにコミットするため、temp table ではなく通常テーブルを使う。
 
-begin;
-
--- 1) スプレッドシートの区切り行由来の空レコードを削除
-delete from public.kyoryoku_submissions
-where store_name is null and store_code is null and store_address is null;
-
--- 2) 生の名前 → 正規名 の対応表
-create temp table muni_map(raw text primary key, canon text) on commit drop;
-insert into muni_map(raw, canon) values
+drop table if exists _muni_map;
+create table _muni_map(raw text primary key, canon text);
+insert into _muni_map(raw, canon) values
   ('北海道石狩市', '石狩市'),
   ('東京都中央区', '中央区'),
   ('横浜市中区', '横浜市'),
@@ -48,11 +42,11 @@ insert into muni_map(raw, canon) values
   ('長崎県島原市', '島原市'),
   ('静岡県熱海市', '熱海市'),
   ('静岡県掛川市', '掛川市'),
-  ('三重県四日市', '四日市'),
+  ('三重県四日市', '四日市市'),
   ('広島県福山市', '福山市'),
   ('岡山県瀬戸内市', '瀬戸内市'),
   ('埼玉県戸田市', '戸田市'),
-  ('福島県郡山市', '山市'),
+  ('福島県郡山市', '郡山市'),
   ('徳島県鳴門市', '鳴門市'),
   ('栃木県小山市', '小山市'),
   ('千葉県流山市', '流山市'),
@@ -131,10 +125,15 @@ insert into muni_map(raw, canon) values
   ('長崎県　島原市', '島原市'),
   ('福岡県　豊前市', '豊前市');
 
--- 3) 正規名ごとに「残す1行」を決める（情報が埋まっている行を優先）
-create temp table keeper on commit drop as
+-- 空レコード（スプレッドシートの区切り行）を削除
+delete from public.kyoryoku_submissions
+where store_name is null and store_code is null and store_address is null;
+
+-- 正規名ごとに残す1行を決める（情報が埋まっている行を優先）
+drop table if exists _keeper;
+create table _keeper as
 select distinct on (mm.canon) mm.canon, m.id as keep_id
-from muni_map mm
+from _muni_map mm
 join public.municipalities m on m.name = mm.raw
 order by mm.canon,
          (m.email is not null) desc,
@@ -142,36 +141,32 @@ order by mm.canon,
          (m.submission_method <> '未調査') desc,
          m.id;
 
--- 4) 提出記録を keeper に付け替え
+-- 提出記録を keeper に付け替え
 update public.kyoryoku_submissions s
 set municipality_id = k.keep_id
 from public.municipalities m
-join muni_map mm on mm.raw = m.name
-join keeper k on k.canon = mm.canon
-where s.municipality_id = m.id
-  and s.municipality_id <> k.keep_id;
+join _muni_map mm on mm.raw = m.name
+join _keeper k on k.canon = mm.canon
+where s.municipality_id = m.id and s.municipality_id <> k.keep_id;
 
--- 5) keeper 以外の重複行を削除
+-- keeper 以外の重複行を削除
 delete from public.municipalities m
-using muni_map mm, keeper k
-where m.name = mm.raw
-  and k.canon = mm.canon
-  and m.id <> k.keep_id;
+using _muni_map mm, _keeper k
+where m.name = mm.raw and k.canon = mm.canon and m.id <> k.keep_id;
 
--- 6) keeper を正規名にリネーム
+-- keeper を正規名にリネーム
 update public.municipalities m
 set name = k.canon
-from keeper k
-where m.id = k.keep_id
-  and m.name <> k.canon;
+from _keeper k
+where m.id = k.keep_id and m.name <> k.canon;
 
--- 7) form_url にメールアドレスが入っている行を修正（西東京市など）
+-- form_url にメールアドレスが入っている行を修正（西東京市など）
 update public.municipalities
 set email = coalesce(email, form_url), form_url = null
 where form_url is not null and form_url not like 'http%';
 
--- 8) 救世軍恵泉ホーム: 住所は東京都清瀬市、申請URLも city.kiyose.lg.jp。
---    元データの宛名が「綾瀬市」(誤記) になっていたため、清瀬市へ付け替える。
+-- 救世軍恵泉ホーム: 住所は東京都清瀬市、申請URLも city.kiyose.lg.jp。
+-- 元データの宛名が「綾瀬市」(誤記) だったので清瀬市へ付け替える。
 insert into public.municipalities(name, submission_method, form_url)
 select '清瀬市', '電子申請システム',
        'https://www.city.kiyose.lg.jp/kurashi/kurasinosoudan/1009391/1014847.html'
@@ -185,4 +180,5 @@ delete from public.municipalities m
 where m.name = '綾瀬市'
   and not exists (select 1 from public.kyoryoku_submissions s where s.municipality_id = m.id);
 
-commit;
+drop table _muni_map;
+drop table _keeper;

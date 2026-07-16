@@ -50,7 +50,7 @@ const s = StyleSheet.create({
   title: { fontSize: 16, textAlign: "center", marginBottom: 28, letterSpacing: 4 },
   body:  { fontSize: 11, marginBottom: 30 },
   date:  { fontSize: 11, textAlign: "right", marginBottom: 26 },
-  row:   { flexDirection: "row", borderBottom: "1pt solid #000", paddingVertical: 7, alignItems: "flex-start" },
+  row:   { flexDirection: "row", paddingVertical: 7, alignItems: "flex-start" },
   label: { width: 175, fontSize: 10.5 },
   value: { flex: 1, fontSize: 10.5 },
   note:  { fontSize: 8.5, marginTop: 22, color: "#333", lineHeight: 1.5 },

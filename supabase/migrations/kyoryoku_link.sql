@@ -1,14 +1,12 @@
 -- 協力確認書: 自治体が未設定の提出記録を、店舗住所から自治体に紐付ける
 -- ※ kyoryoku_cleanup.sql を先に実行してください（自治体名の正規化が前提）
--- 未設定だった記録が指す自治体は 71。うち 36 は既にマスタにあり調査不要、
--- 35 は新規（'未調査' で作成し、UIの調査キューに出す）。
+-- マスタに無い自治体は '未調査' で作成し、UI の調査キューに出す。
 
-begin;
-
-create temp table addr_map(store_code text, store_name text, muni text) on commit drop;
-insert into addr_map(store_code, store_name, muni) values
+drop table if exists _addr_map;
+create table _addr_map(store_code text, store_name text, muni text);
+insert into _addr_map(store_code, store_name, muni) values
   ('20534', 'エクシブ初島', '熱海市'),
-  ('21280', 'エクシブ山中湖', '山中湖村'),
+  ('21280', 'エクシブ山中湖', '南都留郡山中湖村'),
   ('21827', '静鉄ホテルプレジオ沼津', '沼津市'),
   ('39128', '特別養護老人ホームはっさむはる', '札幌市'),
   ('39264', '介護老人保健施設 望', '小樽市'),
@@ -21,7 +19,7 @@ insert into addr_map(store_code, store_name, muni) values
   ('64914', '博生会本牧病院', '横浜市'),
   ('65005', '宗教法人救世軍清瀬病院', '清瀬市'),
   ('39412', 'アクアピア新百合', '川崎市'),
-  ('39568', '医療法人徳洲会 湘南大磯病院', '大磯町'),
+  ('39568', '医療法人徳洲会 湘南大磯病院', '中郡大磯町'),
   ('39694', 'ブランシエール蔵前', '台東区'),
   ('39572', 'サ高 オウカス志木', '朝霞市'),
   ('39600', 'オウカス世田谷仙川', '世田谷区'),
@@ -59,8 +57,8 @@ insert into addr_map(store_code, store_name, muni) values
   ('35168', 'ダイハツ九州第２工場', '中津市'),
   ('21305', '村田製作所 長岡事業所', '長岡京市'),
   ('21502', '旭化成守山製造所店', '守山市'),
-  ('21005', '花王ファミリークラブ仙石店', '箱根町'),
-  ('21018', '電設・家具みやぎの保養所店', '箱根町'),
+  ('21005', '花王ファミリークラブ仙石店', '足柄下郡箱根町'),
+  ('21018', '電設・家具みやぎの保養所店', '足柄下郡箱根町'),
   ('21050', '相模原市立相模川自然の村店', '相模原市'),
   ('21524', '富士通ヴィラ勝浦', '勝浦市'),
   ('21587', 'エクシブ六甲サンクチュアリヴィ', '神戸市'),
@@ -75,7 +73,7 @@ insert into addr_map(store_code, store_name, muni) values
   ('21633', '鹿島建設本社', '港区'),
   ('21549', 'デルタスカイクラブ羽田', '大田区'),
   ('21661', 'ユナイテッドクラブ成田', '成田市'),
-  ('21268', 'エクシブ白浜アネックス', '白浜町'),
+  ('21268', 'エクシブ白浜アネックス', '西牟婁郡白浜町'),
   ('35132', '株式会社大谷山荘', '長門市'),
   ('35150', '山口県下松市立中学校給食センター', '下松市'),
   ('21771', '港区立港南小学校', '港区'),
@@ -100,7 +98,7 @@ insert into addr_map(store_code, store_name, muni) values
   ('21487', 'TOPPAN小石川店', '文京区'),
   ('21850', '住友精密工業', '尼崎市'),
   ('21543', '東給食センター', '名古屋市'),
-  ('35005', '国立広島商船高等専門学校寮', '大崎上島町'),
+  ('35005', '国立広島商船高等専門学校寮', '豊田郡大崎上島町'),
   ('20054', '第２ＤＩＣ', '千代田区'),
   ('20464', '新宿ルミネ１店キャフェテリア', '新宿区'),
   ('21258', 'キヤノンH棟', '大田区'),
@@ -118,25 +116,23 @@ insert into addr_map(store_code, store_name, muni) values
   ('39541', '特養　かがやきの郷　福楽園', '習志野市'),
   ('39106', 'ハートフルガーデン川和店', '横浜市'),
   ('39193', '成増厚生病院', '板橋区'),
-  ('65113', '介護老人保健施設せせらぎ', '愛川町'),
+  ('65113', '介護老人保健施設せせらぎ', '愛甲郡愛川町'),
   ('39487', '淳英会　おゆみの中央病院', '千葉市'),
   ('39581', 'はなことば新横浜', '横浜市'),
   ('63177', '乙房苑', '都城市'),
   ('64111', '中津市立中津市民病院', '中津市');
 
--- 1) マスタに無い自治体を「未調査」で作成
 insert into public.municipalities(name, submission_method)
 select distinct a.muni, '未調査'
-from addr_map a
+from _addr_map a
 where not exists (select 1 from public.municipalities m where m.name = a.muni);
 
--- 2) 未設定の提出記録を紐付け
 update public.kyoryoku_submissions s
 set municipality_id = m.id
-from addr_map a
+from _addr_map a
 join public.municipalities m on m.name = a.muni
 where s.municipality_id is null
   and coalesce(s.store_code, '') = coalesce(a.store_code, '')
   and coalesce(s.store_name, '') = coalesce(a.store_name, '');
 
-commit;
+drop table _addr_map;
