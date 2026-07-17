@@ -8,10 +8,9 @@ Private internal tools for a small Indonesia-based team working in Japan. Requir
 |------|-------------|
 | **Database** | Shared team data viewer |
 | **PDF** | Merge, compress, and package document sets (在留カード etc.) |
-| **Translate** | Japanese → EN / ID with romaji and furigana |
 | **Builder** | Paste Excel columns, stitch them into strings row by row with formula columns |
 | **Area** | Interactive Japan prefecture map — assign areas to staff, track worker rosters, CSV/JSON import-export |
-| **Extract** | Paste text to extract phone numbers and store context |
+| **Extract** | Name spelling (katakana→spell / romaji), phone-number reading, Leopalace guidebook extract, and phone-number extraction from text |
 
 ## Stack
 

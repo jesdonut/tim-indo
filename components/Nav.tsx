@@ -13,7 +13,6 @@ const NAV_ITEMS = [
   { href: "/people",   label: "People" },
   { href: "/maps",     label: "Maps" },
   { href: "/pdf",      label: "PDF" },
-  { href: "/translate",label: "Translate" },
   { href: "/builder",  label: "Builder" },
   { href: "/area",      label: "Area" },
   { href: "/extract",   label: "Extract" },

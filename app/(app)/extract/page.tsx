@@ -4,12 +4,12 @@ import { useState, useEffect } from "react"
 import { extractGuidebook, lookupPostal, lookupPostalByAddress, type GuidebookData, type PostalResult } from "@/app/actions/extract"
 import { parsePhones, type PhoneEntry } from "@/components/extract/parsePhones"
 import { cn } from "@/lib/cn"
-import { PageHeader, PageContent, PillTabs } from "@/components/PageHeader"
+import { PageHeader, PageContent } from "@/components/PageHeader"
 import { getWorkers, type Worker } from "@/app/actions/workers"
-// Split view is always on — both panels render immediately
+import SpellPanel from "@/components/extract/SpellPanel"
+import PhoneReadPanel from "@/components/extract/PhoneReadPanel"
 
 type CopiedKey = keyof GuidebookData | "all" | null
-type Tab = "url" | "text"
 
 const PREFECTURES = [
   "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
@@ -339,8 +339,6 @@ function UrlPanel({ label }: { label?: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ExtractPage() {
-  const [tab, setTab] = useState<Tab>("url")
-
   const [dumpText, setDumpText]       = useState("")
   const [dumpEntries, setDumpEntries] = useState<PhoneEntry[] | null>(null)
   const [copiedDump, setCopiedDump]   = useState<string | null>(null)
@@ -355,72 +353,76 @@ export default function ExtractPage() {
 
   return (
     <div>
-      <PageHeader title="Extract" right={
-        <PillTabs
-          options={[
-            { value: "url"  as Tab, label: "URL" },
-            { value: "text" as Tab, label: "Text dump" },
-          ]}
-          value={tab}
-          onChange={setTab}
-        />
-      } />
+      <PageHeader title="Extract" />
+      <PageContent>
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          {/* LEFT: name spelling + phone-number reading */}
+          <aside className="w-full lg:w-[340px] shrink-0 flex flex-col gap-8">
+            <SpellPanel />
+            <div className="h-px bg-[var(--border)]" />
+            <PhoneReadPanel />
+          </aside>
 
-      {/* URL tab — always side-by-side */}
-      {tab === "url" && (
-        <PageContent>
-          <div className="flex gap-8">
-            <UrlPanel label="引越し元（現住所）" />
-            <div className="w-px bg-[var(--border)] shrink-0" />
-            <UrlPanel label="引越し先（新住所）" />
-          </div>
-        </PageContent>
-      )}
+          <div className="hidden lg:block w-px self-stretch bg-[var(--border)] shrink-0" />
 
-      {/* Text dump tab */}
-      {tab === "text" && (
-        <PageContent>
-          <div className="flex flex-col gap-4">
-            <textarea
-              className={cn(
-                "w-full min-h-[180px] bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5 resize-y",
-                "text-[var(--text)] text-sm placeholder:text-[var(--text-3)]",
-                "outline-none focus:border-[var(--text)] transition-colors font-mono"
-              )}
-              placeholder={"（電気）東京電力　0120-278-033\n（ガス）曽我部瓦斯　04-7092-1011\nTEL：04-7093-0900"}
-              value={dumpText}
-              onChange={e => { setDumpText(e.target.value); runDump(e.target.value) }}
-            />
-            {dumpEntries && dumpEntries.length === 0 && dumpText.trim() && (
-              <p className="text-sm text-[var(--text-3)]">No phone numbers found.</p>
-            )}
-            {dumpEntries && dumpEntries.length > 0 && (
-              <div className="flex flex-col divide-y divide-[var(--border-soft)]">
-                {dumpEntries.map((e, i) => (
-                  <div key={i} className="flex items-start justify-between gap-3 py-2.5">
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {e.type && (
-                          <span className={cn("text-[0.6rem] font-bold px-1.5 py-0.5 rounded", TYPE_COLORS[e.type] ?? "bg-[var(--bg-2)] text-[var(--text-3)]")}>
-                            {e.type}
-                          </span>
-                        )}
-                        <span className="text-sm font-mono text-[var(--text)]">{e.phone}</span>
-                      </div>
-                      {e.company && <span className="text-[0.75rem] text-[var(--text-2)] truncate">{e.company}</span>}
-                    </div>
-                    <button onClick={() => copyDump(e.phone, `${i}`)}
-                      className={cn("shrink-0 text-[0.65rem] transition-all mt-0.5",
-                        copiedDump === `${i}` ? "text-green-400" : "text-[var(--text-3)] hover:text-[var(--text)]")}>
-                      {copiedDump === `${i}` ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                ))}
+          {/* RIGHT: the two extracts, stacked (guidebook top, phone dump bottom) */}
+          <div className="flex-1 min-w-0 flex flex-col gap-8">
+            {/* URL guidebook extract — 引越し元 / 引越し先 */}
+            <section className="flex flex-col gap-3">
+              <p className="label-xs">引越しガイド抽出</p>
+              <div className="flex flex-col md:flex-row gap-6">
+                <UrlPanel label="引越し元（現住所）" />
+                <div className="hidden md:block w-px bg-[var(--border)] shrink-0" />
+                <UrlPanel label="引越し先（新住所）" />
               </div>
-            )}
+            </section>
+
+            <div className="h-px bg-[var(--border)]" />
+
+            {/* Phone-number text dump */}
+            <section className="flex flex-col gap-3">
+              <p className="label-xs">電話番号の抽出（テキスト貼り付け）</p>
+              <textarea
+                className={cn(
+                  "w-full min-h-[140px] bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5 resize-y",
+                  "text-[var(--text)] text-sm placeholder:text-[var(--text-3)]",
+                  "outline-none focus:border-[var(--text)] transition-colors font-mono"
+                )}
+                placeholder={"（電気）東京電力　0120-278-033\n（ガス）曽我部瓦斯　04-7092-1011\nTEL：04-7093-0900"}
+                value={dumpText}
+                onChange={e => { setDumpText(e.target.value); runDump(e.target.value) }}
+              />
+              {dumpEntries && dumpEntries.length === 0 && dumpText.trim() && (
+                <p className="text-sm text-[var(--text-3)]">No phone numbers found.</p>
+              )}
+              {dumpEntries && dumpEntries.length > 0 && (
+                <div className="flex flex-col divide-y divide-[var(--border-soft)]">
+                  {dumpEntries.map((e, i) => (
+                    <div key={i} className="flex items-start justify-between gap-3 py-2.5">
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {e.type && (
+                            <span className={cn("text-[0.6rem] font-bold px-1.5 py-0.5 rounded", TYPE_COLORS[e.type] ?? "bg-[var(--bg-2)] text-[var(--text-3)]")}>
+                              {e.type}
+                            </span>
+                          )}
+                          <span className="text-sm font-mono text-[var(--text)]">{e.phone}</span>
+                        </div>
+                        {e.company && <span className="text-[0.75rem] text-[var(--text-2)] truncate">{e.company}</span>}
+                      </div>
+                      <button onClick={() => copyDump(e.phone, `${i}`)}
+                        className={cn("shrink-0 text-[0.65rem] transition-all mt-0.5",
+                          copiedDump === `${i}` ? "text-green-400" : "text-[var(--text-3)] hover:text-[var(--text)]")}>
+                        {copiedDump === `${i}` ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
-        </PageContent>
-      )}
+        </div>
+      </PageContent>
     </div>
   )
 }
