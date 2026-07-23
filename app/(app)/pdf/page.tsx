@@ -5,7 +5,7 @@ import Script from "next/script"
 import { cn } from "@/lib/cn"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
-import { getWorkers, type Worker } from "@/app/actions/workers"
+import RenameTab from "@/components/pdf/RenameTab"
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -547,121 +547,6 @@ const EIGYO_LABEL = "営業許可証データ"
 type DocEntry = { file: File | null; editedBlob: Blob | null; rotation: number }
 type DocSlot  = { label: string }
 
-function WorkerSearch({ onPickSerial, onPickName }: {
-  onPickSerial: (s: string) => void
-  onPickName:   (n: string) => void
-}) {
-  const [workers, setWorkers]       = useState<Worker[]>([])
-  const [q, setQ]                   = useState("")
-  const [open, setOpen]             = useState(false)
-  const [serialChosen, setSerialChosen] = useState(false)
-  const [nameChosen,   setNameChosen]   = useState(false)
-  const suppress                    = useRef(false)
-
-  useEffect(() => { getWorkers().then(setWorkers) }, [])
-
-  const results = q.trim().length > 0
-    ? workers.filter(w => {
-        const lq = q.toLowerCase()
-        return (
-          (w.worker_id ?? "").toLowerCase().includes(lq) ||
-          (w.payroll_post_id ?? "").includes(lq) ||
-          (w.name_latin ?? "").toLowerCase().includes(lq) ||
-          (w.name_kana ?? "").includes(q)
-        )
-      }).slice(0, 8)
-    : []
-
-  function close() { setOpen(false); setQ(""); setSerialChosen(false); setNameChosen(false) }
-
-  function pickSerial(serial: string, currentNameChosen: boolean) {
-    suppress.current = true
-    onPickSerial(serial)
-    setSerialChosen(true)
-    if (currentNameChosen) close()
-  }
-
-  function pickName(name: string, currentSerialChosen: boolean) {
-    suppress.current = true
-    onPickName(name)
-    setNameChosen(true)
-    if (currentSerialChosen) close()
-  }
-
-  function pickBoth(serial: string, name: string) {
-    onPickSerial(serial)
-    onPickName(name)
-    close()
-  }
-
-  const CHIP = "w-20 shrink-0 flex items-center justify-center py-2 text-[0.65rem] font-mono border-l border-[var(--border)] hover:bg-[var(--highlight)]/20 hover:text-[var(--highlight-text)] transition-colors"
-  const dim  = "text-[var(--border)] pointer-events-none"
-
-  return (
-    <div className="relative">
-      <input
-        className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] transition-colors"
-        placeholder={workers.length > 0 ? `Search from ${workers.length} workers…` : "Loading workers…"}
-        value={q}
-        onChange={e => { setQ(e.target.value); setOpen(true); setSerialChosen(false); setNameChosen(false) }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => {
-          if (suppress.current) { suppress.current = false; return }
-          setOpen(false); setSerialChosen(false); setNameChosen(false)
-        }, 150)}
-        autoComplete="off"
-      />
-      {open && q.trim().length > 0 && (
-        <div className="absolute z-20 top-full mt-1 w-full bg-[var(--bg)] border border-[var(--border)] rounded shadow-lg overflow-hidden">
-          {/* Column headers */}
-          <div className="flex border-b border-[var(--border)] bg-[var(--bg-2)]">
-            <div className="flex-1 px-3 py-1 text-[0.65rem] text-[var(--text-3)]" />
-            {(["Romaji","カナ","I番号","給与ID"] as const).map((h, i) => (
-              <div key={h} className={`w-20 shrink-0 text-center py-1 text-[0.65rem] border-l border-[var(--border)] ${i < 2 ? (nameChosen ? "text-[var(--highlight-text)]" : "text-[var(--text-3)]") : (serialChosen ? "text-[var(--highlight-text)]" : "text-[var(--text-3)]")}`}>{h}</div>
-            ))}
-          </div>
-          {results.length === 0
-            ? <p className="px-3 py-2 text-[0.75rem] text-[var(--text-3)]">No match for &ldquo;{q}&rdquo;</p>
-            : results.map(w => {
-                const latin = w.name_latin ?? ""
-                const kana  = w.name_kana  ?? ""
-                const id    = w.worker_id ?? ""
-                return (
-                  <div key={w.id} className="flex items-stretch border-b border-[var(--border)] last:border-0">
-                    {/* Worker info — not clickable */}
-                    <div className="flex-1 px-3 py-2 min-w-0">
-                      <div className="text-sm text-[var(--text)] truncate">{latin || kana || "—"}</div>
-                      {kana && latin && <div className="text-[0.65rem] text-[var(--text-3)] truncate">{kana}</div>}
-                    </div>
-                    {/* Romaji — picks name only */}
-                    <button onMouseDown={() => latin ? pickName(latin, serialChosen) : undefined}
-                      className={`${CHIP} ${!latin ? dim : ""}`}>
-                      {latin ? "Romaji" : "—"}
-                    </button>
-                    {/* カナ — picks name only */}
-                    <button onMouseDown={() => kana ? pickName(kana, serialChosen) : undefined}
-                      className={`${CHIP} ${!kana ? dim : ""}`}>
-                      {kana ? "カナ" : "—"}
-                    </button>
-                    {/* Worker ID — picks serial only */}
-                    <button onMouseDown={() => id ? pickSerial(id, nameChosen) : undefined}
-                      className={`${CHIP} ${!id ? dim : ""}`} style={{ color: id ? "var(--highlight-text)" : undefined }}>
-                      {id || "—"}
-                    </button>
-                    {/* Payroll ID — picks serial only */}
-                    <button onMouseDown={() => w.payroll_post_id ? pickSerial(w.payroll_post_id, nameChosen) : undefined}
-                      className={`${CHIP} ${!w.payroll_post_id ? dim : ""}`}>
-                      {w.payroll_post_id || "—"}
-                    </button>
-                  </div>
-                )
-              })
-          }
-        </div>
-      )}
-    </div>
-  )
-}
 
 function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }: {
   cropperReady: boolean; pdfJsReady: boolean
@@ -896,7 +781,6 @@ function DocsTab({ cropperReady, pdfJsReady, serial, setSerial, name, setName }:
       <div className="shrink-0 px-5 py-4 border-b border-[var(--border)] flex flex-col gap-3">
         <div>
           <p className="label-xs mb-1.5">Search worker</p>
-          <WorkerSearch onPickSerial={setSerial} onPickName={setName} />
         </div>
         <div className="flex gap-3">
           <div className="flex flex-col gap-1 flex-1">
@@ -1325,7 +1209,7 @@ function ScanModal({ imgSrc, onApply, onCancel }: {
 
 // ─── Page shell ───────────────────────────────────────────────────────────────
 
-type Tab = "merge" | "compress" | "docs"
+type Tab = "merge" | "compress" | "docs" | "rename"
 
 export default function PDFPage() {
   const [tab, setTab]                   = useState<Tab>("docs")
@@ -1353,6 +1237,7 @@ export default function PDFPage() {
             options={[
               { value: "docs"     as Tab, label: "Docs" },
               { value: "merge"    as Tab, label: "Merge" },
+              { value: "rename"   as Tab, label: "Rename" },
               { value: "compress" as Tab, label: "Compress" },
             ]}
             value={tab}
@@ -1362,6 +1247,7 @@ export default function PDFPage() {
 
         <ToolContent>
           {tab === "merge"    && <MergeTab    cropperReady={cropperReady} />}
+          {tab === "rename"   && <RenameTab />}
           {tab === "compress" && <CompressTab pdfJsReady={pdfJsReady} />}
           {tab === "docs"     && <DocsTab     cropperReady={cropperReady} pdfJsReady={pdfJsReady} serial={serial} setSerial={setSerial} name={name} setName={setName} />}
         </ToolContent>

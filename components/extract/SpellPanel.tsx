@@ -1,8 +1,7 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { cn } from "@/lib/cn"
-import { getWorkers, type Worker } from "@/app/actions/workers"
 
 // Katakana → example-word spelling, for reading a name out loud on the phone.
 const KANA_WORDS: Record<string, string> = {
@@ -40,20 +39,45 @@ const KANA_WORDS: Record<string, string> = {
   'ツァ':'ツァーリ','チェ':'チェス','ジェ':'ジェット','シェ':'シェフ','イェ':'イェール',
 }
 
-const SMALL_KANA = "ァィゥェォャュョヮ"
+const SMALL_KANA = "ァィゥェォャュョヮッ"
 const KATAKANA_RE = /^[゠-ヿー\s]+$/
 
+// Small kana → the full-size kana it's named after, so we can always say
+// 「小さいユ」 even when there's no example word for the combination.
+const SMALL_TO_LARGE: Record<string, string> = {
+  "ァ":"ア","ィ":"イ","ゥ":"ウ","ェ":"エ","ォ":"オ",
+  "ャ":"ヤ","ュ":"ユ","ョ":"ヨ","ヮ":"ワ","ッ":"ツ",
+}
+
+// Keep a base+small pair together only when we actually have an example word
+// for it (キャ→キャンプ). Otherwise split them, so テュ becomes テ + small ユ
+// and every character still gets a reading instead of coming up blank.
 function parseKatakana(text: string): string[] {
   const chars: string[] = []
   let i = 0
   while (i < text.length) {
-    if (i + 1 < text.length && SMALL_KANA.includes(text[i + 1])) {
-      chars.push(text[i] + text[i + 1]); i += 2
+    const pair = text[i] + (text[i + 1] ?? "")
+    if (text[i + 1] && SMALL_KANA.includes(text[i + 1]) && KANA_WORDS[pair]) {
+      chars.push(pair); i += 2
     } else {
       chars.push(text[i]); i++
     }
   }
-  return chars
+  return chars.filter(c => c.trim() !== "")
+}
+
+// How to read one character out loud. Never returns nothing — small kana fall
+// back to 「小さい◯」 and anything unknown reads as itself.
+type Reading =
+  | { kind: "word"; word: string }   // 「カメラ の カ」
+  | { kind: "plain"; text: string }  // 「ヨコボウ」「小さいユ」
+
+function readingFor(c: string): Reading {
+  if (c === "ー") return { kind: "plain", text: "ヨコボウ" }
+  // small kana first, so ュ reads as 小さいユ rather than an example word
+  if (SMALL_TO_LARGE[c]) return { kind: "plain", text: `小さい${SMALL_TO_LARGE[c]}` }
+  if (KANA_WORDS[c]) return { kind: "word", word: KANA_WORDS[c] }
+  return { kind: "plain", text: c }
 }
 
 async function fetchRomaji(text: string): Promise<string> {
@@ -80,32 +104,6 @@ export default function SpellPanel() {
   const [result, setResult]     = useState<SpellResult | null>(null)
   const [loading, setLoading]   = useState(false)
   const [copied, setCopied]     = useState(false)
-  const [workers, setWorkers]   = useState<Worker[]>([])
-  const [wq, setWq]             = useState("")
-  const [wOpen, setWOpen]       = useState(false)
-  const suppress                = useRef(false)
-
-  useEffect(() => { getWorkers().then(setWorkers) }, [])
-
-  const wResults = wq.trim().length > 0
-    ? workers.filter(w => {
-        const lq = wq.toLowerCase()
-        return (
-          (w.worker_id ?? "").toLowerCase().includes(lq) ||
-          (w.name_latin ?? "").toLowerCase().includes(lq) ||
-          (w.name_kana ?? "").includes(wq)
-        )
-      }).slice(0, 8)
-    : []
-
-  function pickWorker(kana: string) {
-    suppress.current = true
-    setInput(kana)
-    setResult(null)
-    setWq("")
-    setWOpen(false)
-  }
-
   async function run() {
     const val = input.trim()
     if (!val) return
@@ -127,7 +125,10 @@ export default function SpellPanel() {
   function copyAll() {
     if (!result) return
     const text = result.mode === "spell"
-      ? result.chars.map(c => c === "ー" ? "ヨコボウ" : KANA_WORDS[c] ? `${KANA_WORDS[c]} の ${c}` : c).join("\n")
+      ? result.chars.map(c => {
+          const r = readingFor(c)
+          return r.kind === "word" ? `${r.word} の ${c}` : r.text
+        }).join("\n")
       : result.text
     navigator.clipboard.writeText(text)
     setCopied(true)
@@ -137,38 +138,6 @@ export default function SpellPanel() {
   return (
     <div className="flex flex-col gap-3">
       <p className="label-xs">Spell / Romaji（名前の読み）</p>
-
-      {/* Worker name picker — fills spell input with katakana */}
-      <div className="relative">
-        <input
-          value={wq}
-          onChange={e => { setWq(e.target.value); setWOpen(true) }}
-          onFocus={() => setWOpen(true)}
-          onBlur={() => setTimeout(() => {
-            if (suppress.current) { suppress.current = false; return }
-            setWOpen(false)
-          }, 150)}
-          placeholder={workers.length > 0 ? `Pick worker name (${workers.length})…` : "Loading workers…"}
-          autoComplete="off"
-          className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)]"
-        />
-        {wOpen && wq.trim().length > 0 && wResults.length > 0 && (
-          <div className="absolute z-20 top-full mt-1 w-full bg-[var(--bg)] border border-[var(--border)] rounded shadow-lg overflow-hidden">
-            {wResults.map(w => {
-              const kana  = w.name_kana  ?? ""
-              const latin = w.name_latin ?? ""
-              return (
-                <button key={w.id} onMouseDown={() => pickWorker(kana || latin)}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-left border-b border-[var(--border)] last:border-0 hover:bg-[var(--bg-2)] transition-colors">
-                  <span className="flex-1 text-sm text-[var(--text)] truncate">{kana || latin || "—"}</span>
-                  {kana && latin && <span className="text-[0.65rem] text-[var(--text-3)] truncate shrink-0">{latin}</span>}
-                  {w.worker_id && <span className="text-[0.6rem] text-[var(--highlight-text)] shrink-0">{w.worker_id}</span>}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
 
       <div className="flex gap-2">
         <input
@@ -196,21 +165,27 @@ export default function SpellPanel() {
             </button>
           </div>
           {result.mode === "spell" ? (
-            <div className="divide-y divide-[var(--border-soft)] max-h-80 overflow-y-auto">
-              {result.chars.map((c, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 py-2 hover:bg-[var(--bg-2)] transition-colors">
-                  <div className="w-9 shrink-0 text-center text-lg font-bold text-[var(--highlight-text)] bg-[var(--bg-2)] rounded px-1 py-0.5 leading-tight">{c}</div>
-                  <div className="text-sm text-[var(--text)]">
-                    {c === "ー" ? <span className="text-[var(--text-3)] italic">ヨコボウ</span>
-                      : KANA_WORDS[c] ? <>
-                        <span className="font-semibold">{KANA_WORDS[c]}</span>
-                        <span className="text-[var(--text-3)] mx-1">の</span>
-                        <span className="font-bold text-[var(--highlight-text)]">{c}</span>
-                        {c === "ッ" && <span className="text-[var(--text-3)] text-xs ml-1 italic">（小ツ）</span>}
-                      </> : <span className="text-[var(--text-3)] italic">—</span>}
+            // scrolls to the bottom of the viewport, never taller than it
+            <div className="divide-y divide-[var(--border-soft)] max-h-[calc(100dvh-14rem)] overflow-y-auto">
+              {result.chars.map((c, i) => {
+                const r = readingFor(c)
+                return (
+                  <div key={i} className="flex items-center gap-3 px-3 py-2 hover:bg-[var(--bg-2)] transition-colors">
+                    <div className="w-9 shrink-0 text-center text-lg font-bold text-[var(--highlight-text)] bg-[var(--bg-2)] rounded px-1 py-0.5 leading-tight">{c}</div>
+                    <div className="text-sm text-[var(--text)]">
+                      {r.kind === "word" ? (
+                        <>
+                          <span className="font-semibold">{r.word}</span>
+                          <span className="text-[var(--text-3)] mx-1">の</span>
+                          <span className="font-bold text-[var(--highlight-text)]">{c}</span>
+                        </>
+                      ) : (
+                        <span className="text-[var(--text-2)]">{r.text}</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <div className="px-3 py-3 text-sm text-[var(--text)] leading-relaxed">{result.text}</div>

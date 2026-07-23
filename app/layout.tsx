@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/ThemeProvider"
 import Nav from "@/components/Nav"
-import FloatingNotes from "@/components/notes/FloatingNotes"
 import PostHogProvider from "@/components/PostHogProvider"
 import NoRightClick from "@/components/NoRightClick"
 import ServiceWorker from "@/components/ServiceWorker"
@@ -54,7 +53,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PostHogProvider>
           <ThemeProvider>
             <Nav />
-            <FloatingNotes />
             {children}
           </ThemeProvider>
         </PostHogProvider>

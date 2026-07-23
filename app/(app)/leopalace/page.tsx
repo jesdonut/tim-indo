@@ -1,13 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { extractGuidebook, lookupPostal, lookupPostalByAddress, type GuidebookData, type PostalResult } from "@/app/actions/extract"
-import { parsePhones, type PhoneEntry } from "@/components/extract/parsePhones"
 import { cn } from "@/lib/cn"
 import { PageHeader, PageContent } from "@/components/PageHeader"
-import { getWorkers, type Worker } from "@/app/actions/workers"
+import { Icon } from "@/components/Icon"
 import SpellPanel from "@/components/extract/SpellPanel"
-import PhoneReadPanel from "@/components/extract/PhoneReadPanel"
 
 type CopiedKey = keyof GuidebookData | "all" | null
 
@@ -21,67 +19,34 @@ const PREFECTURES = [
   "熊本県","大分県","宮崎県","鹿児島県","沖縄県",
 ]
 
-const TYPE_COLORS: Record<string, string> = {
-  "電気": "bg-blue-400/15 text-blue-600 dark:text-blue-300",
-  "ガス": "bg-orange-400/15 text-orange-600 dark:text-orange-300",
-  "水道": "bg-cyan-400/15 text-cyan-600 dark:text-cyan-300",
-  "FAX":  "bg-[var(--bg-2)] text-[var(--text-3)]",
-  "TEL":  "bg-[var(--bg-2)] text-[var(--text-2)]",
-  "鍵":   "bg-yellow-400/15 text-yellow-600 dark:text-yellow-300",
-  "光回線":"bg-purple-400/15 text-purple-600 dark:text-purple-300",
-}
+// ─── Address verification links ───────────────────────────────────────────────
+// The guidebook's 〒 and romaji reading are frequently wrong, so rather than
+// trust them, link straight out to sources that show the correct value.
 
-// ─── Single extraction panel (URL + postal) ───────────────────────────────────
-
-function WorkerUrlSearch({ onSelect }: { onSelect: (url: string) => void }) {
-  const [workers, setWorkers] = useState<Worker[]>([])
-  const [search, setSearch] = useState("")
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => { getWorkers().then(setWorkers) }, [])
-
-  const filtered = search.trim()
-    ? workers.filter(w => {
-        const q = search.toLowerCase()
-        return (w.worker_id ?? "").toLowerCase().includes(q) ||
-          (w.name_latin ?? "").toLowerCase().includes(q) ||
-          (w.name_kana ?? "").toLowerCase().includes(q)
-      }).filter(w => w.leopalace_url).slice(0, 6)
-    : []
-
+function AddressLinks({ address }: { address: string }) {
+  const q = encodeURIComponent(address)
+  const links = [
+    // Maps displays the authoritative postal code for the address
+    { href: `https://www.google.com/maps/search/?api=1&query=${q}`, label: "Maps", icon: "map" },
+    // Google Translate gives a romaji reading of the whole address
+    { href: `https://translate.google.com/?sl=ja&tl=en&op=translate&text=${q}`, label: "読み", icon: "translate" },
+    // Jisho is better for looking up an individual place-name kanji
+    { href: `https://jisho.org/search/${q}`, label: "Jisho", icon: "menu_book" },
+  ]
   return (
-    <div className="relative">
-      <input
-        className="w-full bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2 text-[0.8rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] transition-colors"
-        placeholder="Search worker by ID or name to load their Leopalace URL…"
-        value={search}
-        onChange={e => { setSearch(e.target.value); setOpen(true) }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-      />
-      {open && filtered.length > 0 && (
-        <div className="absolute z-20 top-full mt-1 w-full bg-[var(--bg)] border border-[var(--border)] rounded shadow-lg overflow-hidden">
-          {filtered.map(w => (
-            <button
-              key={w.id}
-              onMouseDown={() => { onSelect(w.leopalace_url!); setSearch(w.name_latin ?? w.worker_id ?? ""); setOpen(false) }}
-              className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-[var(--bg-2)] transition-colors"
-            >
-              <span className="text-[0.65rem] font-mono text-[var(--text-3)] w-8 shrink-0">{w.worker_id}</span>
-              <span className="text-[0.8rem] text-[var(--text)] truncate">{w.name_latin ?? w.name_kana}</span>
-              <span className="text-[0.65rem] text-[var(--text-3)] truncate ml-auto">{w.store_name ?? ""}</span>
-            </button>
-          ))}
-        </div>
-      )}
-      {open && search.trim() && filtered.length === 0 && (
-        <div className="absolute z-20 top-full mt-1 w-full bg-[var(--bg)] border border-[var(--border)] rounded shadow-lg px-3 py-2">
-          <span className="text-[0.75rem] text-[var(--text-3)]">No workers with a Leopalace URL found.</span>
-        </div>
-      )}
+    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+      {links.map(l => (
+        <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-[var(--border)] text-[0.65rem] text-[var(--text-3)] hover:text-[var(--highlight-text)] hover:border-[var(--text-2)] transition-colors">
+          <Icon name={l.icon} size={11} />
+          {l.label}
+        </a>
+      ))}
     </div>
   )
 }
+
+// ─── Single extraction panel (URL + postal) ───────────────────────────────────
 
 function UrlPanel({ label }: { label?: string }) {
   const [url, setUrl]           = useState("")
@@ -169,8 +134,6 @@ function UrlPanel({ label }: { label?: string }) {
     <div className="flex flex-col gap-4 flex-1 min-w-0">
       {label && <p className="label-xs">{label}</p>}
 
-      {/* Worker search — auto-fill URL */}
-      <WorkerUrlSearch onSelect={setUrl} />
 
       {/* URL input */}
       <div className="flex gap-2">
@@ -219,6 +182,9 @@ function UrlPanel({ label }: { label?: string }) {
                   <span className="text-sm text-[var(--text)] font-mono">{value || "—"}</span>
                   {sub && <span className="text-[0.72rem] text-[var(--text-3)]">{sub}</span>}
                   {reading && <span className="text-[0.75rem] text-[var(--text-2)]">{reading}</span>}
+                  {/* The scraped 〒 and romaji are often wrong — link out to verify.
+                      Maps shows the real postal code for the address. */}
+                  {key === "address" && value && <AddressLinks address={value} />}
                 </div>
               </div>
               {value && (
@@ -338,88 +304,24 @@ function UrlPanel({ label }: { label?: string }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ExtractPage() {
-  const [dumpText, setDumpText]       = useState("")
-  const [dumpEntries, setDumpEntries] = useState<PhoneEntry[] | null>(null)
-  const [copiedDump, setCopiedDump]   = useState<string | null>(null)
-
-  function runDump(text = dumpText) { setDumpEntries(parsePhones(text)) }
-
-  async function copyDump(text: string, key: string) {
-    await navigator.clipboard.writeText(text)
-    setCopiedDump(key)
-    setTimeout(() => setCopiedDump(null), 1200)
-  }
-
+export default function LeopalacePage() {
   return (
     <div>
-      <PageHeader title="Extract" />
+      <PageHeader title="Leopalace" />
       <PageContent>
         <div className="flex flex-col lg:flex-row gap-8 items-start">
-          {/* LEFT: name spelling + phone-number reading */}
-          <aside className="w-full lg:w-[340px] shrink-0 flex flex-col gap-8">
+          {/* LEFT: name spelling */}
+          <aside className="w-full lg:w-[340px] shrink-0">
             <SpellPanel />
-            <div className="h-px bg-[var(--border)]" />
-            <PhoneReadPanel />
           </aside>
 
           <div className="hidden lg:block w-px self-stretch bg-[var(--border)] shrink-0" />
 
-          {/* RIGHT: the two extracts, stacked (guidebook top, phone dump bottom) */}
-          <div className="flex-1 min-w-0 flex flex-col gap-8">
-            {/* URL guidebook extract — 引越し元 / 引越し先 */}
-            <section className="flex flex-col gap-3">
-              <p className="label-xs">引越しガイド抽出</p>
-              <div className="flex flex-col md:flex-row gap-6">
-                <UrlPanel label="引越し元（現住所）" />
-                <div className="hidden md:block w-px bg-[var(--border)] shrink-0" />
-                <UrlPanel label="引越し先（新住所）" />
-              </div>
-            </section>
-
-            <div className="h-px bg-[var(--border)]" />
-
-            {/* Phone-number text dump */}
-            <section className="flex flex-col gap-3">
-              <p className="label-xs">電話番号の抽出（テキスト貼り付け）</p>
-              <textarea
-                className={cn(
-                  "w-full min-h-[140px] bg-[var(--bg-2)] border border-[var(--border)] rounded px-3 py-2.5 resize-y",
-                  "text-[var(--text)] text-sm placeholder:text-[var(--text-3)]",
-                  "outline-none focus:border-[var(--text)] transition-colors font-mono"
-                )}
-                placeholder={"（電気）東京電力　0120-278-033\n（ガス）曽我部瓦斯　04-7092-1011\nTEL：04-7093-0900"}
-                value={dumpText}
-                onChange={e => { setDumpText(e.target.value); runDump(e.target.value) }}
-              />
-              {dumpEntries && dumpEntries.length === 0 && dumpText.trim() && (
-                <p className="text-sm text-[var(--text-3)]">No phone numbers found.</p>
-              )}
-              {dumpEntries && dumpEntries.length > 0 && (
-                <div className="flex flex-col divide-y divide-[var(--border-soft)]">
-                  {dumpEntries.map((e, i) => (
-                    <div key={i} className="flex items-start justify-between gap-3 py-2.5">
-                      <div className="flex flex-col gap-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {e.type && (
-                            <span className={cn("text-[0.6rem] font-bold px-1.5 py-0.5 rounded", TYPE_COLORS[e.type] ?? "bg-[var(--bg-2)] text-[var(--text-3)]")}>
-                              {e.type}
-                            </span>
-                          )}
-                          <span className="text-sm font-mono text-[var(--text)]">{e.phone}</span>
-                        </div>
-                        {e.company && <span className="text-[0.75rem] text-[var(--text-2)] truncate">{e.company}</span>}
-                      </div>
-                      <button onClick={() => copyDump(e.phone, `${i}`)}
-                        className={cn("shrink-0 text-[0.65rem] transition-all mt-0.5",
-                          copiedDump === `${i}` ? "text-green-400" : "text-[var(--text-3)] hover:text-[var(--text)]")}>
-                        {copiedDump === `${i}` ? "Copied" : "Copy"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+          {/* RIGHT: guidebook extraction — 引越し元 / 引越し先 */}
+          <div className="flex-1 min-w-0 flex flex-col md:flex-row gap-6">
+            <UrlPanel label="引越し元（現住所）" />
+            <div className="hidden md:block w-px bg-[var(--border)] shrink-0" />
+            <UrlPanel label="引越し先（新住所）" />
           </div>
         </div>
       </PageContent>

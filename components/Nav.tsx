@@ -1,39 +1,20 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useTheme } from "./ThemeProvider"
 import { Icon } from "./Icon"
 import { cn } from "@/lib/cn"
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/verify", "/join-team"]
-const AUTH_PATHS   = ["/login", "/signup", "/verify", "/join-team"]
-
 const NAV_ITEMS = [
-  { href: "/people",   label: "People" },
-  { href: "/maps",     label: "Maps" },
-  { href: "/pdf",      label: "PDF" },
-  { href: "/builder",  label: "Builder" },
-  { href: "/area",      label: "Area" },
-  { href: "/extract",   label: "Extract" },
-  { href: "/meetings",  label: "定期面談" },
-  { href: "/kyoryoku",  label: "協力確認書" },
+  { href: "/leopalace", label: "Leopalace" },
+  { href: "/pdf",       label: "PDF" },
+  { href: "/builder",   label: "Builder" },
 ]
 
 export default function Nav() {
   const pathname = usePathname()
-  const router   = useRouter()
   const { theme, toggle } = useTheme()
-
-  async function handleLogout() {
-    const { logOut } = await import("@/app/actions/auth")
-    await logOut()
-    router.push("/")
-  }
-  const isPublic = PUBLIC_PATHS.includes(pathname)
-  const isAuth = AUTH_PATHS.includes(pathname)
-
-  if (isAuth) return null
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg)]/90 backdrop-blur-md">
@@ -49,8 +30,8 @@ export default function Nav() {
           </span>
         </Link>
 
-        {/* Tabs — only shown when logged in (app pages) */}
-        {!isPublic && (
+        {/* Tabs */}
+        {(
           <nav className="flex items-center gap-0.5 overflow-x-auto scrollbar-none mx-4">
             {NAV_ITEMS.map(({ href, label }) => {
               const active = pathname === href || pathname.startsWith(href + "/")
@@ -82,31 +63,6 @@ export default function Nav() {
             <Icon name={theme === "dark" ? "light_mode" : "dark_mode"} size={14} />
             <span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
           </button>
-
-          {/* Profile + Log out — only on app pages */}
-          {!isPublic && (
-            <>
-              <button
-                onClick={() => window.location.reload()}
-                className="flex items-center px-2 py-1.5 rounded border border-[var(--border)] text-[var(--text-3)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all"
-                aria-label="Refresh"
-              >
-                <Icon name="refresh" size={14} />
-              </button>
-              <Link
-                href="/profile"
-                className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.7rem] font-medium text-[var(--text-3)] hover:text-[var(--text)] hover:border-[var(--text-2)] transition-all"
-              >
-                Profile
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1.5 rounded border border-[var(--border)] text-[0.7rem] font-medium text-[var(--text-3)] hover:text-red-400 hover:border-red-400/50 transition-all"
-              >
-                Log out
-              </button>
-            </>
-          )}
         </div>
 
       </div>

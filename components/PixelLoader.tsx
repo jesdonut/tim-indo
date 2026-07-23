@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { getTeamData } from "@/app/actions/teams"
 
 const FALLBACK_NAMES = ["Jessica", "Ben", "Dimas"]
 const CACHE_KEY = "pixelloader_names"
@@ -31,20 +30,11 @@ export default function PixelLoader({ ready = true }: { ready?: boolean }) {
   const timersRef   = useRef<ReturnType<typeof setTimeout>[]>([])
 
   useEffect(() => {
-    // Start animation immediately with cached names (instant on repeat visits)
+    // No backend any more — use the cached list if present, else the defaults.
     const cached = readCache()
-    if (cached) setNames(cached)
-
-    // Fetch fresh in background; update + re-cache if the list changed
-    getTeamData().then(data => {
-      const fresh = data?.profiles?.length
-        ? data.profiles.map(p => (p.name ?? "").split(/\s+/)[0] || p.name || "?")
-        : FALLBACK_NAMES
-      writeCache(fresh)
-      setNames(prev =>
-        JSON.stringify(prev) === JSON.stringify(fresh) ? prev : fresh
-      )
-    }).catch(() => setNames(prev => prev ?? FALLBACK_NAMES))
+    const initial = cached?.length ? cached : FALLBACK_NAMES
+    writeCache(initial)
+    setNames(initial)
   }, [])
 
   // Kick off (or redo) the typing animation whenever names load or speedup toggles

@@ -3,9 +3,7 @@
 import { useRef, useState } from "react"
 import BuilderTable, { type BuilderTableHandle } from "@/components/builder/BuilderTable"
 import TemplatePanel from "@/components/builder/TemplatePanel"
-import WorkerTemplatePanel from "@/components/builder/WorkerTemplatePanel"
 import { extractVars } from "@/components/builder/templateUtils"
-import { cn } from "@/lib/cn"
 import type { ColDef, Row } from "@/components/builder/types"
 import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 
@@ -21,7 +19,7 @@ export default function BuilderPage() {
   const [cols, setCols] = useState<ColDef[]>(DEFAULT_COLS)
   const [rows, setRows] = useState<Row[]>(DEFAULT_ROWS)
   const [template, setTemplate] = useState("")
-  const [tab, setTab] = useState<"table" | "versions" | "people">("table")
+  const [tab, setTab] = useState<"table" | "versions">("table")
   const tableRef = useRef<BuilderTableHandle>(null)
 
   function handleChange(newCols: ColDef[], newRows: Row[]) {
@@ -64,7 +62,6 @@ export default function BuilderPage() {
             options={[
               { value: "table"    as const, label: "Table" },
               { value: "versions" as const, label: "Versions", dot: hasTemplate },
-              { value: "people"   as const, label: "People" },
             ]}
             value={tab}
             onChange={setTab}
@@ -79,10 +76,6 @@ export default function BuilderPage() {
       <ToolContent className="overflow-auto">
         {tab === "table" ? (
           <BuilderTable ref={tableRef} cols={cols} rows={rows} onChange={handleChange} />
-        ) : tab === "people" ? (
-          <div className="h-full flex flex-col overflow-hidden">
-            <WorkerTemplatePanel />
-          </div>
         ) : (
           <div className="h-full flex flex-col">
             <TemplatePanel
