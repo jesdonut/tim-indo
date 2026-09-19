@@ -26,6 +26,8 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   const [busy, setBusy]         = useState(false)
   const [status, setStatus]     = useState("")
   const [dragId, setDragId]     = useState<number | null>(null)
+  const [password, setPassword] = useState("")
+  const [view, setView]         = useState<"grid" | "book">("grid")
 
   // Lightbox preview: index into `items`, plus the hi-res image for it.
   const [preview, setPreview]       = useState<number | null>(null)
@@ -126,7 +128,11 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
         if (rot) pg.setRotation(degrees((pg.getRotation().angle + rot) % 360))
         out.addPage(pg)
       })
-      const outBytes = await out.save({ useObjectStreams: true })
+      let outBytes = await out.save({ useObjectStreams: true })
+      if (password.trim()) {
+        const { protectPdf } = await import("./protect")
+        outBytes = await protectPdf(outBytes, password)
+      }
       const blob = new Blob([outBytes.buffer as ArrayBuffer], { type: "application/pdf" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -136,6 +142,46 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
     } catch (e) {
       setStatus(t("pdf.loadError") + ": " + String(e))
     } finally { setBusy(false) }
+  }
+
+  // One page cell used in the book view (read-only, click to enlarge).
+  function pageCell(i: number, label?: string) {
+    const it = items[i]
+    if (!it) return null
+    return (
+      <button key={it.id} onClick={() => setPreview(i)} title={t("common.zoom")}
+        className="relative bg-white border border-[var(--border)] overflow-hidden cursor-zoom-in flex items-center justify-center"
+        style={{ width: 150, aspectRatio: "3 / 4" }}>
+        {thumbs[it.src]
+          ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain"
+              style={{ transform: `rotate(${it.rotation}deg)` }} />
+          : <div className="text-[var(--text-3)] text-xs">…</div>}
+        <span className="absolute bottom-1 right-1 bg-black/55 text-white text-[0.58rem] rounded px-1">{i + 1}</span>
+        {label && <span className="absolute top-1 left-1 bg-black/60 text-white text-[0.55rem] rounded px-1 py-0.5">{label}</span>}
+      </button>
+    )
+  }
+
+  // Reader-spread layout: cover alone, back cover alone, everything else paired
+  // left/right like an open book.
+  function bookView() {
+    const n = items.length
+    const mid: number[] = []
+    for (let i = 1; i <= n - 2; i++) mid.push(i)
+    const pairs: number[][] = []
+    for (let i = 0; i < mid.length; i += 2) pairs.push(mid.slice(i, i + 2))
+    return (
+      <div className="flex flex-col items-center gap-6 py-2">
+        {pageCell(0, t("pdf.cover"))}
+        {pairs.map((pair, k) => (
+          <div key={k} className="flex items-stretch gap-px bg-[var(--border)] shadow-md rounded overflow-hidden">
+            {pair.map(idx => pageCell(idx))}
+          </div>
+        ))}
+        {n > 1 && pageCell(n - 1, t("pdf.backCover"))}
+        <p className="text-[0.7rem] text-[var(--text-3)] text-center">{n} {t("pdf.pagesCount")}</p>
+      </div>
+    )
   }
 
   // ── empty state: load a PDF ──
@@ -164,9 +210,24 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
         <span className="text-[0.72rem] text-[var(--text-2)]">{items.length} {t("pdf.pagesCount")}</span>
         <button onClick={() => { setBytes(null); setItems([]); setThumbs([]) }}
           className="text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)]">{t("pdf.anotherPdf")}</button>
+
+        {/* grid / book view toggle */}
+        <div className="flex rounded border border-[var(--border)] overflow-hidden">
+          {(["grid", "book"] as const).map(v => (
+            <button key={v} onClick={() => setView(v)}
+              className={cn("px-2.5 py-1 text-[0.72rem] transition-colors",
+                view === v ? "bg-[var(--text)] text-[var(--bg)]" : "text-[var(--text-3)] hover:text-[var(--text)]")}>
+              {v === "grid" ? t("pdf.viewGrid") : t("pdf.viewBook")}
+            </button>
+          ))}
+        </div>
+
         <div className="ml-auto flex items-center gap-2">
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+            placeholder={t("pdf.passwordPlaceholder")} title={t("pdf.password")} autoComplete="new-password"
+            className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] w-44" />
           <input value={outName} onChange={e => setOutName(e.target.value)}
-            className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] w-40" />
+            className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] w-36" />
           <span className="text-[0.72rem] text-[var(--text-3)]">.pdf</span>
           <button onClick={download} disabled={busy || items.length === 0}
             className="px-4 py-1.5 rounded bg-[var(--text)] text-[var(--bg)] text-[0.78rem] font-semibold hover:opacity-80 disabled:opacity-40 transition-opacity">
@@ -176,42 +237,46 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
       </div>
       {status && <p className="shrink-0 px-5 py-1.5 text-[0.75rem] text-[var(--text-2)]">{status}</p>}
 
-      {/* thumbnail grid */}
+      {/* content: editable grid OR read-only book spread */}
       <div className="flex-1 min-h-0 overflow-y-auto p-5">
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))" }}>
-          {items.map((it, i) => (
-            <div
-              key={it.id}
-              draggable
-              onDragStart={() => setDragId(it.id)}
-              onDragOver={e => e.preventDefault()}
-              onDrop={() => onDrop(it.id)}
-              className={cn(
-                "group relative border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--bg-2)] cursor-move",
-                dragId === it.id && "opacity-40"
-              )}
-            >
-              <button
-                onClick={() => setPreview(i)}
-                title={t("common.zoom")}
-                className="w-full aspect-[3/4] flex items-center justify-center bg-white overflow-hidden cursor-zoom-in">
-                {thumbs[it.src]
-                  ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain transition-transform"
-                      style={{ transform: `rotate(${it.rotation}deg)` }} />
-                  : <div className="text-[var(--text-3)] text-xs">…</div>}
-              </button>
-              {/* position number */}
-              <div className="absolute top-1 left-1 bg-black/60 text-white text-[0.62rem] rounded px-1.5 py-0.5">{i + 1}</div>
-              {/* actions */}
-              <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => rotate(i)}    title={t("common.rotate")}    className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="rotate_right" size={13} /></button>
-                <button onClick={() => duplicate(i)} title={t("common.duplicate")} className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="content_copy" size={12} /></button>
-                <button onClick={() => remove(i)}    title={t("common.delete")}    className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-red-500"><Icon name="close" size={13} /></button>
-              </div>
+        {view === "grid" ? (
+          <>
+            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))" }}>
+              {items.map((it, i) => (
+                <div
+                  key={it.id}
+                  draggable
+                  onDragStart={() => setDragId(it.id)}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={() => onDrop(it.id)}
+                  className={cn(
+                    "group relative border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--bg-2)] cursor-move",
+                    dragId === it.id && "opacity-40"
+                  )}
+                >
+                  <button
+                    onClick={() => setPreview(i)}
+                    title={t("common.zoom")}
+                    className="w-full aspect-[3/4] flex items-center justify-center bg-white overflow-hidden cursor-zoom-in">
+                    {thumbs[it.src]
+                      ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain transition-transform"
+                          style={{ transform: `rotate(${it.rotation}deg)` }} />
+                      : <div className="text-[var(--text-3)] text-xs">…</div>}
+                  </button>
+                  <div className="absolute top-1 left-1 bg-black/60 text-white text-[0.62rem] rounded px-1.5 py-0.5">{i + 1}</div>
+                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => rotate(i)}    title={t("common.rotate")}    className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="rotate_right" size={13} /></button>
+                    <button onClick={() => duplicate(i)} title={t("common.duplicate")} className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="content_copy" size={12} /></button>
+                    <button onClick={() => remove(i)}    title={t("common.delete")}    className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-red-500"><Icon name="close" size={13} /></button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <p className="mt-4 text-[0.7rem] text-[var(--text-3)]">{t("pdf.reorderHint")}</p>
+            <p className="mt-4 text-[0.7rem] text-[var(--text-3)]">{t("pdf.reorderHint")}</p>
+          </>
+        ) : (
+          bookView()
+        )}
       </div>
 
       {/* lightbox preview */}

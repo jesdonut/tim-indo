@@ -193,6 +193,7 @@ function MergeTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRe
   const [entries, setEntries]   = useState<MergeEntry[]>([])
   const [filename, setFilename] = useState("output")
   const [quality, setQuality]   = useState<"original" | Quality>("original")
+  const [password, setPassword] = useState("")
   const [saved, setSaved]       = useState<string[]>([])
   const [status, setStatus]     = useState<{ msg: string; type: "" | "error" | "success" }>({ msg: "", type: "" })
   const [progress, setProgress] = useState(-1)
@@ -286,6 +287,11 @@ function MergeTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRe
       let bytes = await pdfDoc.save({ useObjectStreams: true })
       // Optional compression, chosen at download time.
       if (quality !== "original") bytes = await compressPdfBytes(bytes, quality)
+      // Optional password protection, chosen at download time.
+      if (password.trim()) {
+        const { protectPdf } = await import("@/components/pdf/protect")
+        bytes = await protectPdf(bytes, password)
+      }
       const name  = (filename.trim() || "output").replace(/\.pdf$/i, "") + ".pdf"
       triggerDownload(bytes, name)
       setProgress(100)
@@ -406,6 +412,10 @@ function MergeTab({ cropperReady, pdfJsReady }: { cropperReady: boolean; pdfJsRe
             <option value="balanced">{t("pdf.qualityBalanced")}</option>
             <option value="small">{t("pdf.qualitySmall")}</option>
           </select>
+          {/* Optional password — applied when downloading */}
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+            placeholder={t("pdf.passwordPlaceholder")} title={t("pdf.password")} autoComplete="new-password"
+            className="w-44 rounded-lg border border-[var(--border)] bg-[var(--bg-2)] px-3 py-2.5 text-[0.8rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)]" />
           <button onClick={handleDownload} disabled={building}
             className={cn("px-5 py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] text-sm font-semibold whitespace-nowrap transition-all", building ? "opacity-50 cursor-not-allowed" : "hover:opacity-80")}>
             {building ? "Building..." : "↓ Download PDF"}
