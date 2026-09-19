@@ -28,6 +28,7 @@ export const ja: Partial<Record<MsgKey, string>> = {
   "common.delete": "削除",
   "common.download": "ダウンロード",
   "common.loading": "読み込み中…",
+  "common.zoom": "拡大",
 
   // Leopalace page
   "leo.spellTitle": "スペル / Romaji（氏名の読み）",

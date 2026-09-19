@@ -32,6 +32,7 @@ export const EN = {
   "common.delete": "Delete",
   "common.download": "Download",
   "common.loading": "Loading…",
+  "common.zoom": "Enlarge",
 
   // Leopalace page
   "leo.spellTitle": "Spell / Romaji (name reading)",

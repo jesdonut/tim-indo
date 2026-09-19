@@ -28,6 +28,7 @@ export const vi: Partial<Record<MsgKey, string>> = {
   "common.delete": "Xóa",
   "common.download": "Tải xuống",
   "common.loading": "Đang tải…",
+  "common.zoom": "Phóng to",
 
   // Leopalace page
   "leo.spellTitle": "Đánh vần / Romaji (cách đọc tên)",

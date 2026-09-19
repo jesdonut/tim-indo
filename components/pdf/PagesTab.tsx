@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
 import { useT } from "@/lib/i18n"
@@ -27,6 +27,22 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   const [status, setStatus]     = useState("")
   const [dragId, setDragId]     = useState<number | null>(null)
 
+  // Lightbox preview: index into `items`, plus the hi-res image for it.
+  const [preview, setPreview]       = useState<number | null>(null)
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null)
+  const docRef = useRef<any>(null) // cached pdf.js document, for hi-res renders
+
+  async function renderPage(srcIndex: number, scale: number): Promise<string> {
+    const page = await docRef.current.getPage(srcIndex + 1)
+    const vp = page.getViewport({ scale })
+    const canvas = document.createElement("canvas")
+    canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height)
+    const ctx = canvas.getContext("2d")!
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height)
+    await page.render({ canvasContext: ctx, viewport: vp }).promise
+    return canvas.toDataURL("image/jpeg", 0.85)
+  }
+
   async function loadFile(file: File) {
     if (!pdfJsReady || file.type !== "application/pdf") return
     setLoading(true); setStatus(""); setThumbs([]); setItems([])
@@ -35,7 +51,8 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
       const buf = new Uint8Array(await file.arrayBuffer())
       setBytes(buf)
       const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise
-      const t: string[] = []
+      docRef.current = pdf
+      const th: string[] = []
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p)
         const vp = page.getViewport({ scale: 0.4 })
@@ -44,14 +61,36 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
         const ctx = canvas.getContext("2d")!
         ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height)
         await page.render({ canvasContext: ctx, viewport: vp }).promise
-        t.push(canvas.toDataURL("image/jpeg", 0.7))
+        th.push(canvas.toDataURL("image/jpeg", 0.7))
       }
-      setThumbs(t)
-      setItems(t.map((_, i) => ({ id: ++idCtr, src: i, rotation: 0 })))
+      setThumbs(th)
+      setItems(th.map((_, i) => ({ id: ++idCtr, src: i, rotation: 0 })))
     } catch (e) {
       setStatus(t("pdf.loadError") + ": " + String(e))
     } finally { setLoading(false) }
   }
+
+  // Render the hi-res image whenever the previewed page changes.
+  useEffect(() => {
+    if (preview == null || !items[preview] || !docRef.current) { setPreviewSrc(null); return }
+    let cancelled = false
+    setPreviewSrc(null)
+    renderPage(items[preview].src, 2.0).then(src => { if (!cancelled) setPreviewSrc(src) }).catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview, items])
+
+  // Arrow keys / Esc while the lightbox is open.
+  useEffect(() => {
+    if (preview == null) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPreview(null)
+      else if (e.key === "ArrowRight") setPreview(p => (p == null ? p : Math.min(items.length - 1, p + 1)))
+      else if (e.key === "ArrowLeft")  setPreview(p => (p == null ? p : Math.max(0, p - 1)))
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [preview, items.length])
 
   const duplicate = (i: number) => setItems(prev => {
     const copy = { ...prev[i], id: ++idCtr }
@@ -152,12 +191,15 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
                 dragId === it.id && "opacity-40"
               )}
             >
-              <div className="aspect-[3/4] flex items-center justify-center bg-white overflow-hidden">
+              <button
+                onClick={() => setPreview(i)}
+                title={t("common.zoom")}
+                className="w-full aspect-[3/4] flex items-center justify-center bg-white overflow-hidden cursor-zoom-in">
                 {thumbs[it.src]
                   ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain transition-transform"
                       style={{ transform: `rotate(${it.rotation}deg)` }} />
                   : <div className="text-[var(--text-3)] text-xs">…</div>}
-              </div>
+              </button>
               {/* position number */}
               <div className="absolute top-1 left-1 bg-black/60 text-white text-[0.62rem] rounded px-1.5 py-0.5">{i + 1}</div>
               {/* actions */}
@@ -171,6 +213,44 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
         </div>
         <p className="mt-4 text-[0.7rem] text-[var(--text-3)]">{t("pdf.reorderHint")}</p>
       </div>
+
+      {/* lightbox preview */}
+      {preview != null && items[preview] && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
+          onClick={() => setPreview(null)}>
+          {/* close */}
+          <button onClick={() => setPreview(null)}
+            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/30">
+            <Icon name="close" size={18} />
+          </button>
+          {/* prev */}
+          <button
+            onClick={e => { e.stopPropagation(); setPreview(p => (p == null ? p : Math.max(0, p - 1))) }}
+            disabled={preview === 0}
+            className="absolute left-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/30 disabled:opacity-20">
+            <Icon name="chevron_left" size={22} />
+          </button>
+          {/* image */}
+          <div className="max-w-[90vw] max-h-[90vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            {previewSrc
+              ? <img src={previewSrc} alt="" className="max-w-[90vw] max-h-[85vh] object-contain shadow-2xl transition-transform"
+                  style={{ transform: `rotate(${items[preview].rotation}deg)` }} />
+              : <div className="text-white/70 text-sm">{t("common.loading")}</div>}
+          </div>
+          {/* next */}
+          <button
+            onClick={e => { e.stopPropagation(); setPreview(p => (p == null ? p : Math.min(items.length - 1, p + 1))) }}
+            disabled={preview === items.length - 1}
+            className="absolute right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/30 disabled:opacity-20">
+            <Icon name="chevron_right" size={22} />
+          </button>
+          {/* counter */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-[0.8rem] bg-white/10 rounded-full px-3 py-1">
+            {preview + 1} / {items.length}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

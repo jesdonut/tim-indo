@@ -28,6 +28,7 @@ export const my: Partial<Record<MsgKey, string>> = {
   "common.delete": "ဖျက်ရန်",
   "common.download": "ဒေါင်းလုဒ်",
   "common.loading": "ဖွင့်နေသည်…",
+  "common.zoom": "ချဲ့ရန်",
 
   // Leopalace page
   "leo.spellTitle": "စာလုံးပေါင်း / Romaji (အမည်ဖတ်ရှုခြင်း)",

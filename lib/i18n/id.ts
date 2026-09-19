@@ -28,6 +28,7 @@ export const id: Partial<Record<MsgKey, string>> = {
   "common.delete": "Hapus",
   "common.download": "Unduh",
   "common.loading": "Memuat…",
+  "common.zoom": "Perbesar",
 
   // Leopalace page
   "leo.spellTitle": "Ejaan / Romaji (cara baca nama)",
