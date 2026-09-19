@@ -27,6 +27,11 @@ export const EN = {
   "common.save": "Save",
   "common.saveAll": "Save all",
   "common.go": "Go",
+  "common.rotate": "Rotate",
+  "common.duplicate": "Duplicate",
+  "common.delete": "Delete",
+  "common.download": "Download",
+  "common.loading": "Loading…",
 
   // Leopalace page
   "leo.spellTitle": "Spell / Romaji (name reading)",
@@ -55,6 +60,16 @@ export const EN = {
   "pdf.tabRename": "Rename",
   "pdf.tabMerge": "Merge",
   "pdf.tabCompress": "Compress",
+  "pdf.tabPages": "Pages",
+
+  // PDF pages editor tab
+  "pdf.pagesSelect": "Select a PDF (reorder / duplicate / delete pages)",
+  "pdf.pagesCount": "pages",
+  "pdf.anotherPdf": "Another PDF",
+  "pdf.pagesSaved": "pages saved",
+  "pdf.reorderHint": "Drag to reorder · duplicate / rotate / delete on each page",
+  "pdf.loadError": "Load error",
+  "pdf.creating": "Creating…",
   "pdf.serialNo": "Serial No.",
   "pdf.name": "Name",
   "pdf.outputFilename": "Output filename",
