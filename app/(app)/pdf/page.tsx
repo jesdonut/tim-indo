@@ -7,6 +7,7 @@ import { PageHeader, PillTabs, ToolContent } from "@/components/PageHeader"
 import { Icon } from "@/components/Icon"
 import { useT } from "@/lib/i18n"
 import PagesTab from "@/components/pdf/PagesTab"
+import ZineTab from "@/components/pdf/ZineTab"
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -1121,7 +1122,7 @@ function ScanModal({ imgSrc, onApply, onCancel }: {
 
 // ─── Page shell ───────────────────────────────────────────────────────────────
 
-type Tab = "merge" | "docs" | "pages"
+type Tab = "merge" | "docs" | "pages" | "zine"
 
 export default function PDFPage() {
   const { t } = useT()
@@ -1151,6 +1152,7 @@ export default function PDFPage() {
               { value: "docs"     as Tab, label: t("pdf.tabDocs") },
               { value: "merge"    as Tab, label: t("pdf.tabMerge") },
               { value: "pages"    as Tab, label: t("pdf.tabPages") },
+              { value: "zine"     as Tab, label: t("pdf.tabZine") },
             ]}
             value={tab}
             onChange={setTab}
@@ -1161,6 +1163,7 @@ export default function PDFPage() {
           {tab === "merge"    && <MergeTab    cropperReady={cropperReady} pdfJsReady={pdfJsReady} />}
           {tab === "docs"     && <DocsTab     cropperReady={cropperReady} pdfJsReady={pdfJsReady} serial={serial} setSerial={setSerial} name={name} setName={setName} />}
           {tab === "pages"    && <PagesTab    pdfJsReady={pdfJsReady} />}
+          {tab === "zine"     && <ZineTab     pdfJsReady={pdfJsReady} />}
         </ToolContent>
       </div>
     </>
