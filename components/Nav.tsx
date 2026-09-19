@@ -10,8 +10,8 @@ import { useT, LANGS, type Lang } from "@/lib/i18n"
 
 // Leopalace and PDF are proper nouns; Builder is translated.
 const NAV_ITEMS: { href: string; key?: "nav.builder"; label?: string }[] = [
-  { href: "/leopalace", label: "Leopalace" },
   { href: "/pdf",       label: "PDF" },
+  { href: "/leopalace", label: "Leopalace" },
   { href: "/builder",   key: "nav.builder" },
 ]
 
