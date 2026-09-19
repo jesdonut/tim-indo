@@ -29,9 +29,12 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   const [password, setPassword] = useState("")
   const [view, setView]         = useState<"grid" | "book">("grid")
 
-  // Lightbox preview: index into `items`, plus the hi-res image for it.
+  // Lightbox preview (grid view only): index into `items` + its hi-res image.
   const [preview, setPreview]       = useState<number | null>(null)
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
+  // Book view: selected page shown large in the right pane.
+  const [bookSel, setBookSel] = useState(0)
+  const [bookSrc, setBookSrc] = useState<string | null>(null)
   const docRef = useRef<any>(null) // cached pdf.js document, for hi-res renders
 
   async function renderPage(srcIndex: number, scale: number): Promise<string> {
@@ -94,6 +97,21 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [preview, items.length])
 
+  // Keep the book selection in range as pages are added/removed.
+  useEffect(() => {
+    if (bookSel > items.length - 1) setBookSel(Math.max(0, items.length - 1))
+  }, [items.length, bookSel])
+
+  // Render the hi-res image for the book view's right pane.
+  useEffect(() => {
+    if (view !== "book" || !items[bookSel] || !docRef.current) { setBookSrc(null); return }
+    let cancelled = false
+    setBookSrc(null)
+    renderPage(items[bookSel].src, 2.0).then(src => { if (!cancelled) setBookSrc(src) }).catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, bookSel, items])
+
   const duplicate = (i: number) => setItems(prev => {
     const copy = { ...prev[i], id: ++idCtr }
     return [...prev.slice(0, i + 1), copy, ...prev.slice(i + 1)]
@@ -144,42 +162,89 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
     } finally { setBusy(false) }
   }
 
-  // One page cell used in the book view (read-only, click to enlarge).
-  function pageCell(i: number, label?: string) {
+  // A small, editable, selectable page in the book view's left rail. Click to
+  // show it large on the right; drag to reorder; hover for rotate/dup/delete.
+  function miniCell(i: number, label?: string) {
     const it = items[i]
-    if (!it) return null
+    if (!it) return <div className="w-1/2" />
     return (
-      <button key={it.id} onClick={() => setPreview(i)} title={t("common.zoom")}
-        className="relative bg-white border border-[var(--border)] overflow-hidden cursor-zoom-in flex items-center justify-center"
-        style={{ width: 150, aspectRatio: "3 / 4" }}>
-        {thumbs[it.src]
-          ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain"
-              style={{ transform: `rotate(${it.rotation}deg)` }} />
-          : <div className="text-[var(--text-3)] text-xs">…</div>}
-        <span className="absolute bottom-1 right-1 bg-black/55 text-white text-[0.58rem] rounded px-1">{i + 1}</span>
-        {label && <span className="absolute top-1 left-1 bg-black/60 text-white text-[0.55rem] rounded px-1 py-0.5">{label}</span>}
-      </button>
+      <div className="w-1/2">
+        <div
+          draggable
+          onDragStart={() => setDragId(it.id)}
+          onDragOver={e => e.preventDefault()}
+          onDrop={() => onDrop(it.id)}
+          className={cn(
+            "group relative border rounded overflow-hidden bg-white cursor-move transition-shadow",
+            dragId === it.id && "opacity-40",
+            bookSel === i ? "ring-2 ring-[var(--text)] border-[var(--text)]" : "border-[var(--border)]"
+          )}
+          style={{ aspectRatio: "3 / 4" }}
+        >
+          <button onClick={() => setBookSel(i)} className="w-full h-full flex items-center justify-center">
+            {thumbs[it.src]
+              ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain"
+                  style={{ transform: `rotate(${it.rotation}deg)` }} />
+              : <div className="text-[var(--text-3)] text-[0.6rem]">…</div>}
+          </button>
+          <span className="absolute bottom-0.5 right-0.5 bg-black/55 text-white text-[0.5rem] rounded px-1">{i + 1}</span>
+          {label && <span className="absolute top-0.5 left-0.5 bg-black/60 text-white text-[0.48rem] rounded px-1">{label}</span>}
+          <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => rotate(i)}    title={t("common.rotate")}    className="w-5 h-5 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="rotate_right" size={11} /></button>
+            <button onClick={() => duplicate(i)} title={t("common.duplicate")} className="w-5 h-5 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="content_copy" size={10} /></button>
+            <button onClick={() => remove(i)}    title={t("common.delete")}    className="w-5 h-5 flex items-center justify-center rounded bg-black/60 text-white hover:bg-red-500"><Icon name="close" size={11} /></button>
+          </div>
+        </div>
+      </div>
     )
   }
 
-  // Reader-spread layout: cover alone, back cover alone, everything else paired
-  // left/right like an open book.
+  // Book view = 20/80 split: left rail shows reader spreads (cover alone, pairs,
+  // back alone), right pane shows the selected page full-size. No lightbox here.
   function bookView() {
     const n = items.length
     const mid: number[] = []
     for (let i = 1; i <= n - 2; i++) mid.push(i)
     const pairs: number[][] = []
     for (let i = 0; i < mid.length; i += 2) pairs.push(mid.slice(i, i + 2))
+    const sel = items[bookSel]
     return (
-      <div className="flex flex-col items-center gap-6 py-2">
-        {pageCell(0, t("pdf.cover"))}
-        {pairs.map((pair, k) => (
-          <div key={k} className="flex items-stretch gap-px bg-[var(--border)] shadow-md rounded overflow-hidden">
-            {pair.map(idx => pageCell(idx))}
+      <div className="flex h-full min-h-0">
+        {/* left rail — the pages */}
+        <div className="w-1/5 min-w-[140px] max-w-[280px] shrink-0 overflow-y-auto border-r border-[var(--border)] p-3">
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-center">{miniCell(0, t("pdf.cover"))}</div>
+            {pairs.map((pair, k) => (
+              <div key={k} className="flex gap-px">
+                {miniCell(pair[0])}
+                {pair.length > 1 ? miniCell(pair[1]) : <div className="w-1/2" />}
+              </div>
+            ))}
+            {n > 1 && <div className="flex justify-center">{miniCell(n - 1, t("pdf.backCover"))}</div>}
+            <p className="text-[0.66rem] text-[var(--text-3)] text-center pt-1">{n} {t("pdf.pagesCount")}</p>
           </div>
-        ))}
-        {n > 1 && pageCell(n - 1, t("pdf.backCover"))}
-        <p className="text-[0.7rem] text-[var(--text-3)] text-center">{n} {t("pdf.pagesCount")}</p>
+        </div>
+        {/* right pane — full view of the selected page */}
+        <div className="flex-1 min-h-0 flex flex-col bg-[var(--bg-2)]">
+          <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-[var(--border)]">
+            <button onClick={() => setBookSel(s => Math.max(0, s - 1))} disabled={bookSel === 0}
+              className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] disabled:opacity-30"><Icon name="chevron_left" size={18} /></button>
+            <span className="text-[0.75rem] text-[var(--text-2)] tabular-nums">{items.length ? bookSel + 1 : 0} / {items.length}</span>
+            <button onClick={() => setBookSel(s => Math.min(items.length - 1, s + 1))} disabled={bookSel >= items.length - 1}
+              className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] disabled:opacity-30"><Icon name="chevron_right" size={18} /></button>
+            <div className="ml-auto flex items-center gap-1">
+              <button onClick={() => rotate(bookSel)}    title={t("common.rotate")}    disabled={!sel} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] disabled:opacity-30"><Icon name="rotate_right" size={15} /></button>
+              <button onClick={() => duplicate(bookSel)} title={t("common.duplicate")} disabled={!sel} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] disabled:opacity-30"><Icon name="content_copy" size={14} /></button>
+              <button onClick={() => remove(bookSel)}    title={t("common.delete")}    disabled={!sel} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] hover:text-red-400 disabled:opacity-30"><Icon name="close" size={16} /></button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6">
+            {sel && bookSrc
+              ? <img src={bookSrc} alt="" className="max-w-full max-h-full object-contain shadow-lg"
+                  style={{ transform: `rotate(${sel.rotation}deg)` }} />
+              : <div className="text-[var(--text-3)] text-sm">{t("common.loading")}</div>}
+          </div>
+        </div>
       </div>
     )
   }
@@ -237,10 +302,10 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
       </div>
       {status && <p className="shrink-0 px-5 py-1.5 text-[0.75rem] text-[var(--text-2)]">{status}</p>}
 
-      {/* content: editable grid OR read-only book spread */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-5">
+      {/* content: editable grid (with lightbox) OR book split view */}
+      <div className="flex-1 min-h-0">
         {view === "grid" ? (
-          <>
+          <div className="h-full overflow-y-auto p-5">
             <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))" }}>
               {items.map((it, i) => (
                 <div
@@ -273,7 +338,7 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
               ))}
             </div>
             <p className="mt-4 text-[0.7rem] text-[var(--text-3)]">{t("pdf.reorderHint")}</p>
-          </>
+          </div>
         ) : (
           bookView()
         )}
