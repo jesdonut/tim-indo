@@ -27,8 +27,8 @@ const LAYOUT: { page: number; col: number; top: boolean }[] = [
 ]
 
 const PAPER = {
-  a4:     { w: 841.89, h: 595.28 }, // landscape, points
-  letter: { w: 792,    h: 612    },
+  a4: { w: 841.89,  h: 595.28 }, // landscape, points → 8 A7 panels
+  a3: { w: 1190.55, h: 841.89 }, // landscape, points → 8 A6 panels (bigger zine)
 }
 type Paper = keyof typeof PAPER
 
@@ -154,7 +154,7 @@ export default function ZineTab({ pdfJsReady }: { pdfJsReady: boolean }) {
           <select value={paper} onChange={e => setPaper(e.target.value as Paper)}
             className="rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)]">
             <option value="a4">A4</option>
-            <option value="letter">Letter</option>
+            <option value="a3">A3</option>
           </select>
           <button onClick={download} disabled={busy}
             className="px-4 py-1.5 rounded bg-[var(--text)] text-[var(--bg)] text-[0.78rem] font-semibold hover:opacity-80 disabled:opacity-40 transition-opacity">
