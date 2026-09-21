@@ -5,24 +5,24 @@ import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
 import { useT } from "@/lib/i18n"
 
-// Rescale every page to a target paper size, keeping aspect ratio (scale to fit
-// width OR height). The final canvas is exactly the target size; the leftover in
-// the other dimension is placed by alignment + an optional ±mm nudge, so you
-// decide which side gets the extra (or which side gets cropped).
+// Rescale pages to a target paper size, keeping aspect ratio (fit width OR
+// height). The final canvas is exactly the target; the leftover in the other
+// dimension is placed by alignment + an optional ±mm nudge, over a chosen page
+// color. Settings apply to all pages by default, but any page can override them
+// — and a one-click "binding" helper alternates the gutter (spine) side per page
+// so left/right pages of a spread mirror correctly when bound.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const window: any
 
-const MM = 72 / 25.4              // mm → points
+const MM = 72 / 25.4
 const mm2pt = (mm: number) => mm * MM
 const hexRgb = (hex: string) => {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex || "").trim())
   const n = m ? parseInt(m[1], 16) : 0xffffff
   return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 }
 }
 
-// Presets in mm (portrait). JIS B-series is what Japan uses; ISO B5 added
-// because it is common for imported/older files (176×250).
 const SIZES: Record<string, [number, number]> = {
   A3: [297, 420], A4: [210, 297], A5: [148, 210], A6: [105, 148],
   "B4 (JIS)": [257, 364], "B5 (JIS)": [182, 257], "B6 (JIS)": [128, 182],
@@ -32,68 +32,105 @@ const SIZES: Record<string, [number, number]> = {
 type Fit = "width" | "height"
 type HAlign = "left" | "center" | "right"
 type VAlign = "top" | "center" | "bottom"
+type Settings = {
+  sizeKey: string; cw: number; ch: number; orient: boolean
+  fit: Fit; hAlign: HAlign; vAlign: VAlign; nudgeX: number; nudgeY: number; bg: string
+}
+const DEFAULTS: Settings = {
+  sizeKey: "A5", cw: 148, ch: 210, orient: true,
+  fit: "height", hAlign: "center", vAlign: "center", nudgeX: 0, nudgeY: 0, bg: "#ffffff",
+}
+type Bind = "off" | "inner" | "outer"
+const THUMB_CAP = 80
 
 export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   const { t } = useT()
   const [bytes, setBytes]   = useState<Uint8Array | null>(null)
-  const [thumb, setThumb]   = useState<string | null>(null)
-  const [dims, setDims]     = useState<{ w: number; h: number } | null>(null) // page 1, points
+  const [thumbs, setThumbs] = useState<string[]>([])
+  const [dims, setDims]     = useState<{ w: number; h: number }[]>([])
   const [count, setCount]   = useState(0)
   const [fileName, setFileName] = useState("")
   const [loading, setLoading]   = useState(false)
   const [busy, setBusy]         = useState(false)
   const [status, setStatus]     = useState("")
 
-  const [sizeKey, setSizeKey] = useState("A5")
-  const [custom, setCustom]   = useState({ w: 148, h: 210 })
-  const [orient, setOrient]   = useState(true)  // auto-match source orientation
-  const [fit, setFit]         = useState<Fit>("height")
-  const [hAlign, setHAlign]   = useState<HAlign>("center")
-  const [vAlign, setVAlign]   = useState<VAlign>("center")
-  const [nudgeX, setNudgeX]   = useState(0) // mm, + = right
-  const [nudgeY, setNudgeY]   = useState(0) // mm, + = up
-  const [bgColor, setBgColor] = useState("#ffffff") // fills the leftover / whole canvas
+  const [global, setGlobal]       = useState<Settings>(DEFAULTS)
+  const [overrides, setOverrides] = useState<Record<number, Partial<Settings>>>({})
+  const [sel, setSel]             = useState<number | "all">("all")
+  const [bind, setBind]           = useState<Bind>("off")
+
+  const eff = (i: number): Settings => ({ ...global, ...(overrides[i] || {}) })
 
   async function loadFile(file: File) {
     if (!pdfJsReady || file.type !== "application/pdf") return
-    setLoading(true); setStatus(""); setThumb(null)
+    setLoading(true); setStatus(""); setThumbs([]); setOverrides({}); setBind("off"); setSel("all")
     setFileName(file.name)
     try {
       const buf = new Uint8Array(await file.arrayBuffer())
       setBytes(buf)
       const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise
       setCount(pdf.numPages)
-      const page = await pdf.getPage(1)
-      const base = page.getViewport({ scale: 1 })
-      setDims({ w: base.width, h: base.height })
-      const vp = page.getViewport({ scale: 0.7 })
-      const canvas = document.createElement("canvas")
-      canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height)
-      const ctx = canvas.getContext("2d")!
-      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height)
-      await page.render({ canvasContext: ctx, viewport: vp }).promise
-      setThumb(canvas.toDataURL("image/jpeg", 0.75))
+      const th: string[] = [], dm: { w: number; h: number }[] = []
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p)
+        dm[p - 1] = { w: page.getViewport({ scale: 1 }).width, h: page.getViewport({ scale: 1 }).height }
+        if (p <= THUMB_CAP) {
+          const vp = page.getViewport({ scale: 0.5 })
+          const canvas = document.createElement("canvas")
+          canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height)
+          const ctx = canvas.getContext("2d")!
+          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height)
+          await page.render({ canvasContext: ctx, viewport: vp }).promise
+          th.push(canvas.toDataURL("image/jpeg", 0.7))
+        }
+      }
+      setDims(dm); setThumbs(th)
     } catch (e) {
       setStatus(t("pdf.loadError") + ": " + String(e))
     } finally { setLoading(false) }
   }
 
-  // Target size in points, oriented to match the source page when auto is on.
-  function targetPts(sw: number, sh: number): [number, number] {
-    const [mw, mh] = sizeKey === "custom" ? [custom.w, custom.h] : SIZES[sizeKey]
-    let tw = mm2pt(mw), th = mm2pt(mh)
-    if (orient && sw > sh !== tw > th) [tw, th] = [th, tw]
-    return [tw, th]
+  // Edit the current scope (all pages, or the selected page as an override).
+  function update(patch: Partial<Settings>) {
+    if (sel === "all") setGlobal(g => ({ ...g, ...patch }))
+    else setOverrides(o => ({ ...o, [sel]: { ...(o[sel] || {}), ...patch } }))
+  }
+  function resetPage() {
+    if (sel === "all") return
+    setOverrides(o => { const n = { ...o }; delete n[sel]; return n })
   }
 
-  // Where the scaled content sits inside the target canvas (points, y from bottom).
-  function place(sw: number, sh: number, tw: number, th: number) {
-    const scale = fit === "width" ? tw / sw : th / sh
+  // Binding helper: alternate horizontal gutter side per page. Page 1 (index 0)
+  // is a recto (spine on the left); "inner" puts the extra toward the spine.
+  function applyBind(mode: Bind) {
+    setBind(mode)
+    setOverrides(prev => {
+      const next: Record<number, Partial<Settings>> = {}
+      for (let i = 0; i < count; i++) {
+        const cur = { ...(prev[i] || {}) }
+        if (mode === "off") delete cur.hAlign
+        else {
+          const recto = i % 2 === 0
+          cur.hAlign = mode === "inner" ? (recto ? "left" : "right") : (recto ? "right" : "left")
+        }
+        if (Object.keys(cur).length) next[i] = cur
+      }
+      return next
+    })
+  }
+
+  function targetPts(s: Settings, sw: number, sh: number): [number, number] {
+    let tw = mm2pt(s.cw), th = mm2pt(s.ch)
+    if (s.orient && sw > sh !== tw > th) [tw, th] = [th, tw]
+    return [tw, th]
+  }
+  function place(s: Settings, sw: number, sh: number, tw: number, th: number) {
+    const scale = s.fit === "width" ? tw / sw : th / sh
     const cw = sw * scale, ch = sh * scale
-    let x = hAlign === "left" ? 0 : hAlign === "right" ? tw - cw : (tw - cw) / 2
-    let y = vAlign === "bottom" ? 0 : vAlign === "top" ? th - ch : (th - ch) / 2
-    x += mm2pt(nudgeX); y += mm2pt(nudgeY)
-    return { scale, cw, ch, x, y }
+    let x = s.hAlign === "left" ? 0 : s.hAlign === "right" ? tw - cw : (tw - cw) / 2
+    let y = s.vAlign === "bottom" ? 0 : s.vAlign === "top" ? th - ch : (th - ch) / 2
+    x += mm2pt(s.nudgeX); y += mm2pt(s.nudgeY)
+    return { cw, ch, x, y }
   }
 
   async function download() {
@@ -105,13 +142,14 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
       const pages = src.getPages()
       const out = await PDFDocument.create()
       const embeds = await out.embedPages(pages)
-      const c = hexRgb(bgColor)
       for (let i = 0; i < pages.length; i++) {
+        const s = eff(i)
         const emb = embeds[i]
-        const [tw, th] = targetPts(emb.width, emb.height)
+        const [tw, th] = targetPts(s, emb.width, emb.height)
         const page = out.addPage([tw, th])
+        const c = hexRgb(s.bg)
         page.drawRectangle({ x: 0, y: 0, width: tw, height: th, color: rgb(c.r, c.g, c.b) })
-        const { cw, ch, x, y } = place(emb.width, emb.height, tw, th)
+        const { cw, ch, x, y } = place(s, emb.width, emb.height, tw, th)
         page.drawPage(emb, { x, y, width: cw, height: ch })
       }
       const outBytes = await out.save()
@@ -145,24 +183,24 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
     )
   }
 
-  // computed geometry for readout + preview (using page 1)
-  const sw = dims?.w ?? 1, sh = dims?.h ?? 1
-  const [tw, th] = targetPts(sw, sh)
-  const { cw, ch, x, y } = place(sw, sh, tw, th)
-  const gapW = tw - cw, gapH = th - ch
+  const selPage = sel === "all" ? 0 : sel
+  const s = sel === "all" ? global : eff(sel)
+  const d = dims[selPage] ?? { w: 1, h: 1 }
+  const [tw, th] = targetPts(s, d.w, d.h)
+  const g = place(s, d.w, d.h, tw, th)
+  const gapW = tw - g.cw, gapH = th - g.ch
   const pt2mm = (p: number) => p / MM
 
-  // preview box (px)
-  const MAXD = 300
+  const MAXD = 260
   const boxW = th >= tw ? MAXD * (tw / th) : MAXD
   const boxH = th >= tw ? MAXD : MAXD * (th / tw)
-  const cwPx = boxW * (cw / tw), chPx = boxH * (ch / th)
-  const xPx = boxW * (x / tw), topPx = boxH - boxH * (y / th) - chPx
+  const cwPx = boxW * (g.cw / tw), chPx = boxH * (g.ch / th)
+  const xPx = boxW * (g.x / tw), topPx = boxH - boxH * (g.y / th) - chPx
 
-  const seg = (label: string, val: string, active: boolean, onClick: () => void) => (
+  const seg = (val: string, active: boolean, onClick: () => void) => (
     <button onClick={onClick}
       className={cn("px-2.5 py-1 text-[0.72rem] transition-colors", active ? "bg-[var(--text)] text-[var(--bg)]" : "text-[var(--text-3)] hover:text-[var(--text)]")}>
-      {val || label}
+      {val}
     </button>
   )
 
@@ -170,10 +208,19 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
     <div className="flex flex-col h-full min-h-0">
       {/* toolbar */}
       <div className="shrink-0 flex items-center gap-3 px-5 py-3 border-b border-[var(--border)] flex-wrap">
-        <span className="text-[0.75rem] text-[var(--text-3)] truncate max-w-[200px]">{fileName}</span>
+        <span className="text-[0.75rem] text-[var(--text-3)] truncate max-w-[180px]">{fileName}</span>
         <span className="text-[0.72rem] text-[var(--text-2)]">{count} {t("pdf.pagesCount")}</span>
-        <button onClick={() => { setBytes(null); setThumb(null) }}
+        <button onClick={() => { setBytes(null); setThumbs([]) }}
           className="text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)]">{t("pdf.anotherPdf")}</button>
+        {/* binding helper */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[0.72rem] text-[var(--text-3)]">{t("resize.binding")}</span>
+          <div className="flex rounded border border-[var(--border)] overflow-hidden">
+            {seg(t("resize.bindOff"),   bind === "off",   () => applyBind("off"))}
+            {seg(t("resize.bindInner"), bind === "inner", () => applyBind("inner"))}
+            {seg(t("resize.bindOuter"), bind === "outer", () => applyBind("outer"))}
+          </div>
+        </div>
         <button onClick={download} disabled={busy}
           className="ml-auto px-4 py-1.5 rounded bg-[var(--text)] text-[var(--bg)] text-[0.78rem] font-semibold hover:opacity-80 disabled:opacity-40 transition-opacity">
           {busy ? "…" : "↓ " + t("common.download")}
@@ -181,108 +228,139 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
       </div>
       {status && <p className="shrink-0 px-5 py-1.5 text-[0.75rem] text-[var(--text-2)]">{status}</p>}
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-5 flex flex-col lg:flex-row gap-8">
-        {/* controls */}
-        <div className="lg:w-80 shrink-0 flex flex-col gap-4">
-          <div>
-            <p className="label-xs mb-1">{t("resize.target")}</p>
-            <div className="flex gap-2">
-              <select value={sizeKey} onChange={e => setSizeKey(e.target.value)}
-                className="flex-1 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[0.8rem] text-[var(--text)] outline-none focus:border-[var(--text-2)]">
+      <div className="flex-1 min-h-0 flex">
+        {/* page rail */}
+        <div className="w-[120px] shrink-0 overflow-y-auto border-r border-[var(--border)] p-2 flex flex-col gap-1.5">
+          <button onClick={() => setSel("all")}
+            className={cn("text-[0.72rem] py-1.5 rounded border transition-colors",
+              sel === "all" ? "bg-[var(--text)] text-[var(--bg)] border-[var(--text)]" : "border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)]")}>
+            {t("resize.allPages")}
+          </button>
+          {Array.from({ length: Math.min(count, THUMB_CAP) }, (_, i) => (
+            <button key={i} onClick={() => setSel(i)}
+              className={cn("relative rounded overflow-hidden border bg-white", sel === i ? "ring-2 ring-[var(--text)] border-[var(--text)]" : "border-[var(--border)]")}
+              style={{ aspectRatio: "3 / 4" }}>
+              {thumbs[i]
+                ? <img src={thumbs[i]} alt="" className="w-full h-full object-contain" />
+                : <span className="text-[var(--text-3)] text-[0.55rem]">{i + 1}</span>}
+              <span className="absolute bottom-0.5 right-0.5 bg-black/55 text-white text-[0.5rem] rounded px-1">{i + 1}</span>
+              {overrides[i] && <span className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-[var(--highlight-text)]" title={t("resize.perPage")} />}
+            </button>
+          ))}
+        </div>
+
+        {/* controls + preview */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 flex flex-col lg:flex-row gap-8">
+          <div className="lg:w-80 shrink-0 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <p className="label-xs">{sel === "all" ? t("resize.allPages") : `${t("resize.page")} ${sel + 1}`}</p>
+              {sel !== "all" && overrides[sel] && (
+                <button onClick={resetPage} className="text-[0.7rem] text-[var(--text-3)] hover:text-red-400">{t("resize.resetPage")}</button>
+              )}
+            </div>
+
+            <div>
+              <p className="label-xs mb-1">{t("resize.target")}</p>
+              <select value={s.sizeKey}
+                onChange={e => {
+                  const k = e.target.value
+                  if (k === "custom") update({ sizeKey: "custom" })
+                  else update({ sizeKey: k, cw: SIZES[k][0], ch: SIZES[k][1] })
+                }}
+                className="w-full rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[0.8rem] text-[var(--text)] outline-none focus:border-[var(--text-2)]">
                 {Object.keys(SIZES).map(k => <option key={k} value={k}>{k}</option>)}
                 <option value="custom">{t("resize.custom")}</option>
               </select>
+              {s.sizeKey === "custom" && (
+                <div className="flex items-center gap-2 mt-2 text-[0.78rem]">
+                  <input type="number" value={s.cw} onChange={e => update({ cw: +e.target.value })}
+                    className="w-20 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
+                  <span className="text-[var(--text-3)]">×</span>
+                  <input type="number" value={s.ch} onChange={e => update({ ch: +e.target.value })}
+                    className="w-20 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
+                  <span className="text-[var(--text-3)]">mm</span>
+                </div>
+              )}
+              <label className="flex items-center gap-2 mt-2 text-[0.76rem] text-[var(--text-2)]">
+                <input type="checkbox" checked={s.orient} onChange={e => update({ orient: e.target.checked })} />
+                {t("resize.orient")}
+              </label>
             </div>
-            {sizeKey === "custom" && (
-              <div className="flex items-center gap-2 mt-2 text-[0.78rem]">
-                <input type="number" value={custom.w} onChange={e => setCustom(c => ({ ...c, w: +e.target.value }))}
-                  className="w-20 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
-                <span className="text-[var(--text-3)]">×</span>
-                <input type="number" value={custom.h} onChange={e => setCustom(c => ({ ...c, h: +e.target.value }))}
-                  className="w-20 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
+
+            <div>
+              <p className="label-xs mb-1">{t("pdf.pageColor")}</p>
+              <div className="flex items-center gap-2">
+                <input type="color" value={s.bg} onChange={e => update({ bg: e.target.value })}
+                  className="w-9 h-8 rounded border border-[var(--border)] bg-[var(--bg-2)] cursor-pointer p-0.5" />
+                <input value={s.bg} onChange={e => update({ bg: e.target.value })}
+                  className="w-24 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
+                <button onClick={() => update({ bg: "#ffffff" })} className="text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)]">{t("resize.white")}</button>
+              </div>
+            </div>
+
+            <div>
+              <p className="label-xs mb-1">{t("resize.fit")}</p>
+              <div className="flex rounded border border-[var(--border)] overflow-hidden w-max">
+                {seg(t("resize.fitWidth"),  s.fit === "width",  () => update({ fit: "width" }))}
+                {seg(t("resize.fitHeight"), s.fit === "height", () => update({ fit: "height" }))}
+              </div>
+            </div>
+
+            <div className="flex gap-6">
+              <div>
+                <p className="label-xs mb-1">{t("resize.hAlign")}</p>
+                <div className="flex rounded border border-[var(--border)] overflow-hidden w-max">
+                  {seg("←", s.hAlign === "left",   () => update({ hAlign: "left" }))}
+                  {seg("↔", s.hAlign === "center", () => update({ hAlign: "center" }))}
+                  {seg("→", s.hAlign === "right",  () => update({ hAlign: "right" }))}
+                </div>
+              </div>
+              <div>
+                <p className="label-xs mb-1">{t("resize.vAlign")}</p>
+                <div className="flex rounded border border-[var(--border)] overflow-hidden w-max">
+                  {seg("↑", s.vAlign === "top",    () => update({ vAlign: "top" }))}
+                  {seg("↕", s.vAlign === "center", () => update({ vAlign: "center" }))}
+                  {seg("↓", s.vAlign === "bottom", () => update({ vAlign: "bottom" }))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p className="label-xs mb-1">{t("resize.nudge")}</p>
+              <div className="flex items-center gap-3 text-[0.78rem]">
+                <label className="flex items-center gap-1.5 text-[var(--text-2)]">X
+                  <input type="number" step="0.1" value={s.nudgeX} onChange={e => update({ nudgeX: +e.target.value })}
+                    className="w-20 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[var(--text)] outline-none focus:border-[var(--text-2)]" /></label>
+                <label className="flex items-center gap-1.5 text-[var(--text-2)]">Y
+                  <input type="number" step="0.1" value={s.nudgeY} onChange={e => update({ nudgeY: +e.target.value })}
+                    className="w-20 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[var(--text)] outline-none focus:border-[var(--text-2)]" /></label>
                 <span className="text-[var(--text-3)]">mm</span>
               </div>
-            )}
-            <label className="flex items-center gap-2 mt-2 text-[0.76rem] text-[var(--text-2)]">
-              <input type="checkbox" checked={orient} onChange={e => setOrient(e.target.checked)} />
-              {t("resize.orient")}
-            </label>
-          </div>
-
-          <div>
-            <p className="label-xs mb-1">{t("pdf.pageColor")}</p>
-            <div className="flex items-center gap-2">
-              <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)}
-                className="w-9 h-8 rounded border border-[var(--border)] bg-[var(--bg-2)] cursor-pointer p-0.5" />
-              <input value={bgColor} onChange={e => setBgColor(e.target.value)}
-                className="w-24 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)]" />
-              <button onClick={() => setBgColor("#ffffff")} className="text-[0.72rem] text-[var(--text-3)] hover:text-[var(--text)]">{t("resize.white")}</button>
             </div>
-          </div>
 
-          <div>
-            <p className="label-xs mb-1">{t("resize.fit")}</p>
-            <div className="flex rounded border border-[var(--border)] overflow-hidden w-max">
-              {seg("", t("resize.fitWidth"),  fit === "width",  () => setFit("width"))}
-              {seg("", t("resize.fitHeight"), fit === "height", () => setFit("height"))}
-            </div>
-          </div>
-
-          <div className="flex gap-6">
-            <div>
-              <p className="label-xs mb-1">{t("resize.hAlign")}</p>
-              <div className="flex rounded border border-[var(--border)] overflow-hidden w-max">
-                {seg("", "←", hAlign === "left",   () => setHAlign("left"))}
-                {seg("", "↔", hAlign === "center", () => setHAlign("center"))}
-                {seg("", "→", hAlign === "right",  () => setHAlign("right"))}
-              </div>
-            </div>
-            <div>
-              <p className="label-xs mb-1">{t("resize.vAlign")}</p>
-              <div className="flex rounded border border-[var(--border)] overflow-hidden w-max">
-                {seg("", "↑", vAlign === "top",    () => setVAlign("top"))}
-                {seg("", "↕", vAlign === "center", () => setVAlign("center"))}
-                {seg("", "↓", vAlign === "bottom", () => setVAlign("bottom"))}
+            <div className="text-[0.74rem] text-[var(--text-2)] leading-relaxed border-t border-[var(--border-soft)] pt-3">
+              <div>{t("resize.source")}: {Math.round(pt2mm(d.w))}×{Math.round(pt2mm(d.h))}mm</div>
+              <div>{t("resize.targetSize")}: {Math.round(pt2mm(tw))}×{Math.round(pt2mm(th))}mm</div>
+              <div>{t("resize.scaled")}: {pt2mm(g.cw).toFixed(1)}×{pt2mm(g.ch).toFixed(1)}mm</div>
+              <div className={cn(Math.abs(gapW) > 0.05 || Math.abs(gapH) > 0.05 ? "text-amber-500" : "text-[var(--text-3)]")}>
+                {t("resize.leftover")}: X {pt2mm(gapW).toFixed(2)}mm · Y {pt2mm(gapH).toFixed(2)}mm
               </div>
             </div>
           </div>
 
-          <div>
-            <p className="label-xs mb-1">{t("resize.nudge")}</p>
-            <div className="flex items-center gap-3 text-[0.78rem]">
-              <label className="flex items-center gap-1.5 text-[var(--text-2)]">X
-                <input type="number" step="0.1" value={nudgeX} onChange={e => setNudgeX(+e.target.value)}
-                  className="w-20 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[var(--text)] outline-none focus:border-[var(--text-2)]" /></label>
-              <label className="flex items-center gap-1.5 text-[var(--text-2)]">Y
-                <input type="number" step="0.1" value={nudgeY} onChange={e => setNudgeY(+e.target.value)}
-                  className="w-20 rounded border border-[var(--border)] bg-[var(--bg-2)] px-2 py-1.5 text-[var(--text)] outline-none focus:border-[var(--text-2)]" /></label>
-              <span className="text-[var(--text-3)]">mm</span>
+          {/* preview */}
+          <div className="flex-1 min-w-0">
+            <p className="label-xs mb-2">{t("zine.sheetPreview")}{sel !== "all" && ` · ${t("resize.page")} ${sel + 1}`}</p>
+            <div className="inline-block border border-[var(--border-soft)] rounded-lg p-4 bg-[var(--bg-2)]">
+              <div className="relative border border-dashed border-[var(--text-3)]" style={{ width: boxW, height: boxH, background: s.bg }}>
+                {thumbs[selPage] && (
+                  <img src={thumbs[selPage]} alt="" className="absolute object-fill shadow"
+                    style={{ left: xPx, top: topPx, width: cwPx, height: chPx }} />
+                )}
+              </div>
             </div>
+            <p className="mt-2 text-[0.68rem] text-[var(--text-3)]">{t("resize.previewNote")}</p>
           </div>
-
-          {/* readout */}
-          <div className="text-[0.74rem] text-[var(--text-2)] leading-relaxed border-t border-[var(--border-soft)] pt-3">
-            <div>{t("resize.source")}: {Math.round(pt2mm(sw))}×{Math.round(pt2mm(sh))}mm</div>
-            <div>{t("resize.targetSize")}: {Math.round(pt2mm(tw))}×{Math.round(pt2mm(th))}mm</div>
-            <div>{t("resize.scaled")}: {pt2mm(cw).toFixed(1)}×{pt2mm(ch).toFixed(1)}mm</div>
-            <div className={cn(Math.abs(gapW) > 0.05 || Math.abs(gapH) > 0.05 ? "text-amber-500" : "text-[var(--text-3)]")}>
-              {t("resize.leftover")}: X {pt2mm(gapW).toFixed(2)}mm · Y {pt2mm(gapH).toFixed(2)}mm
-            </div>
-          </div>
-        </div>
-
-        {/* preview */}
-        <div className="flex-1 min-w-0">
-          <p className="label-xs mb-2">{t("zine.sheetPreview")}</p>
-          <div className="inline-block border border-[var(--border-soft)] rounded-lg p-4 bg-[var(--bg-2)]">
-            <div className="relative border border-dashed border-[var(--text-3)]" style={{ width: boxW, height: boxH, background: bgColor }}>
-              {thumb && (
-                <img src={thumb} alt="" className="absolute object-fill shadow"
-                  style={{ left: xPx, top: topPx, width: cwPx, height: chPx }} />
-              )}
-            </div>
-          </div>
-          <p className="mt-2 text-[0.68rem] text-[var(--text-3)]">{t("resize.previewNote")}</p>
         </div>
       </div>
     </div>
