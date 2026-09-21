@@ -12,9 +12,15 @@ import { useT } from "@/lib/i18n"
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const window: any
 
-// src = original page index; blank pages have src = -1 and carry their own size.
-type Item = { id: number; src: number; rotation: number; blank?: boolean; w?: number; h?: number }
+// src = original page index; blank pages have src = -1 and carry their own size + color.
+type Item = { id: number; src: number; rotation: number; blank?: boolean; w?: number; h?: number; color?: string }
 let idCtr = 0
+
+const hexRgb = (hex: string) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex || "").trim())
+  const n = m ? parseInt(m[1], 16) : 0xffffff
+  return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 }
+}
 
 export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   const { t } = useT()
@@ -29,6 +35,7 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   const [dragId, setDragId]     = useState<number | null>(null)
   const [dropGap, setDropGap]   = useState<number | null>(null) // insert position while dragging
   const [password, setPassword] = useState("")
+  const [blankColor, setBlankColor] = useState("#ffffff")
   const [view, setView]         = useState<"grid" | "book">("grid")
   const dimsRef = useRef<{ w: number; h: number }[]>([]) // point size per source page
 
@@ -130,7 +137,7 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
     const it = items[i]
     const d = it?.blank ? { w: it.w!, h: it.h! } : (dimsRef.current[it?.src ?? 0] ?? { w: 595.28, h: 841.89 })
     setItems(prev => {
-      const blank: Item = { id: ++idCtr, src: -1, rotation: 0, blank: true, w: d.w, h: d.h }
+      const blank: Item = { id: ++idCtr, src: -1, rotation: 0, blank: true, w: d.w, h: d.h, color: blankColor }
       return [...prev.slice(0, i + 1), blank, ...prev.slice(i + 1)]
     })
   }
@@ -169,12 +176,15 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
     if (!bytes || items.length === 0) return
     setBusy(true); setStatus(t("pdf.creating"))
     try {
-      const { PDFDocument, degrees } = await import("pdf-lib")
+      const { PDFDocument, degrees, rgb } = await import("pdf-lib")
       const src = await PDFDocument.load(bytes)
       const out = await PDFDocument.create()
       for (const it of items) {
         if (it.blank) {
-          out.addPage([it.w ?? 595.28, it.h ?? 841.89])
+          const w = it.w ?? 595.28, h = it.h ?? 841.89
+          const bp = out.addPage([w, h])
+          const c = hexRgb(it.color ?? "#ffffff")
+          bp.drawRectangle({ x: 0, y: 0, width: w, height: h, color: rgb(c.r, c.g, c.b) })
           continue
         }
         const [pg] = await out.copyPages(src, [it.src])
@@ -214,7 +224,7 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
             dragId === it.id && "opacity-40",
             bookSel === i ? "ring-2 ring-[var(--text)] border-[var(--text)]" : "border-[var(--border)]"
           )}
-          style={{ aspectRatio: "3 / 4" }}
+          style={{ aspectRatio: "3 / 4", ...(it.blank ? { background: it.color } : {}) }}
         >
           <button onClick={() => setBookSel(i)} className="w-full h-full flex items-center justify-center">
             {it.blank
@@ -279,7 +289,7 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
           </div>
           <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6">
             {sel?.blank
-              ? <div className="bg-white shadow-lg" style={{ width: "60%", aspectRatio: `${sel.w} / ${sel.h}` }} />
+              ? <div className="shadow-lg" style={{ width: "60%", aspectRatio: `${sel.w} / ${sel.h}`, background: sel.color }} />
               : sel && bookSrc
                 ? <img src={bookSrc} alt="" className="max-w-full max-h-full object-contain shadow-lg"
                     style={{ transform: `rotate(${sel.rotation}deg)` }} />
@@ -329,9 +339,12 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          <input type="color" value={blankColor} onChange={e => setBlankColor(e.target.value)}
+            title={t("pdf.blankColor")}
+            className="w-8 h-8 rounded border border-[var(--border)] bg-[var(--bg-2)] cursor-pointer p-0.5" />
           <input type="password" value={password} onChange={e => setPassword(e.target.value)}
             placeholder={t("pdf.passwordPlaceholder")} title={t("pdf.password")} autoComplete="new-password"
-            className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] w-44" />
+            className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] placeholder:text-[var(--text-3)] w-40" />
           <input value={outName} onChange={e => setOutName(e.target.value)}
             className="bg-[var(--bg-2)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[0.78rem] text-[var(--text)] outline-none focus:border-[var(--text-2)] w-36" />
           <span className="text-[0.72rem] text-[var(--text-3)]">.pdf</span>
@@ -372,6 +385,7 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
                   <button
                     onClick={() => setPreview(i)}
                     title={t("common.zoom")}
+                    style={it.blank ? { background: it.color } : undefined}
                     className="w-full aspect-[3/4] flex flex-col items-center justify-center bg-white overflow-hidden cursor-zoom-in">
                     {it.blank
                       ? <span className="text-[var(--text-3)] text-[0.6rem] text-center leading-tight">{t("pdf.blank")}<br />{Math.round((it.w ?? 0) / 72 * 25.4)}×{Math.round((it.h ?? 0) / 72 * 25.4)}mm</span>
@@ -417,7 +431,7 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
           {/* image */}
           <div className="max-w-[90vw] max-h-[90vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
             {items[preview].blank
-              ? <div className="bg-white shadow-2xl" style={{ height: "80vh", aspectRatio: `${items[preview].w} / ${items[preview].h}` }} />
+              ? <div className="shadow-2xl" style={{ height: "80vh", aspectRatio: `${items[preview].w} / ${items[preview].h}`, background: items[preview].color }} />
               : previewSrc
                 ? <img src={previewSrc} alt="" className="max-w-[90vw] max-h-[85vh] object-contain shadow-2xl transition-transform"
                     style={{ transform: `rotate(${items[preview].rotation}deg)` }} />
