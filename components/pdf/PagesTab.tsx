@@ -12,7 +12,8 @@ import { useT } from "@/lib/i18n"
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const window: any
 
-type Item = { id: number; src: number; rotation: number } // src = original page index
+// src = original page index; blank pages have src = -1 and carry their own size.
+type Item = { id: number; src: number; rotation: number; blank?: boolean; w?: number; h?: number }
 let idCtr = 0
 
 export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
@@ -26,8 +27,10 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   const [busy, setBusy]         = useState(false)
   const [status, setStatus]     = useState("")
   const [dragId, setDragId]     = useState<number | null>(null)
+  const [dropGap, setDropGap]   = useState<number | null>(null) // insert position while dragging
   const [password, setPassword] = useState("")
   const [view, setView]         = useState<"grid" | "book">("grid")
+  const dimsRef = useRef<{ w: number; h: number }[]>([]) // point size per source page
 
   // Lightbox preview (grid view only): index into `items` + its hi-res image.
   const [preview, setPreview]       = useState<number | null>(null)
@@ -57,9 +60,12 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
       setBytes(buf)
       const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise
       docRef.current = pdf
+      dimsRef.current = []
       const th: string[] = []
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p)
+        const base = page.getViewport({ scale: 1 }) // points, includes page rotation
+        dimsRef.current[p - 1] = { w: base.width, h: base.height }
         const vp = page.getViewport({ scale: 0.4 })
         const canvas = document.createElement("canvas")
         canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height)
@@ -77,7 +83,7 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
 
   // Render the hi-res image whenever the previewed page changes.
   useEffect(() => {
-    if (preview == null || !items[preview] || !docRef.current) { setPreviewSrc(null); return }
+    if (preview == null || !items[preview] || items[preview].blank || !docRef.current) { setPreviewSrc(null); return }
     let cancelled = false
     setPreviewSrc(null)
     renderPage(items[preview].src, 2.0).then(src => { if (!cancelled) setPreviewSrc(src) }).catch(() => {})
@@ -104,7 +110,7 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
 
   // Render the hi-res image for the book view's right pane.
   useEffect(() => {
-    if (view !== "book" || !items[bookSel] || !docRef.current) { setBookSrc(null); return }
+    if (view !== "book" || !items[bookSel] || items[bookSel].blank || !docRef.current) { setBookSrc(null); return }
     let cancelled = false
     setBookSrc(null)
     renderPage(items[bookSel].src, 2.0).then(src => { if (!cancelled) setBookSrc(src) }).catch(() => {})
@@ -118,6 +124,32 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   })
   const remove   = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i))
   const rotate   = (i: number) => setItems(prev => prev.map((it, idx) => idx === i ? { ...it, rotation: (it.rotation + 90) % 360 } : it))
+
+  // Insert a blank page (same point size as the reference page) right after i.
+  function insertBlankAfter(i: number) {
+    const it = items[i]
+    const d = it?.blank ? { w: it.w!, h: it.h! } : (dimsRef.current[it?.src ?? 0] ?? { w: 595.28, h: 841.89 })
+    setItems(prev => {
+      const blank: Item = { id: ++idCtr, src: -1, rotation: 0, blank: true, w: d.w, h: d.h }
+      return [...prev.slice(0, i + 1), blank, ...prev.slice(i + 1)]
+    })
+  }
+
+  // Drop the dragged page into the gap indicated while dragging.
+  function dropAtGap() {
+    if (dragId == null || dropGap == null) { setDragId(null); setDropGap(null); return }
+    setItems(prev => {
+      const from = prev.findIndex(x => x.id === dragId)
+      if (from < 0) return prev
+      let to = dropGap
+      const next = [...prev]
+      const [moved] = next.splice(from, 1)
+      if (from < to) to -= 1 // removal shifted everything after `from` left by one
+      next.splice(to, 0, moved)
+      return next
+    })
+    setDragId(null); setDropGap(null)
+  }
 
   function onDrop(targetId: number) {
     if (dragId == null || dragId === targetId) return
@@ -140,12 +172,15 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
       const { PDFDocument, degrees } = await import("pdf-lib")
       const src = await PDFDocument.load(bytes)
       const out = await PDFDocument.create()
-      const copied = await out.copyPages(src, items.map(i => i.src))
-      copied.forEach((pg, k) => {
-        const rot = items[k].rotation
-        if (rot) pg.setRotation(degrees((pg.getRotation().angle + rot) % 360))
+      for (const it of items) {
+        if (it.blank) {
+          out.addPage([it.w ?? 595.28, it.h ?? 841.89])
+          continue
+        }
+        const [pg] = await out.copyPages(src, [it.src])
+        if (it.rotation) pg.setRotation(degrees((pg.getRotation().angle + it.rotation) % 360))
         out.addPage(pg)
-      })
+      }
       let outBytes = await out.save({ useObjectStreams: true })
       if (password.trim()) {
         const { protectPdf } = await import("./protect")
@@ -182,15 +217,18 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
           style={{ aspectRatio: "3 / 4" }}
         >
           <button onClick={() => setBookSel(i)} className="w-full h-full flex items-center justify-center">
-            {thumbs[it.src]
-              ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain"
-                  style={{ transform: `rotate(${it.rotation}deg)` }} />
-              : <div className="text-[var(--text-3)] text-[0.6rem]">…</div>}
+            {it.blank
+              ? <span className="text-[var(--text-3)] text-[0.55rem]">{t("pdf.blank")}</span>
+              : thumbs[it.src]
+                ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain"
+                    style={{ transform: `rotate(${it.rotation}deg)` }} />
+                : <div className="text-[var(--text-3)] text-[0.6rem]">…</div>}
           </button>
           <span className="absolute bottom-0.5 right-0.5 bg-black/55 text-white text-[0.5rem] rounded px-1">{i + 1}</span>
           {label && <span className="absolute top-0.5 left-0.5 bg-black/60 text-white text-[0.48rem] rounded px-1">{label}</span>}
           <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => rotate(i)}    title={t("common.rotate")}    className="w-5 h-5 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="rotate_right" size={11} /></button>
+            {!it.blank && <button onClick={() => rotate(i)}    title={t("common.rotate")}    className="w-5 h-5 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="rotate_right" size={11} /></button>}
+            <button onClick={() => insertBlankAfter(i)} title={t("pdf.addBlank")} className="w-5 h-5 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="note_add" size={11} /></button>
             <button onClick={() => duplicate(i)} title={t("common.duplicate")} className="w-5 h-5 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="content_copy" size={10} /></button>
             <button onClick={() => remove(i)}    title={t("common.delete")}    className="w-5 h-5 flex items-center justify-center rounded bg-black/60 text-white hover:bg-red-500"><Icon name="close" size={11} /></button>
           </div>
@@ -233,16 +271,19 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
             <button onClick={() => setBookSel(s => Math.min(items.length - 1, s + 1))} disabled={bookSel >= items.length - 1}
               className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] disabled:opacity-30"><Icon name="chevron_right" size={18} /></button>
             <div className="ml-auto flex items-center gap-1">
-              <button onClick={() => rotate(bookSel)}    title={t("common.rotate")}    disabled={!sel} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] disabled:opacity-30"><Icon name="rotate_right" size={15} /></button>
+              <button onClick={() => rotate(bookSel)}    title={t("common.rotate")}    disabled={!sel || sel.blank} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] disabled:opacity-30"><Icon name="rotate_right" size={15} /></button>
+              <button onClick={() => insertBlankAfter(bookSel)} title={t("pdf.addBlank")} disabled={!sel} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] disabled:opacity-30"><Icon name="note_add" size={15} /></button>
               <button onClick={() => duplicate(bookSel)} title={t("common.duplicate")} disabled={!sel} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] disabled:opacity-30"><Icon name="content_copy" size={14} /></button>
               <button onClick={() => remove(bookSel)}    title={t("common.delete")}    disabled={!sel} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[var(--surface)] text-[var(--text-2)] hover:text-red-400 disabled:opacity-30"><Icon name="close" size={16} /></button>
             </div>
           </div>
           <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-6">
-            {sel && bookSrc
-              ? <img src={bookSrc} alt="" className="max-w-full max-h-full object-contain shadow-lg"
-                  style={{ transform: `rotate(${sel.rotation}deg)` }} />
-              : <div className="text-[var(--text-3)] text-sm">{t("common.loading")}</div>}
+            {sel?.blank
+              ? <div className="bg-white shadow-lg" style={{ width: "60%", aspectRatio: `${sel.w} / ${sel.h}` }} />
+              : sel && bookSrc
+                ? <img src={bookSrc} alt="" className="max-w-full max-h-full object-contain shadow-lg"
+                    style={{ transform: `rotate(${sel.rotation}deg)` }} />
+                : <div className="text-[var(--text-3)] text-sm">{t("common.loading")}</div>}
           </div>
         </div>
       </div>
@@ -312,32 +353,44 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
                   key={it.id}
                   draggable
                   onDragStart={() => setDragId(it.id)}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={() => onDrop(it.id)}
+                  onDragEnd={() => { setDragId(null); setDropGap(null) }}
+                  onDragOver={e => {
+                    e.preventDefault()
+                    const r = e.currentTarget.getBoundingClientRect()
+                    setDropGap(e.clientX > r.left + r.width / 2 ? i + 1 : i)
+                  }}
+                  onDrop={dropAtGap}
                   className={cn(
                     "group relative border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--bg-2)] cursor-move",
                     dragId === it.id && "opacity-40"
                   )}
                 >
+                  {/* insertion indicators (between pages) */}
+                  {dragId != null && dropGap === i && <div className="absolute -left-2 top-0 bottom-0 w-1 rounded bg-[var(--text)] z-10" />}
+                  {dragId != null && dropGap === i + 1 && <div className="absolute -right-2 top-0 bottom-0 w-1 rounded bg-[var(--text)] z-10" />}
+
                   <button
                     onClick={() => setPreview(i)}
                     title={t("common.zoom")}
-                    className="w-full aspect-[3/4] flex items-center justify-center bg-white overflow-hidden cursor-zoom-in">
-                    {thumbs[it.src]
-                      ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain transition-transform"
-                          style={{ transform: `rotate(${it.rotation}deg)` }} />
-                      : <div className="text-[var(--text-3)] text-xs">…</div>}
+                    className="w-full aspect-[3/4] flex flex-col items-center justify-center bg-white overflow-hidden cursor-zoom-in">
+                    {it.blank
+                      ? <span className="text-[var(--text-3)] text-[0.6rem] text-center leading-tight">{t("pdf.blank")}<br />{Math.round((it.w ?? 0) / 72 * 25.4)}×{Math.round((it.h ?? 0) / 72 * 25.4)}mm</span>
+                      : thumbs[it.src]
+                        ? <img src={thumbs[it.src]} alt="" className="max-w-full max-h-full object-contain transition-transform"
+                            style={{ transform: `rotate(${it.rotation}deg)` }} />
+                        : <div className="text-[var(--text-3)] text-xs">…</div>}
                   </button>
                   <div className="absolute top-1 left-1 bg-black/60 text-white text-[0.62rem] rounded px-1.5 py-0.5">{i + 1}</div>
                   <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => rotate(i)}    title={t("common.rotate")}    className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="rotate_right" size={13} /></button>
+                    {!it.blank && <button onClick={() => rotate(i)}    title={t("common.rotate")}    className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="rotate_right" size={13} /></button>}
+                    <button onClick={() => insertBlankAfter(i)} title={t("pdf.addBlank")} className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="note_add" size={13} /></button>
                     <button onClick={() => duplicate(i)} title={t("common.duplicate")} className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"><Icon name="content_copy" size={12} /></button>
                     <button onClick={() => remove(i)}    title={t("common.delete")}    className="w-6 h-6 flex items-center justify-center rounded bg-black/60 text-white hover:bg-red-500"><Icon name="close" size={13} /></button>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-[0.7rem] text-[var(--text-3)]">{t("pdf.reorderHint")}</p>
+            <p className="mt-4 text-[0.7rem] text-[var(--text-3)]">{t("pdf.reorderHint2")}</p>
           </div>
         ) : (
           bookView()
@@ -363,10 +416,12 @@ export default function PagesTab({ pdfJsReady }: { pdfJsReady: boolean }) {
           </button>
           {/* image */}
           <div className="max-w-[90vw] max-h-[90vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
-            {previewSrc
-              ? <img src={previewSrc} alt="" className="max-w-[90vw] max-h-[85vh] object-contain shadow-2xl transition-transform"
-                  style={{ transform: `rotate(${items[preview].rotation}deg)` }} />
-              : <div className="text-white/70 text-sm">{t("common.loading")}</div>}
+            {items[preview].blank
+              ? <div className="bg-white shadow-2xl" style={{ height: "80vh", aspectRatio: `${items[preview].w} / ${items[preview].h}` }} />
+              : previewSrc
+                ? <img src={previewSrc} alt="" className="max-w-[90vw] max-h-[85vh] object-contain shadow-2xl transition-transform"
+                    style={{ transform: `rotate(${items[preview].rotation}deg)` }} />
+                : <div className="text-white/70 text-sm">{t("common.loading")}</div>}
           </div>
           {/* next */}
           <button
