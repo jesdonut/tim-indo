@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/cn"
 import { Icon } from "@/components/Icon"
 import { useT } from "@/lib/i18n"
@@ -58,6 +58,8 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   const [overrides, setOverrides] = useState<Record<number, Partial<Settings>>>({})
   const [sel, setSel]             = useState<number | "all">("all")
   const [bind, setBind]           = useState<Bind>("off")
+  const docRef = useRef<any>(null)
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null)
 
   const eff = (i: number): Settings => ({ ...global, ...(overrides[i] || {}) })
 
@@ -69,6 +71,7 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
       const buf = new Uint8Array(await file.arrayBuffer())
       setBytes(buf)
       const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise
+      docRef.current = pdf
       setCount(pdf.numPages)
       const th: string[] = [], dm: { w: number; h: number }[] = []
       for (let p = 1; p <= pdf.numPages; p++) {
@@ -89,6 +92,28 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
       setStatus(t("pdf.loadError") + ": " + String(e))
     } finally { setLoading(false) }
   }
+
+  // Hi-res render of the selected page for the large preview.
+  useEffect(() => {
+    const idx = sel === "all" ? 0 : sel
+    if (!docRef.current || !dims[idx]) { setPreviewSrc(null); return }
+    let cancelled = false
+    setPreviewSrc(null)
+    ;(async () => {
+      try {
+        const page = await docRef.current.getPage(idx + 1)
+        const vp = page.getViewport({ scale: 1.6 })
+        const canvas = document.createElement("canvas")
+        canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height)
+        const ctx = canvas.getContext("2d")!
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height)
+        await page.render({ canvasContext: ctx, viewport: vp }).promise
+        if (!cancelled) setPreviewSrc(canvas.toDataURL("image/jpeg", 0.85))
+      } catch { /* keep thumbnail fallback */ }
+    })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sel, bytes, dims.length])
 
   // Edit the current scope (all pages, or the selected page as an override).
   function update(patch: Partial<Settings>) {
@@ -191,11 +216,12 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
   const gapW = tw - g.cw, gapH = th - g.ch
   const pt2mm = (p: number) => p / MM
 
-  const MAXD = 260
-  const boxW = th >= tw ? MAXD * (tw / th) : MAXD
-  const boxH = th >= tw ? MAXD : MAXD * (th / tw)
-  const cwPx = boxW * (g.cw / tw), chPx = boxH * (g.ch / th)
-  const xPx = boxW * (g.x / tw), topPx = boxH - boxH * (g.y / th) - chPx
+  // content position as % of the target frame (y flipped: PDF origin is bottom)
+  const leftPct = (g.x / tw) * 100
+  const topPct  = ((th - (g.y + g.ch)) / th) * 100
+  const wPct    = (g.cw / tw) * 100
+  const hPct    = (g.ch / th) * 100
+  const previewImg = previewSrc ?? thumbs[selPage] ?? null
 
   const seg = (val: string, active: boolean, onClick: () => void) => (
     <button onClick={onClick}
@@ -250,8 +276,8 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
         </div>
 
         {/* controls + preview */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 flex flex-col lg:flex-row gap-8">
-          <div className="lg:w-80 shrink-0 flex flex-col gap-4">
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+          <div className="lg:w-80 shrink-0 flex flex-col gap-4 overflow-y-auto p-5">
             <div className="flex items-center justify-between">
               <p className="label-xs">{sel === "all" ? t("resize.allPages") : `${t("resize.page")} ${sel + 1}`}</p>
               {sel !== "all" && overrides[sel] && (
@@ -348,18 +374,19 @@ export default function ResizeTab({ pdfJsReady }: { pdfJsReady: boolean }) {
             </div>
           </div>
 
-          {/* preview */}
-          <div className="flex-1 min-w-0">
-            <p className="label-xs mb-2">{t("zine.sheetPreview")}{sel !== "all" && ` · ${t("resize.page")} ${sel + 1}`}</p>
-            <div className="inline-block border border-[var(--border-soft)] rounded-lg p-4 bg-[var(--bg-2)]">
-              <div className="relative border border-dashed border-[var(--text-3)]" style={{ width: boxW, height: boxH, background: s.bg }}>
-                {thumbs[selPage] && (
-                  <img src={thumbs[selPage]} alt="" className="absolute object-fill shadow"
-                    style={{ left: xPx, top: topPx, width: cwPx, height: chPx }} />
+          {/* preview — fills the pane height */}
+          <div className="flex-1 min-w-0 min-h-0 flex flex-col p-5 border-l border-[var(--border)] bg-[var(--bg-2)]">
+            <p className="label-xs mb-2 shrink-0">{t("zine.sheetPreview")}{sel !== "all" && ` · ${t("resize.page")} ${sel + 1}`}</p>
+            <div className="flex-1 min-h-0 flex items-center justify-center">
+              <div className="relative h-full max-w-full border border-dashed border-[var(--text-3)]"
+                style={{ aspectRatio: `${tw} / ${th}`, background: s.bg }}>
+                {previewImg && (
+                  <img src={previewImg} alt="" className="absolute object-fill shadow"
+                    style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${wPct}%`, height: `${hPct}%` }} />
                 )}
               </div>
             </div>
-            <p className="mt-2 text-[0.68rem] text-[var(--text-3)]">{t("resize.previewNote")}</p>
+            <p className="mt-2 text-[0.68rem] text-[var(--text-3)] shrink-0">{t("resize.previewNote")}</p>
           </div>
         </div>
       </div>
